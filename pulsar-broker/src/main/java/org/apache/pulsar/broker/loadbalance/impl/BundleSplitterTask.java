@@ -69,6 +69,8 @@ public class BundleSplitterTask implements BundleSplitStrategy {
         bundleCache.clear();
         final ServiceConfiguration conf = pulsar.getConfiguration();
         int maxBundleCount = conf.getLoadBalancerNamespaceMaximumBundles();
+        // CETUS We set the maxBundleTopics = 1
+        // That way we disable the bundling of >1 topics into a bundle
         long maxBundleTopics = conf.getLoadBalancerNamespaceBundleMaxTopics();
         long maxBundleSessions = conf.getLoadBalancerNamespaceBundleMaxSessions();
         long maxBundleMsgRate = conf.getLoadBalancerNamespaceBundleMaxMsgRate();

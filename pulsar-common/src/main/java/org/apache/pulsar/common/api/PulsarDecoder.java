@@ -120,6 +120,8 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
                 break;
 
             case ACK:
+                // CETUS We need to handle additional information from the clients via this interface
+                // Perhaps create another type of message that contains location/network coordinate information
                 checkArgument(cmd.hasAck());
                 CommandAck ack = cmd.getAck();
                 handleAck(ack);

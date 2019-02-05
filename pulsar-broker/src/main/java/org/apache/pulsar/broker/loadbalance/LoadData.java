@@ -30,11 +30,13 @@ import org.apache.pulsar.broker.BundleData;
 public class LoadData {
     /**
      * Map from broker names to their available data.
+     * CETUS Extend the BrokerData data structure to contain the network coordinates
      */
     private final Map<String, BrokerData> brokerData;
 
     /**
      * Map from bundle names to their time-sensitive aggregated data.
+     * CETUS BundleData can contain information about Network coordinates of publishers and subscribers
      */
     private final Map<String, BundleData> bundleData;
 
