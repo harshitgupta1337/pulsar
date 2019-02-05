@@ -166,11 +166,11 @@ public class ServiceConfiguration implements PulsarConfiguration {
     @FieldContext(dynamic = true)
     private long dispatchThrottlingRatePerTopicInByte = 0;
     // Default number of message dispatching throttling-limit for a subscription.
-    // Using a value of 0, is disabling.
+    // Using a value of 0, is disabling default message dispatch-throttling.
     @FieldContext(dynamic = true)
     private int dispatchThrottlingRatePerSubscriptionInMsg = 0;
     // Default number of message-bytes dispatching throttling-limit for a subscription.
-    // Using a value of 0, is disabling.
+    // Using a value of 0, is disabling default message-byte dispatch-throttling.
     @FieldContext(dynamic = true)
     private long dispatchThrottlingRatePerSubscribeInByte = 0;
     // Default dispatch-throttling is disabled for consumers which already caught-up with published messages and
@@ -186,7 +186,7 @@ public class ServiceConfiguration implements PulsarConfiguration {
     // Max concurrent non-persistent message can be processed per connection
     private int maxConcurrentNonPersistentMessagePerConnection = 1000;
     // Number of worker threads to serve non-persistent topic
-    private int numWorkerThreadsForNonPersistentTopic = 8;
+    private int numWorkerThreadsForNonPersistentTopic = Runtime.getRuntime().availableProcessors();;
 
     // Enable broker to load persistent topics
     private boolean enablePersistentTopics = true;
@@ -451,8 +451,11 @@ public class ServiceConfiguration implements PulsarConfiguration {
     private String replicatorPrefix = "pulsar.repl";
     // Replicator producer queue size;
     private int replicationProducerQueueSize = 1000;
-    // Enable TLS when talking with other clusters to replicate messages
+    // @deprecated - Use brokerClientTlsEnabled instead.
+    @Deprecated
     private boolean replicationTlsEnabled = false;
+    // Enable TLS when talking with other brokers in the same cluster (admin operation) or different clusters (replication)
+    private boolean brokerClientTlsEnabled = false;
 
     // Default message retention time
     private int defaultRetentionTimeInMinutes = 0;
@@ -1528,13 +1531,23 @@ public class ServiceConfiguration implements PulsarConfiguration {
     public void setReplicationProducerQueueSize(int replicationProducerQueueSize) {
         this.replicationProducerQueueSize = replicationProducerQueueSize;
     }
-
+    
+    @Deprecated
     public boolean isReplicationTlsEnabled() {
         return replicationTlsEnabled;
     }
-
+    
+    @Deprecated
     public void setReplicationTlsEnabled(boolean replicationTlsEnabled) {
         this.replicationTlsEnabled = replicationTlsEnabled;
+    }
+
+    public boolean isBrokerClientTlsEnabled() {
+        return brokerClientTlsEnabled || replicationTlsEnabled;
+    }
+
+    public void setBrokerClientTlsEnabled(boolean brokerClientTlsEnabled) {
+        this.brokerClientTlsEnabled = brokerClientTlsEnabled;
     }
 
     public List<String> getBootstrapNamespaces() {

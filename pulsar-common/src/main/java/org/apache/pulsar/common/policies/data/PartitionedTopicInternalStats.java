@@ -16,27 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#ifndef LIB_COMPRESSIONCODECZLIB_H_
-#define LIB_COMPRESSIONCODECZLIB_H_
+package org.apache.pulsar.common.policies.data;
 
-#include "CompressionCodec.h"
-#include <zlib.h>
-#include <boost/thread/mutex.hpp>
+import java.util.Map;
 
-// Make symbol visible to unit tests
-#pragma GCC visibility push(default)
+import org.apache.pulsar.common.partition.PartitionedTopicMetadata;
 
-namespace pulsar {
+import com.google.common.collect.Maps;
 
-class CompressionCodecZLib : public CompressionCodec {
-   public:
-    SharedBuffer encode(const SharedBuffer& raw);
+public class PartitionedTopicInternalStats {
 
-    bool decode(const SharedBuffer& encoded, uint32_t uncompressedSize, SharedBuffer& decoded);
-};
+    public PartitionedTopicMetadata metadata;
 
-}  // namespace pulsar
+    public Map<String, PersistentTopicInternalStats> partitions;
 
-#pragma GCC visibility pop
+    public PartitionedTopicInternalStats() {
+        super();
+        metadata = new PartitionedTopicMetadata();
+        partitions = Maps.newHashMap();
+    }
 
-#endif /* LIB_COMPRESSIONCODECZLIB_H_ */
+    public PartitionedTopicInternalStats(PartitionedTopicMetadata metadata) {
+        this();
+        this.metadata = metadata;
+    }
+
+    public void reset() {
+        partitions.clear();
+        metadata.partitions = 0;
+    }
+
+}
