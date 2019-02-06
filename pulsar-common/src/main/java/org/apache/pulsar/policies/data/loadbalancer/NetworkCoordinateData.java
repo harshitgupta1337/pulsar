@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 /** 
  * This a per-broker data structure. All bundles/topics hosted on this broker have coordinates for their producers and consumers provided here
  * @author harshitg

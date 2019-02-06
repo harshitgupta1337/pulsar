@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 
@@ -77,6 +79,11 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
 
     // The version string that this broker is running, obtained from the Maven build artifact in the POM
     private String brokerVersionString;
+
+    //CETUS: Network Coordinate Addition
+    private NetworkCoordinateData coordinateData;
+
+    
     // This place-holder requires to identify correct LoadManagerReport type while deserializing
     public static final String loadReportType = LocalBrokerData.class.getSimpleName();
 
@@ -104,6 +111,7 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
         bundles = new HashSet<>();
         lastBundleGains = new HashSet<>();
         lastBundleLosses = new HashSet<>();
+        coordinateData = new NetworkCoordinateData();
     }
 
     /**
@@ -193,6 +201,11 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
         numBundles = totalNumBundles;
         numConsumers = totalNumConsumers;
         numProducers = totalNumProducers;
+    }
+
+    // CETUS: Implment to query serf service to gain network coordinate information
+
+    private void updateNetworkCoordinate() {
     }
 
     public double getMaxResourceUsage() {
@@ -424,6 +437,15 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
     @Override
     public Map<String, NamespaceBundleStats> getBundleStats() {
         return getLastStats();
+    }
+
+    // CETUS: Get and set network coordinate information for broker
+    public NetworkCoordinateData getCoordinateData() {
+        return coordinateData;
+    }
+
+    public void setCoordinate(NetworkCoordinateData coordinateData) {
+        this.coordinateData = coordinateData;
     }
 
 }
