@@ -303,6 +303,18 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
                 handleGetSchemaResponse(cmd.getGetSchemaResponse());
                 cmd.getGetSchemaResponse().recycle();
                 break;
+
+
+            // CETUS Get Producer/Consumer Coordinate
+            case GET_NETWORK_COORDINATE:
+                checkArgument(cmd.hasGetNetworkCoordinate());
+                handleGetNetworkCoordinate(cmd.getNetworkCoordinate());
+                cmd.getGetNetworkCoordinate.recycle();
+
+            case GET_NETWORK_COORDINATE_RESPONSE:
+                checkArgument(cmd.hasGetNetworkCoordinateResponse());
+                handleGetNetworkCoordinateResponse(cmd.getNetworkCoordinateReponse());
+                cmd.getGetNetworkCoordinateResponse.recycle();
             }
         } finally {
             if (cmdBuilder != null) {
@@ -451,6 +463,15 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
     }
 
     protected void handleGetSchemaResponse(CommandGetSchemaResponse commandGetSchemaResponse) {
+        throw new UnsupportedOperationException();
+    }
+
+    // CETUS: Add network coordinate handlers
+    protected void handleGetNetworkCoordinate(CommandGetNetworkCoordinate commandGetNetworkCoordinate){
+        throw new UnsupportedOperationException();
+    }
+
+    protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) {
         throw new UnsupportedOperationException();
     }
 

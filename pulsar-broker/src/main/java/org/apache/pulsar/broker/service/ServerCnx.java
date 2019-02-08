@@ -434,6 +434,48 @@ public class ServerCnx extends PulsarHandler {
         return commandConsumerStatsResponseBuilder;
     }
 
+    //CETUS: Handles the network coordinate request on the consumer.
+
+    @Override
+    protected void handleGetNetworkCoordinate(CommandGetNetworkCoordinate getNetworkCoordinate) {
+        // TODO
+        if (log.isDebugEnabled()) {
+            log.debug("Received Get Network Coordinate call from {}", remoteAddress);
+        }
+
+        final long requestId = getNetworkCoordinate.getRequestId();
+        final long consumerId = getNetworkCoordinate.getConsumerId();
+        CompletableFuture<Consumer> consumerFuture = consumers.get(consumerId);
+        Consumer consumer = consumerFuture.getNow(null);
+        ByteBuf msg = null;
+
+        if (consumer == null) {
+            log.error(
+                    "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                    remoteAddress, requestId, consumerId);
+            msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
+                    "Consumer " + consumerId + " not found", requestId);
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
+            }
+            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
+        }
+
+        ctx.writeAndFlush(msg);
+    }
+
+        //CETUS: Get network coordinate response builder for Protobuf
+         CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Consumer consumer, long requestId) {
+        CommandgetNetworkCoordinateResponse.Builder getNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        ConsumerStats consumerStats = consumer.getStats();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(consumerStats.getNetworkCoordinate());
+       
+    return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
     private String getOriginalPrincipal(String originalAuthData, String originalAuthMethod, String originalPrincipal,
             SSLSession sslSession) throws AuthenticationException {
         if (authenticateOriginalAuthData) {
