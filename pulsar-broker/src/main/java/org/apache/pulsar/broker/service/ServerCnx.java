@@ -444,29 +444,53 @@ public class ServerCnx extends PulsarHandler {
         }
 
         final long requestId = getNetworkCoordinate.getRequestId();
-        final long consumerId = getNetworkCoordinate.getConsumerId();
-        CompletableFuture<Consumer> consumerFuture = consumers.get(consumerId);
-        Consumer consumer = consumerFuture.getNow(null);
-        ByteBuf msg = null;
+        final long nodeId = getNetworkCoordinate.getNodeId();
+        final String nodeType = getNetworkCoordinate.getNodeType();
+        
+        if(nodeType.equals("consumer")) {
+            CompletableFuture<Consumer> consumerFuture = consumers.get(nodeId);
+            Consumer consumer = consumerFuture.getNow(null);
+            ByteBuf msg = null;
 
-        if (consumer == null) {
-            log.error(
-                    "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
-                    remoteAddress, requestId, consumerId);
-            msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
-                    "Consumer " + consumerId + " not found", requestId);
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
-            }
+            if (consumer == null) {
+                log.error(
+                        "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                        remoteAddress, requestId, nodeId);
+                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
+                        "Consumer " + nodeId + " not found", requestId);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
+                }
             msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
+            }
         }
+        else if(nodeType.equals("producer")) {
+            CompletableFuture<Producer> producerFuture = producers.get(consumerId);
+            Producer producer = producerFuture.getNow(null);
+            ByteBuf msg = null;
+
+            if (producer == null) {
+                log.error(
+                        "Failed to get network coordinate response - Producer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                        remoteAddress, requestId, consumerId);
+                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ProducerNotFound,
+                        "Producer " + consumerId + " not found", requestId);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("CommandGetNetworkCoordinate[requestId = {}, producer = {}]", requestId, consumer);
+                }
+            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(producer, requestId));
+            }
+
+        }
+            
 
         ctx.writeAndFlush(msg);
     }
 
-        //CETUS: Get network coordinate response builder for Protobuf
-         CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Consumer consumer, long requestId) {
+     //CETUS: Get network coordinate response builder for Protobuf
+     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Consumer consumer, long requestId) {
         CommandgetNetworkCoordinateResponse.Builder getNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         ConsumerStats consumerStats = consumer.getStats();
@@ -475,6 +499,17 @@ public class ServerCnx extends PulsarHandler {
        
     return commandGetNetworkCoordinateResponseBuilder;     
     }
+
+     //CETUS: Get network coordinate response builder for Protobuf
+    CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Producer producer, long requestId) {
+        CommandgetNetworkCoordinateResponse.Builder getNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        ProducerStats producerStats = producer.getStats();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(producerStats.getNetworkCoordinate());
+       
+    return commandGetNetworkCoordinateResponseBuilder;     
+    } 
 
     private String getOriginalPrincipal(String originalAuthData, String originalAuthMethod, String originalPrincipal,
             SSLSession sslSession) throws AuthenticationException {

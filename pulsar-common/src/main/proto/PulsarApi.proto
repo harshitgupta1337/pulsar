@@ -497,6 +497,24 @@ message CommandConsumerStatsResponse {
         optional uint64 msgBacklog                  = 15;
 }
 
+// CETUS: Adding get coordinate command, generic to consumer or producer
+message CommandGetNetworkCoordinate {
+        required uint64 request_id          = 1;
+        
+        // Consumer or producer Id
+        required uint64 nodeId              = 2;
+
+        // "producer" or "consumer"
+        required string nodeType            = 3;
+}
+
+
+// CETUS: Receiving the coordinates
+message CommandGetNetworkCoordinateResponse {
+        required uint64 request_id          = 1;
+        repeated double coordinates         = 2; 
+}
+
 message CommandGetLastMessageId {
 	required uint64 consumer_id = 1;
 	required uint64 request_id  = 2;
@@ -646,4 +664,7 @@ message BaseCommand {
 
 	optional CommandGetSchema getSchema = 34;
 	optional CommandGetSchemaResponse getSchemaResponse = 35;
+
+    optional CommandGetNetworkCoordinate getNetworkCoordinate = 36;
+    optional CommandGetNetworkCoordinateResponse getNetworkCoordinateResponse = 37;
 }
