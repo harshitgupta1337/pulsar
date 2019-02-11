@@ -511,8 +511,17 @@ message CommandGetNetworkCoordinate {
 
 // CETUS: Receiving the coordinates
 message CommandGetNetworkCoordinateResponse {
+
+        // Request Id
         required uint64 request_id          = 1;
-        repeated double coordinates         = 2; 
+
+        optional double error               = 2; 
+
+        optional double height              = 3;
+
+        optional double adjustment          = 4;
+        // coordinates
+        repeated double coordinates         = 5; 
 }
 
 message CommandGetLastMessageId {

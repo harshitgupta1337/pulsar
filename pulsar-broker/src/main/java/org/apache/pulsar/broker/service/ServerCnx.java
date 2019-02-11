@@ -506,8 +506,14 @@ public class ServerCnx extends PulsarHandler {
                 .newBuilder();
         ProducerStats producerStats = producer.getStats();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(producerStats.getNetworkCoordinate());
-       
+        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
+        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
+        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < 8; i++) {
+            commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(i, coordinateVector[i]);
+        }
     return commandGetNetworkCoordinateResponseBuilder;     
     } 
 
