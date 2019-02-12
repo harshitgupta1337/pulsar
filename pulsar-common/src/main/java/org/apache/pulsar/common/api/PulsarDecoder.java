@@ -59,6 +59,12 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandUnsubscribe;
 import org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream;
+
+// CETUS
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//*****************************************/
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -308,13 +314,13 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
             // CETUS Get Producer/Consumer Coordinate
             case GET_NETWORK_COORDINATE:
                 checkArgument(cmd.hasGetNetworkCoordinate());
-                handleGetNetworkCoordinate(cmd.getNetworkCoordinate());
-                cmd.getGetNetworkCoordinate.recycle();
+                handleGetNetworkCoordinate(cmd.getGetNetworkCoordinate());
+                cmd.getGetNetworkCoordinate().recycle();
 
             case GET_NETWORK_COORDINATE_RESPONSE:
                 checkArgument(cmd.hasGetNetworkCoordinateResponse());
-                handleGetNetworkCoordinateResponse(cmd.getNetworkCoordinateReponse());
-                cmd.getGetNetworkCoordinateResponse.recycle();
+                handleGetNetworkCoordinateResponse(cmd.getGetNetworkCoordinateResponse());
+                cmd.getGetNetworkCoordinateResponse().recycle();
             }
         } finally {
             if (cmdBuilder != null) {

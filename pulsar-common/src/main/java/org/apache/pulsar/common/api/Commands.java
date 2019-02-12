@@ -81,6 +81,10 @@ import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageMetadata;
 import org.apache.pulsar.common.api.proto.PulsarApi.ProtocolVersion;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
+//CETUS
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+//***************************************************************
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.common.schema.SchemaVersion;
@@ -735,6 +739,33 @@ public class Commands {
         ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.CONSUMER_STATS_RESPONSE)
                 .setConsumerStatsResponse(builder));
         commandConsumerStatsResponse.recycle();
+        builder.recycle();
+        return res;
+    }
+   
+
+    //CETUS impl of new bytebuf builder 
+     public static ByteBuf newGetNetworkCoordinateResponse(ServerError serverError, String errMsg, long requestId) {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        commandGetNetworkCoordinateResponseBuilder.setErrorMessage(errMsg);
+        commandGetNetworkCoordinateResponseBuilder.setErrorCode(serverError);
+
+        CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse = commandGetNetworkCoordinateResponseBuilder.build();
+        ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.GET_NETWORK_COORDINATE_RESPONSE)
+                .setGetNetworkCoordinateResponse(commandGetNetworkCoordinateResponseBuilder));
+        commandGetNetworkCoordinateResponse.recycle();
+        commandGetNetworkCoordinateResponseBuilder.recycle();
+        return res;
+    }
+
+    // CETUS
+    public static ByteBuf newGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse.Builder builder) {
+        CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse = builder.build();
+        ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.GET_NETWORK_COORDINATE_RESPONSE)
+                .setGetNetworkCoordinateResponse(builder));
+        commandGetNetworkCoordinateResponse.recycle();
         builder.recycle();
         return res;
     }

@@ -515,13 +515,16 @@ message CommandGetNetworkCoordinateResponse {
         // Request Id
         required uint64 request_id          = 1;
 
-        optional double error               = 2; 
+        optional ServerError error_code         = 2;
+        optional string error_message           = 3;
 
-        optional double height              = 3;
+        optional double error               = 4; 
 
-        optional double adjustment          = 4;
+        optional double height              = 5;
+
+        optional double adjustment          = 6;
         // coordinates
-        repeated double coordinates         = 5; 
+        //optional repeated double coordinates         = 7; 
 }
 
 message CommandGetLastMessageId {
@@ -621,6 +624,9 @@ message BaseCommand {
 
 		GET_SCHEMA = 34;
 		GET_SCHEMA_RESPONSE = 35;
+
+        GET_NETWORK_COORDINATE = 36;
+        GET_NETWORK_COORDINATE_RESPONSE = 37;
 	}
 
 

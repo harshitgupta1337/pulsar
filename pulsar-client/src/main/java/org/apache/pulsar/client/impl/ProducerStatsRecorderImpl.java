@@ -25,6 +25,10 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.pulsar.client.api.ProducerStats;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+
+//CETUS Includes
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//***************************************
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +65,10 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
     private volatile double sendBytesRate;
     private volatile double[] latencyPctValues;
 
+    //CETUS
+
+    private NetworkCoordinate coordinate;
+
     private static final double[] PERCENTILES = { 0.5, 0.75, 0.95, 0.99, 0.999, 1.0 };
 
     public ProducerStatsRecorderImpl() {
@@ -72,6 +80,7 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         totalBytesSent = null;
         totalSendFailed = null;
         totalAcksReceived = null;
+        coordinate = null;
         ds = null;
     }
 
@@ -88,6 +97,7 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         totalBytesSent = new LongAdder();
         totalSendFailed = new LongAdder();
         totalAcksReceived = new LongAdder();
+        coordinate = new NetworkCoordinate();
         ds = DoublesSketch.builder().build(256);
         init(conf);
     }
@@ -301,6 +311,10 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
             statTimeout.cancel();
             statTimeout = null;
         }
+    }
+
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
     }
 
     private static final Logger log = LoggerFactory.getLogger(ProducerStatsRecorderImpl.class);

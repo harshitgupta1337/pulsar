@@ -88,6 +88,12 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.InitialPosition;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.SubType;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandUnsubscribe;
+
+//CETUS INCLUDES
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//**************************************************************
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageMetadata;
 import org.apache.pulsar.common.api.proto.PulsarApi.ProtocolVersion;
@@ -466,7 +472,7 @@ public class ServerCnx extends PulsarHandler {
             }
         }
         else if(nodeType.equals("producer")) {
-            CompletableFuture<Producer> producerFuture = producers.get(consumerId);
+            CompletableFuture<Producer> producerFuture = producers.get(nodeId);
             Producer producer = producerFuture.getNow(null);
             ByteBuf msg = null;
 
@@ -491,10 +497,18 @@ public class ServerCnx extends PulsarHandler {
 
      //CETUS: Get network coordinate response builder for Protobuf
      CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Consumer consumer, long requestId) {
-        CommandgetNetworkCoordinateResponse.Builder getNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         ConsumerStats consumerStats = consumer.getStats();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
+        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
+        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < 8; i++) {
+            commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(i, coordinateVector[i]);
+        }
         commandGetNetworkCoordinateResponseBuilder.setNetworkCoordinate(consumerStats.getNetworkCoordinate());
        
     return commandGetNetworkCoordinateResponseBuilder;     
@@ -502,7 +516,7 @@ public class ServerCnx extends PulsarHandler {
 
      //CETUS: Get network coordinate response builder for Protobuf
     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(Producer producer, long requestId) {
-        CommandgetNetworkCoordinateResponse.Builder getNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         ProducerStats producerStats = producer.getStats();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);

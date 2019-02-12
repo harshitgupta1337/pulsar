@@ -19,7 +19,7 @@
 package org.apache.pulsar.client.api;
 
 import java.io.Serializable;
-
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 /**
  * Producer statistics recorded by client.
  *
@@ -106,5 +106,9 @@ public interface ProducerStats extends Serializable {
      * @return the total number of send acknowledges received by broker
      */
     long getTotalAcksReceived();
+
+    //CETUS: Network Coordinate
+
+    NetworkCoordinate getNetworkCoordinate();
 
 }

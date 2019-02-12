@@ -19,6 +19,7 @@
 package org.apache.pulsar.client.api;
 
 import java.io.Serializable;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 
 /**
  * Consumer statistics recorded by client.
@@ -87,4 +88,8 @@ public interface ConsumerStats extends Serializable {
      * @return Total number of message acknowledgments failures on this consumer
      */
     long getTotalAcksFailed();
+
+
+    // CETUS get network coordinate
+    NetworkCoordinate getNetworkCoordinate();
 }
