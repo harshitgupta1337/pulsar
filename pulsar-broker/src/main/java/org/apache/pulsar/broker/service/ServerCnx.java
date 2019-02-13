@@ -440,6 +440,7 @@ public class ServerCnx extends PulsarHandler {
         return commandConsumerStatsResponseBuilder;
     }
 
+    /*
     //CETUS: Handles the network coordinate request on the consumer.
 
     @Override
@@ -531,6 +532,7 @@ public class ServerCnx extends PulsarHandler {
     return commandGetNetworkCoordinateResponseBuilder;     
     } 
 
+    */
     private String getOriginalPrincipal(String originalAuthData, String originalAuthMethod, String originalPrincipal,
             SSLSession sslSession) throws AuthenticationException {
         if (authenticateOriginalAuthData) {

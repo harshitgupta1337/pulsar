@@ -72,6 +72,7 @@ public final class PulsarApi {
     TopicTerminatedError(15, 15),
     ProducerBusy(16, 16),
     InvalidTopicName(17, 17),
+    ProducerNotFound(18, 18),
     ;
     
     public static final int UnknownError_VALUE = 0;
@@ -92,6 +93,7 @@ public final class PulsarApi {
     public static final int TopicTerminatedError_VALUE = 15;
     public static final int ProducerBusy_VALUE = 16;
     public static final int InvalidTopicName_VALUE = 17;
+    public static final int ProducerNotFound_VALUE = 18;
     
     
     public final int getNumber() { return value; }
@@ -116,6 +118,7 @@ public final class PulsarApi {
         case 15: return TopicTerminatedError;
         case 16: return ProducerBusy;
         case 17: return InvalidTopicName;
+        case 18: return ProducerNotFound;
         default: return null;
       }
     }
@@ -1481,6 +1484,334 @@ public final class PulsarApi {
     }
     
     // @@protoc_insertion_point(class_scope:pulsar.proto.MessageIdData)
+  }
+  
+  public interface CoordinateVectorOrBuilder
+      extends org.apache.pulsar.shaded.com.google.protobuf.v241.MessageLiteOrBuilder {
+    
+    // required double coordinate = 1;
+    boolean hasCoordinate();
+    double getCoordinate();
+  }
+  public static final class CoordinateVector extends
+      org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
+      implements CoordinateVectorOrBuilder, org.apache.pulsar.common.util.protobuf.ByteBufCodedOutputStream.ByteBufGeneratedMessage  {
+    // Use CoordinateVector.newBuilder() to construct.
+    private io.netty.util.Recycler.Handle handle;
+    private CoordinateVector(io.netty.util.Recycler.Handle handle) {
+      this.handle = handle;
+    }
+    
+     private static final io.netty.util.Recycler<CoordinateVector> RECYCLER = new io.netty.util.Recycler<CoordinateVector>() {
+            protected CoordinateVector newObject(Handle handle) {
+              return new CoordinateVector(handle);
+            }
+          };
+        
+        public void recycle() {
+            this.initFields();
+            this.memoizedIsInitialized = -1;
+            this.bitField0_ = 0;
+            this.memoizedSerializedSize = -1;
+            if (handle != null) { RECYCLER.recycle(this, handle); }
+        }
+         
+    private CoordinateVector(boolean noInit) {}
+    
+    private static final CoordinateVector defaultInstance;
+    public static CoordinateVector getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public CoordinateVector getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    private int bitField0_;
+    // required double coordinate = 1;
+    public static final int COORDINATE_FIELD_NUMBER = 1;
+    private double coordinate_;
+    public boolean hasCoordinate() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    public double getCoordinate() {
+      return coordinate_;
+    }
+    
+    private void initFields() {
+      coordinate_ = 0D;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+      
+      if (!hasCoordinate()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+    
+    public void writeTo(org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream output)
+                        throws java.io.IOException {
+        throw new RuntimeException("Cannot use CodedOutputStream");
+    }
+    
+    public void writeTo(org.apache.pulsar.common.util.protobuf.ByteBufCodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeDouble(1, coordinate_);
+      }
+    }
+    
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+    
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeDoubleSize(1, coordinate_);
+      }
+      memoizedSerializedSize = size;
+      return size;
+    }
+    
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+    
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString data)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+         throw new RuntimeException("Disabled");
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString data,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+         throw new RuntimeException("Disabled");
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(byte[] data)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        byte[] data,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        java.io.InputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseDelimitedFrom(
+        java.io.InputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+    
+    public static final class Builder extends
+        org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite.Builder<
+          org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector, Builder>
+        implements org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVectorOrBuilder, org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream.ByteBufMessageBuilder  {
+      // Construct using org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.newBuilder()
+      private final io.netty.util.Recycler.Handle handle;
+      private Builder(io.netty.util.Recycler.Handle handle) {
+        this.handle = handle;
+        maybeForceBuilderInitialization();
+      }
+      private final static io.netty.util.Recycler<Builder> RECYCLER = new io.netty.util.Recycler<Builder>() {
+         protected Builder newObject(io.netty.util.Recycler.Handle handle) {
+               return new Builder(handle);
+             }
+            };
+      
+       public void recycle() {
+                clear();
+                if (handle != null) {RECYCLER.recycle(this, handle);}
+            }
+      
+      private void maybeForceBuilderInitialization() {
+      }
+      private static Builder create() {
+        return RECYCLER.get();
+      }
+      
+      public Builder clear() {
+        super.clear();
+        coordinate_ = 0D;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+      
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector getDefaultInstanceForType() {
+        return org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.getDefaultInstance();
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector build() {
+        org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+      
+      private org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector buildParsed()
+          throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+        org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return result;
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector buildPartial() {
+        org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector result = org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.RECYCLER.get();
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.coordinate_ = coordinate_;
+        result.bitField0_ = to_bitField0_;
+        return result;
+      }
+      
+      public Builder mergeFrom(org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector other) {
+        if (other == org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.getDefaultInstance()) return this;
+        if (other.hasCoordinate()) {
+          setCoordinate(other.getCoordinate());
+        }
+        return this;
+      }
+      
+      public final boolean isInitialized() {
+        if (!hasCoordinate()) {
+          
+          return false;
+        }
+        return true;
+      }
+      
+      public Builder mergeFrom(org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input,
+                              org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+                              throws java.io.IOException {
+         throw new java.io.IOException("Merge from CodedInputStream is disabled");
+                              }
+      public Builder mergeFrom(
+          org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream input,
+          org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        while (true) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              
+              return this;
+            default: {
+              if (!input.skipField(tag)) {
+                
+                return this;
+              }
+              break;
+            }
+            case 9: {
+              bitField0_ |= 0x00000001;
+              coordinate_ = input.readDouble();
+              break;
+            }
+          }
+        }
+      }
+      
+      private int bitField0_;
+      
+      // required double coordinate = 1;
+      private double coordinate_ ;
+      public boolean hasCoordinate() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      public double getCoordinate() {
+        return coordinate_;
+      }
+      public Builder setCoordinate(double value) {
+        bitField0_ |= 0x00000001;
+        coordinate_ = value;
+        
+        return this;
+      }
+      public Builder clearCoordinate() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        coordinate_ = 0D;
+        
+        return this;
+      }
+      
+      // @@protoc_insertion_point(builder_scope:pulsar.proto.CoordinateVector)
+    }
+    
+    static {
+      defaultInstance = new CoordinateVector(true);
+      defaultInstance.initFields();
+    }
+    
+    // @@protoc_insertion_point(class_scope:pulsar.proto.CoordinateVector)
   }
   
   public interface KeyValueOrBuilder
@@ -22484,6 +22815,12 @@ public final class PulsarApi {
     // optional double adjustment = 6;
     boolean hasAdjustment();
     double getAdjustment();
+    
+    // repeated .pulsar.proto.CoordinateVector coordinates = 7;
+    java.util.List<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> 
+        getCoordinatesList();
+    org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector getCoordinates(int index);
+    int getCoordinatesCount();
   }
   public static final class CommandGetNetworkCoordinateResponse extends
       org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
@@ -22602,6 +22939,27 @@ public final class PulsarApi {
       return adjustment_;
     }
     
+    // repeated .pulsar.proto.CoordinateVector coordinates = 7;
+    public static final int COORDINATES_FIELD_NUMBER = 7;
+    private java.util.List<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> coordinates_;
+    public java.util.List<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> getCoordinatesList() {
+      return coordinates_;
+    }
+    public java.util.List<? extends org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVectorOrBuilder> 
+        getCoordinatesOrBuilderList() {
+      return coordinates_;
+    }
+    public int getCoordinatesCount() {
+      return coordinates_.size();
+    }
+    public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector getCoordinates(int index) {
+      return coordinates_.get(index);
+    }
+    public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVectorOrBuilder getCoordinatesOrBuilder(
+        int index) {
+      return coordinates_.get(index);
+    }
+    
     private void initFields() {
       requestId_ = 0L;
       errorCode_ = org.apache.pulsar.common.api.proto.PulsarApi.ServerError.UnknownError;
@@ -22609,6 +22967,7 @@ public final class PulsarApi {
       error_ = 0D;
       height_ = 0D;
       adjustment_ = 0D;
+      coordinates_ = java.util.Collections.emptyList();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -22618,6 +22977,12 @@ public final class PulsarApi {
       if (!hasRequestId()) {
         memoizedIsInitialized = 0;
         return false;
+      }
+      for (int i = 0; i < getCoordinatesCount(); i++) {
+        if (!getCoordinates(i).isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
       }
       memoizedIsInitialized = 1;
       return true;
@@ -22648,6 +23013,9 @@ public final class PulsarApi {
       }
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         output.writeDouble(6, adjustment_);
+      }
+      for (int i = 0; i < coordinates_.size(); i++) {
+        output.writeMessage(7, coordinates_.get(i));
       }
     }
     
@@ -22680,6 +23048,10 @@ public final class PulsarApi {
       if (((bitField0_ & 0x00000020) == 0x00000020)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
           .computeDoubleSize(6, adjustment_);
+      }
+      for (int i = 0; i < coordinates_.size(); i++) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeMessageSize(7, coordinates_.get(i));
       }
       memoizedSerializedSize = size;
       return size;
@@ -22806,6 +23178,8 @@ public final class PulsarApi {
         bitField0_ = (bitField0_ & ~0x00000010);
         adjustment_ = 0D;
         bitField0_ = (bitField0_ & ~0x00000020);
+        coordinates_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
         return this;
       }
       
@@ -22863,6 +23237,11 @@ public final class PulsarApi {
           to_bitField0_ |= 0x00000020;
         }
         result.adjustment_ = adjustment_;
+        if (((bitField0_ & 0x00000040) == 0x00000040)) {
+          coordinates_ = java.util.Collections.unmodifiableList(coordinates_);
+          bitField0_ = (bitField0_ & ~0x00000040);
+        }
+        result.coordinates_ = coordinates_;
         result.bitField0_ = to_bitField0_;
         return result;
       }
@@ -22887,6 +23266,16 @@ public final class PulsarApi {
         if (other.hasAdjustment()) {
           setAdjustment(other.getAdjustment());
         }
+        if (!other.coordinates_.isEmpty()) {
+          if (coordinates_.isEmpty()) {
+            coordinates_ = other.coordinates_;
+            bitField0_ = (bitField0_ & ~0x00000040);
+          } else {
+            ensureCoordinatesIsMutable();
+            coordinates_.addAll(other.coordinates_);
+          }
+          
+        }
         return this;
       }
       
@@ -22894,6 +23283,12 @@ public final class PulsarApi {
         if (!hasRequestId()) {
           
           return false;
+        }
+        for (int i = 0; i < getCoordinatesCount(); i++) {
+          if (!getCoordinates(i).isInitialized()) {
+            
+            return false;
+          }
         }
         return true;
       }
@@ -22952,6 +23347,12 @@ public final class PulsarApi {
             case 49: {
               bitField0_ |= 0x00000020;
               adjustment_ = input.readDouble();
+              break;
+            }
+            case 58: {
+              org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.Builder subBuilder = org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.newBuilder();
+              input.readMessage(subBuilder, extensionRegistry);
+              addCoordinates(subBuilder.buildPartial());
               break;
             }
           }
@@ -23100,6 +23501,95 @@ public final class PulsarApi {
       public Builder clearAdjustment() {
         bitField0_ = (bitField0_ & ~0x00000020);
         adjustment_ = 0D;
+        
+        return this;
+      }
+      
+      // repeated .pulsar.proto.CoordinateVector coordinates = 7;
+      private java.util.List<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> coordinates_ =
+        java.util.Collections.emptyList();
+      private void ensureCoordinatesIsMutable() {
+        if (!((bitField0_ & 0x00000040) == 0x00000040)) {
+          coordinates_ = new java.util.ArrayList<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector>(coordinates_);
+          bitField0_ |= 0x00000040;
+         }
+      }
+      
+      public java.util.List<org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> getCoordinatesList() {
+        return java.util.Collections.unmodifiableList(coordinates_);
+      }
+      public int getCoordinatesCount() {
+        return coordinates_.size();
+      }
+      public org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector getCoordinates(int index) {
+        return coordinates_.get(index);
+      }
+      public Builder setCoordinates(
+          int index, org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCoordinatesIsMutable();
+        coordinates_.set(index, value);
+        
+        return this;
+      }
+      public Builder setCoordinates(
+          int index, org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.Builder builderForValue) {
+        ensureCoordinatesIsMutable();
+        coordinates_.set(index, builderForValue.build());
+        
+        return this;
+      }
+      public Builder addCoordinates(org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCoordinatesIsMutable();
+        coordinates_.add(value);
+        
+        return this;
+      }
+      public Builder addCoordinates(
+          int index, org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        ensureCoordinatesIsMutable();
+        coordinates_.add(index, value);
+        
+        return this;
+      }
+      public Builder addCoordinates(
+          org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.Builder builderForValue) {
+        ensureCoordinatesIsMutable();
+        coordinates_.add(builderForValue.build());
+        
+        return this;
+      }
+      public Builder addCoordinates(
+          int index, org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector.Builder builderForValue) {
+        ensureCoordinatesIsMutable();
+        coordinates_.add(index, builderForValue.build());
+        
+        return this;
+      }
+      public Builder addAllCoordinates(
+          java.lang.Iterable<? extends org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector> values) {
+        ensureCoordinatesIsMutable();
+        super.addAll(values, coordinates_);
+        
+        return this;
+      }
+      public Builder clearCoordinates() {
+        coordinates_ = java.util.Collections.emptyList();
+        bitField0_ = (bitField0_ & ~0x00000040);
+        
+        return this;
+      }
+      public Builder removeCoordinates(int index) {
+        ensureCoordinatesIsMutable();
+        coordinates_.remove(index);
         
         return this;
       }

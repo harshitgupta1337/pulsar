@@ -75,6 +75,13 @@ import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
+
+//CETUS INCLUDES
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//**************************************************************
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -439,6 +446,98 @@ public class ClientCnx extends PulsarHandler {
         }
     }
 
+    //CETUS: Handles the network coordinate request on the consumer.
+
+    @Override
+    protected void handleGetNetworkCoordinate(CommandGetNetworkCoordinate getNetworkCoordinate) {
+        // TODO
+        if (log.isDebugEnabled()) {
+            log.debug("Received Get Network Coordinate call from {}", remoteAddress);
+        }
+
+        final long requestId = getNetworkCoordinate.getRequestId();
+        final long nodeId = getNetworkCoordinate.getNodeId();
+        final String nodeType = getNetworkCoordinate.getNodeType();
+        ByteBuf msg = null;
+        
+        if(nodeType.equals("consumer")) {
+            ConsumerImpl<?> consumer =  consumers.get(nodeId);
+
+            if (consumer == null) {
+                log.error(
+                        "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                        remoteAddress, requestId, nodeId);
+                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
+                        "Consumer " + nodeId + " not found", requestId);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
+                }
+            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
+            }
+        }
+        else if(nodeType.equals("producer")) {
+            ProducerImpl<?> producer = producers.get(nodeId);
+
+            if (producer == null) {
+                log.error(
+                        "Failed to get network coordinate response - Producer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, ProducerId = {}]",
+                        remoteAddress, requestId, nodeId);
+                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ProducerNotFound,
+                        "Producer " + nodeId + " not found", requestId);
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("CommandGetNetworkCoordinate[requestId = {}, producer = {}]", requestId, producer);
+                }
+            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(producer, requestId));
+            }
+
+        }
+ 
+
+        ctx.writeAndFlush(msg);
+    }
+
+     //CETUS: Get network coordinate response builder for Protobuf
+     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
+        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
+        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < 8; i++) {
+            commandGetNetworkCoordinateResponseBuilder.setCoordinates(i, createCoordinateVector(coordinateVector[i]));
+        }
+       
+    return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
+     //CETUS: Get network coordinate response builder for Protobuf
+    CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
+        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
+        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < 8; i++) {
+            commandGetNetworkCoordinateResponseBuilder.setCoordinates(i, createCoordinateVector(coordinateVector[i]));
+        }
+    return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
+    CoordinateVector.Builder createCoordinateVector(double coordinate) {
+        CoordinateVector.Builder coordinateVectorBuilder = CoordinateVector.newBuilder();
+        coordinateVectorBuilder.setCoordinate(coordinate);
+        return coordinateVectorBuilder;
+    }
+
+    
     // caller of this method needs to be protected under pendingLookupRequestSemaphore
     private void addPendingLookupRequests(long requestId, CompletableFuture<LookupDataResult> future) {
         pendingLookupRequests.put(requestId, future);

@@ -45,6 +45,10 @@ message MessageIdData {
 	optional int32 batch_index = 4 [default = -1];
 }
 
+message CoordinateVector {
+    required double coordinate = 1;
+}
+
 message KeyValue {
 	required string key = 1;
 	required string value = 2;
@@ -138,6 +142,8 @@ enum ServerError {
 
     ProducerBusy         = 16; // Producer with same name is already connected
     InvalidTopicName = 17; // The topic name is not valid
+
+    ProducerNotFound = 18; // Producer cannot be found
 }
 
 enum AuthMethod {
@@ -524,7 +530,7 @@ message CommandGetNetworkCoordinateResponse {
 
         optional double adjustment          = 6;
         // coordinates
-        //optional repeated double coordinates         = 7; 
+        repeated CoordinateVector coordinates         = 7; 
 }
 
 message CommandGetLastMessageId {
