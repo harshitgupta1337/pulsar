@@ -1601,6 +1601,10 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         return coordinate;
     }
 
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+    
     private static final Logger log = LoggerFactory.getLogger(ConsumerImpl.class);
 
 }

@@ -14,6 +14,10 @@ public class NetworkCoordinate {
         this.error = 0;
         this.height = 0;
         this.coordinateVector = new double[8];
+        for(int i = 0; i < coordinateVector.length; i++)
+        {
+            this.coordinateVector[i] = 0;
+        }
     }
 
     public NetworkCoordinate(double adjustment, 

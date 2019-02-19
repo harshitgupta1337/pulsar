@@ -508,8 +508,9 @@ public class ClientCnx extends PulsarHandler {
         commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
         commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
         double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < 8; i++) {
-            commandGetNetworkCoordinateResponseBuilder.setCoordinates(i, createCoordinateVector(coordinateVector[i]));
+        for (int i = 0; i < coordinateVector.length; i++) {
+            System.out.println(coordinateVector[i]);
+            commandGetNetworkCoordinateResponseBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
         }
        
     return commandGetNetworkCoordinateResponseBuilder;     
@@ -525,8 +526,8 @@ public class ClientCnx extends PulsarHandler {
         commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
         commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
         double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < 8; i++) {
-            commandGetNetworkCoordinateResponseBuilder.setCoordinates(i, createCoordinateVector(coordinateVector[i]));
+        for (int i = 0; i < coordinateVector.length; i++) {
+            commandGetNetworkCoordinateResponseBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
         }
     return commandGetNetworkCoordinateResponseBuilder;     
     }
