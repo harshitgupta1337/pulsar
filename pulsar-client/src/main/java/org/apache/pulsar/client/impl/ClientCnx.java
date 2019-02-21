@@ -459,77 +459,93 @@ public class ClientCnx extends PulsarHandler {
         final long nodeId = getNetworkCoordinate.getNodeId();
         final String nodeType = getNetworkCoordinate.getNodeType();
         ByteBuf msg = null;
-        
-        if(nodeType.equals("consumer")) {
-            ConsumerImpl<?> consumer =  consumers.get(nodeId);
+        if(nodeId != -1) {
+            if(nodeType.equals("consumer")) {
+                ConsumerImpl<?> consumer =  consumers.get(nodeId);
 
-            if (consumer == null) {
-                log.error(
-                        "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
-                        remoteAddress, requestId, nodeId);
-                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
-                        "Consumer " + nodeId + " not found", requestId);
-            } else {
-                if (log.isDebugEnabled()) {
+                if (consumer == null) {
+                    log.error(
+                            "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                            remoteAddress, requestId, nodeId);
+                    msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
+                            "Consumer " + nodeId + " not found", requestId);
+                } else {
+                    if (log.isDebugEnabled()) {
                     log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
+                    }
+                msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
                 }
-            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
+            }
+            else if(nodeType.equals("producer")) {
+                ProducerImpl<?> producer = producers.get(nodeId);
+
+                if (producer == null) {
+                    log.error(
+                            "Failed to get network coordinate response - Producer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, ProducerId = {}]",
+                            remoteAddress, requestId, nodeId);
+                    msg = Commands.newGetNetworkCoordinateResponse(ServerError.ProducerNotFound,
+                            "Producer " + nodeId + " not found", requestId);
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("CommandGetNetworkCoordinate[requestId = {}, producer = {}]", requestId, producer);
+                    }
+                    msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(producer, requestId));
+                }
+
             }
         }
-        else if(nodeType.equals("producer")) {
-            ProducerImpl<?> producer = producers.get(nodeId);
-
-            if (producer == null) {
-                log.error(
-                        "Failed to get network coordinate response - Producer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, ProducerId = {}]",
-                        remoteAddress, requestId, nodeId);
-                msg = Commands.newGetNetworkCoordinateResponse(ServerError.ProducerNotFound,
-                        "Producer " + nodeId + " not found", requestId);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("CommandGetNetworkCoordinate[requestId = {}, producer = {}]", requestId, producer);
+        else 
+        {
+            if(nodeType.equals("consumer") {
+                for(Map.entry<long, ProducerImpl<?>> entry : consumers.entrySet()) {
+                    
                 }
-            msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(producer, requestId));
-            }
-
+            }  
         }
- 
 
         ctx.writeAndFlush(msg);
     }
 
+     CommandGetNetworkCoordinateResponse.Builder createGetAllNetworkCoordinateResponse(long requestId)
+    {
+        CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
+        commandNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        for(Map.Entry<Long, ProducerImpl<?>> : producers.entrySet())
+        {
+           commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producers.getValue()); 
+        }
+    }
      //CETUS: Get network coordinate response builder for Protobuf
-     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
+     CommandGetNetworkCoordinateResponse.Builder createGetSingleNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
         CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
-        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
-        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
-        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
-        double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < coordinateVector.length; i++) {
-            System.out.println(coordinateVector[i]);
-            commandGetNetworkCoordinateResponseBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer.getNetworkCoordinate()));
         }
        
     return commandGetNetworkCoordinateResponseBuilder;     
     }
 
      //CETUS: Get network coordinate response builder for Protobuf
-    CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
+    CommandGetNetworkCoordinateResponse.Builder createGetSingleNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
         CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
-        commandGetNetworkCoordinateResponseBuilder.setHeight(coordinate.getHeight());
-        commandGetNetworkCoordinateResponseBuilder.setError(coordinate.getError());
-        commandGetNetworkCoordinateResponseBuilder.setAdjustment(coordinate.getAdjustment());
-        double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < coordinateVector.length; i++) {
-            commandGetNetworkCoordinateResponseBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer.getNetworkCoordinate()));
         }
     return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
+    CoordinateInfo.builder createCoordinateInfo(NetworkCoordinate coordinate) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
     }
 
     CoordinateVector.Builder createCoordinateVector(double coordinate) {
