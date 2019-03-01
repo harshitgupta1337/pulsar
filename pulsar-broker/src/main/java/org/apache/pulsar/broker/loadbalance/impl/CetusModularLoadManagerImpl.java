@@ -157,6 +157,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     // Local data for the broker this is running on.
     private LocalBrokerData localData;
 
+    // Client data for the clients connected to topics on this broker
+    //private ClientData clientData;
+
     // Load data comprising data available for each broker.
     private final LoadData loadData;
 
@@ -871,6 +874,20 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             log.warn("Error writing broker data on ZooKeeper: {}", e);
         }
     }
+
+    // CETUS - Write producer/consumer data to zookeeper
+    /*
+    public void writeClientDataOnZooKeeper() {
+	try {
+	    updateClientData();
+	    if(needClientDataUpdate()) {
+		zkClient.setData(brokerZnodePath, clientData.getJsonBytes(), -1);
+	} catch (exception e) {
+	    log.warn("Error writing client data on Zookeeper: {}", e);
+	}
+	
+    }
+    */
 
     @Override
     public Deserializer<LocalBrokerData> getLoadReportDeserializer() {

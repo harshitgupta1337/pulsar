@@ -37,6 +37,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -79,6 +80,7 @@ import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
 //CETUS INCLUDES
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
 import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 //**************************************************************
@@ -496,11 +498,7 @@ public class ClientCnx extends PulsarHandler {
         }
         else 
         {
-            if(nodeType.equals("consumer") {
-                for(Map.entry<long, ProducerImpl<?>> entry : consumers.entrySet()) {
-                    
-                }
-            }  
+            msg = Commands.newGetNetworkCoordinateResponse(createGetAllNetworkCoordinateResponse(requestId));  
         }
 
         ctx.writeAndFlush(msg);
@@ -508,36 +506,39 @@ public class ClientCnx extends PulsarHandler {
 
      CommandGetNetworkCoordinateResponse.Builder createGetAllNetworkCoordinateResponse(long requestId)
     {
-        CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
-        commandNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        for(Map.Entry<Long, ProducerImpl<?>> : producers.entrySet())
-        {
-           commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producers.getValue()); 
-        }
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+
+
+        producers.forEach((id, producer) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer))); 
+
+        consumers.forEach((id, consumer) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(consumer))); 
+
+	return commandGetNetworkCoordinateResponseBuilder;
     }
      //CETUS: Get network coordinate response builder for Protobuf
-     CommandGetNetworkCoordinateResponse.Builder createGetSingleNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
+     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
         CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer.getNetworkCoordinate()));
-        }
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(consumer));
        
     return commandGetNetworkCoordinateResponseBuilder;     
     }
 
      //CETUS: Get network coordinate response builder for Protobuf
-    CommandGetNetworkCoordinateResponse.Builder createGetSingleNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
+    CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
         CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
                 .newBuilder();
         commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer.getNetworkCoordinate()));
-        }
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer));
     return commandGetNetworkCoordinateResponseBuilder;     
     }
 
-    CoordinateInfo.builder createCoordinateInfo(NetworkCoordinate coordinate) {
+    CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
         CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	coordinateInfoBuilder.setNodeType("producer");
+	coordinateInfoBuilder.setNodeId(producer.producerId);
         NetworkCoordinate coordinate = producer.getNetworkCoordinate();
         coordinateInfoBuilder.setHeight(coordinate.getHeight());
         coordinateInfoBuilder.setError(coordinate.getError());
@@ -546,6 +547,22 @@ public class ClientCnx extends PulsarHandler {
         for (int i = 0; i < coordinateVector.length; i++) {
             coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
         }
+	return coordinateInfoBuilder;
+    }
+
+    CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	coordinateInfoBuilder.setNodeType("consumer");
+	coordinateInfoBuilder.setNodeId(consumer.consumerId);
+        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
+	return coordinateInfoBuilder;
     }
 
     CoordinateVector.Builder createCoordinateVector(double coordinate) {

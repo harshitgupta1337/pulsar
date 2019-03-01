@@ -21,10 +21,10 @@ package org.apache.pulsar.broker.service;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collections;
-import java.util.Hashmap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pulsar.broker.service.Consumer;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -32,40 +32,45 @@ import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.service.ServerCnx;
 import org.apache.pulsar.broker.service.persistent.PersistentTopic;
 import org.apache.pulsar.common.naming.TopicName;
-import org.apache.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
-import org.apache.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.Commands;
+import org.apache.pulsar.common.api.PulsarHandler;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
 import org.apache.pulsar.zookeeper.ZooKeeperDataCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CetusNetworkCoordinateCollector {
+public class CetusNetworkCoordinateCollector  {
     public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateCollector.class);
 
-    private final ServerCnx serverCnx;
-    private final ConcurrentLongHashMap<CompletableFuture<Producer>> producers;
-    private final ConcurrentLongHashMap<CompletableFuture<Consumer>> consumers;
+    private final ConcurrentLongHashMap<NetworkCoordinate> producerCoordinates;
+    private final ConcurrentLongHashMap<NetworkCoordinate> consumerCoordinates;
 
     public CetusNetworkCoordinateCollector() {
+        producerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>();
+        consumerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>();
     } 
 
-    
-
-    @Override
-    protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) {
-
-        long 
-
-        if(log.isDebugEnabled()) {
-            log.debug("Received CommandGetNetworkCoordinateResponse call");
-        }
-
-        long requestId = CommandGetNetworkCoordinateRespones.getRequestId();
-        if(CommandGetNetworkCoordinateResponse.hasErrorCode())
-        {
-            log.debug("Error on Get Network Coordinate Response {}", CommandGetNetworkCoordinateResponse.getErrorCode());
-        }
-        
-        if(CommandGetNetworkCoordinateResponse.has
+    public void putConsumerCoordinate(long nodeId, NetworkCoordinate coordinate) { 
+        consumerCoordinates.put(nodeId, coordinate);
     }
+
+    public void putProducerCoordinate(long nodeId, NetworkCoordinate coordinate) {
+        producerCoordinates.put(nodeId, coordinate);
+    }
+
+    public NetworkCoordinate getConsumerCoordinate(long nodeId) {
+        return consumerCoordinates.get(nodeId);
+    }
+
+    public NetworkCoordinate getProducerCoordinate(long nodeId) {
+        return producerCoordinates.get(nodeId);
+    }
+
+    public ConcurrentLongHashMap<NetworkCoordinate> getProducerCoordinates() {
+        return producerCoordinates;
+    }
+    
 }

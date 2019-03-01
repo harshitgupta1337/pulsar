@@ -92,7 +92,10 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandUnsubscribe;
 //CETUS INCLUDES
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.pulsar.broker.service.CetusNetworkCoordinateCollector;
 //**************************************************************
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageMetadata;
@@ -137,6 +140,8 @@ public class ServerCnx extends PulsarHandler {
     private boolean authenticateOriginalAuthData;
     private final boolean schemaValidationEnforced;
 
+    private final CetusNetworkCoordinateCollector coordinateCollector;
+
     enum State {
         Start, Connected, Failed
     }
@@ -156,6 +161,7 @@ public class ServerCnx extends PulsarHandler {
         this.proxyRoles = service.pulsar().getConfiguration().getProxyRoles();
         this.authenticateOriginalAuthData = service.pulsar().getConfiguration().authenticateOriginalAuthData();
         this.schemaValidationEnforced = pulsar.getConfiguration().isSchemaValidationEnforced();
+	this.coordinateCollector = new CetusNetworkCoordinateCollector();
     }
 
     @Override
@@ -533,6 +539,60 @@ public class ServerCnx extends PulsarHandler {
     } 
 
     */
+
+    // CETUS: Handle network coordinate response when received from client
+    @Override
+    protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) { 
+
+        if(log.isDebugEnabled()) {
+            log.debug("Received CommandGetNetworkCoordinateResponse call");
+        }
+
+        long requestId = commandGetNetworkCoordinateResponse.getRequestId();
+        if(commandGetNetworkCoordinateResponse.hasErrorCode())  {
+            log.debug("Error on Get Network Coordinate Response {}", commandGetNetworkCoordinateResponse.getErrorCode());
+        }
+        
+        if(commandGetNetworkCoordinateResponse.getCoordinateInfoCount() > 1) {
+            String nodeType = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType();
+            if(nodeType.equals("producer")) {
+                for(int i = 0; i < commandGetNetworkCoordinateResponse.getCoordinateInfoCount(); i++)
+                {
+                    double[] coordinates = new double[8];
+                    for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
+                    {
+                        coordinates[j] = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinates(j).getCoordinate();
+                    }
+                    double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
+                    double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
+                    double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
+                    coordinateCollector.putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                 }
+            }
+        }
+        else {
+          
+           double[] coordinates = new double[8];
+           for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getCoordinatesCount(); j++) 
+           {
+                coordinates[j] = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getCoordinates(j).getCoordinate();
+           }
+           double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getError();
+           double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
+           double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
+	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
+               coordinateCollector.putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+	       }
+           else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
+               coordinateCollector.putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+           }
+           else {
+               log.debug("Is not returning a producer or consumer value.");
+           }
+        }
+     }
+    
+
     private String getOriginalPrincipal(String originalAuthData, String originalAuthMethod, String originalPrincipal,
             SSLSession sslSession) throws AuthenticationException {
         if (authenticateOriginalAuthData) {

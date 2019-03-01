@@ -167,6 +167,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final ScheduledExecutorService inactivityMonitor;
     private final ScheduledExecutorService messageExpiryMonitor;
     private final ScheduledExecutorService compactionMonitor;
+    //private final ScheduledExecutorService cetusNetworkCoordinateCollector;
 
     private DistributedIdGenerator producerNameGenerator;
 
@@ -842,6 +843,15 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             pulsarStats.updateStats(multiLayerTopicsMap);
         }
     }
+
+    // CETUS: Update Coordinates Service
+    /*
+    public void updateCoordinates() {
+	synchronized (cetusNetworkCoordinates) {
+	    cetusNetworkCoordinateCollector.updateCoordinates();
+	}
+    }
+    */
 
     public void getDimensionMetrics(Consumer<ByteBuf> consumer) {
         pulsarStats.getDimensionMetrics(consumer);

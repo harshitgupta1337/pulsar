@@ -40,6 +40,8 @@ import org.apache.pulsar.common.api.proto.PulsarApi.BaseCommand;
 import org.apache.pulsar.common.api.proto.PulsarApi.BaseCommand.Type;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.common.api.Commands;
@@ -209,10 +211,10 @@ public class ClientCnxTest {
         assertTrue(response.getRequestId() == 2);
         //assertTrue(response.getErrorCode() != null);
         //assertTrue(response.getErrorCode() == ServerError.ConsumerNotFound);
-        assertTrue(response.getHeight() == 0);
-        assertTrue(response.getError() == 0);
-        assertTrue(response.getAdjustment() == 0);
-        assertTrue(response.getCoordinates(0).getCoordinate() == 0);
+        assertTrue(response.getCoordinateInfo(0).getHeight() == 0);
+        assertTrue(response.getCoordinateInfo(0).getError() == 0);
+        assertTrue(response.getCoordinateInfo(0).getAdjustment() == 0);
+        assertTrue(response.getCoordinateInfo(0).getCoordinates(0).getCoordinate() == 0);
         
     }
 }

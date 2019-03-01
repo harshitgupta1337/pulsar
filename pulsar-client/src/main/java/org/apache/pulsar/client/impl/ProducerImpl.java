@@ -79,7 +79,7 @@ import org.slf4j.LoggerFactory;
 public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, ConnectionHandler.Connection {
 
     // Producer id, used to identify a producer within a single connection
-    private final long producerId;
+    final long producerId;
 
     // Variable is used through the atomic updater
     @SuppressWarnings("unused")
