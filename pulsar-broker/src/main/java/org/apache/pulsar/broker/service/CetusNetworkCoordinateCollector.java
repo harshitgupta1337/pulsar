@@ -42,7 +42,11 @@ import org.apache.pulsar.zookeeper.ZooKeeperDataCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CetusNetworkCoordinateCollector  {
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
+
+@JsonDeserialize(as = CetusNetworkCoordinateCollector.class)
+public class CetusNetworkCoordinateCollector extends JSONWritable {
     public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateCollector.class);
 
     private final ConcurrentLongHashMap<NetworkCoordinate> producerCoordinates;
