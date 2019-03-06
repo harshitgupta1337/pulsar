@@ -138,6 +138,9 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final int port;
     private final int tlsPort;
 
+    // CETUS: Coordinate Data Zk Path
+    public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
+
     private final ConcurrentOpenHashMap<String, CompletableFuture<Optional<Topic>>> topics;
 
     private final ConcurrentOpenHashMap<String, PulsarClient> replicationClients;
@@ -167,7 +170,11 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final ScheduledExecutorService inactivityMonitor;
     private final ScheduledExecutorService messageExpiryMonitor;
     private final ScheduledExecutorService compactionMonitor;
-    //private final ScheduledExecutorService cetusNetworkCoordinateCollector;
+
+    // Cetus
+    private final ScheduledExecutorService cetusNetworkCoordinateCollectorService;
+
+    private final CetusNetworkCoordinateCollector cetusNetworkCoordinateCollector;
 
     private DistributedIdGenerator producerNameGenerator;
 
@@ -200,6 +207,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.keepAliveIntervalSeconds = pulsar.getConfiguration().getKeepAliveIntervalSeconds();
         this.configRegisteredListeners = new ConcurrentOpenHashMap<>();
         this.pendingTopicLoadingQueue = Queues.newConcurrentLinkedQueue();
+        this.cetusNetworkCoordinateCollector = new CetusNetworkCoordinateCollector();
 
         this.multiLayerTopicsMap = new ConcurrentOpenHashMap<>();
         this.pulsarStats = new PulsarStats(pulsar);
@@ -233,6 +241,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.compactionMonitor =
             Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-compaction-monitor"));
 
+
+        this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
         this.backlogQuotaManager = new BacklogQuotaManager(pulsar);
         this.backlogQuotaChecker = Executors
                 .newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-backlog-quota-checker"));
@@ -317,6 +327,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.startMessageExpiryMonitor();
         this.startCompactionMonitor();
         this.startBacklogQuotaChecker();
+        // CETUS - start service in constructor
+        this.startCoordinateCollectorService();
         // register listener to capture zk-latency
         ClientCnxnAspect.addListener(zkStatsListener);
         ClientCnxnAspect.registerExecutor(pulsar.getExecutor());
@@ -363,6 +375,14 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             compactionMonitor.scheduleAtFixedRate(safeRun(() -> checkCompaction()),
                                                   interval, interval, TimeUnit.SECONDS);
         }
+    }
+    
+    // CETUS: Coordinate Collector Service start
+    void startCoordinateCollectorService() {
+        int interval = 100;
+
+        cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
+                                                           interval, interval, TimeUnit.MILLISECONDS);
     }
 
     void startBacklogQuotaChecker() {
@@ -844,14 +864,6 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         }
     }
 
-    // CETUS: Update Coordinates Service
-    /*
-    public void updateCoordinates() {
-	synchronized (cetusNetworkCoordinates) {
-	    cetusNetworkCoordinateCollector.updateCoordinates();
-	}
-    }
-    */
 
     public void getDimensionMetrics(Consumer<ByteBuf> consumer) {
         pulsarStats.getDimensionMetrics(consumer);
@@ -891,6 +903,10 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
 
     public void checkInactiveSubscriptions() {
         forEachTopic(Topic::checkInactiveSubscriptions);
+    }
+
+    public void updateCoordinates() {
+        forEachTopic(Topic::updateCoordinates);
     }
 
     /**
@@ -1537,5 +1553,9 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         } else {
             return Optional.empty();
         }
+    }
+
+    public CetusNetworkCoordinateCollector getNetworkCoordinateCollector() {
+        return cetusNetworkCoordinateCollector;
     }
 }

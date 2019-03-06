@@ -837,6 +837,21 @@ public class ClientCnx extends PulsarHandler {
         return future;
     }
 
+    public CompletableFuture<Optional<NetworkCoordinate>> sendNetworkCoordinates(ByteBuf request, long requestId) {
+        CompletableFuture<Optional<NetworkCoordinate>> future = new CompletableFuture<>();
+        
+        ctx.writeAndFlush(request).addListener(writeFuture -> {
+            if(!writeFuture.isSuccess()) {
+                log.warn("{} Failed to send GetSchema request to broker: {}", ctx.channel(),
+                        writeFuture.cause().getMessage());
+                future.completeExceptionally(writeFuture.cause());
+
+            }
+        });
+
+        return future;
+    }
+
     /**
      * check serverError and take appropriate action
      * <ul>

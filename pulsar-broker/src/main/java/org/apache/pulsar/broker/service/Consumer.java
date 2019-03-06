@@ -60,6 +60,9 @@ import org.apache.pulsar.common.api.proto.PulsarApi.ProtocolVersion;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.policies.data.ConsumerStats;
 import org.apache.pulsar.common.util.DateFormatter;
+// CETUS
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//*******************************************************************
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +111,8 @@ public class Consumer {
 
     private final Map<String, String> metadata;
 
+    private NetworkCoordinate coordinate;
+
     public interface SendListener {
         void sendComplete(ChannelFuture future, SendMessageInfo sendMessageInfo);
     }
@@ -132,6 +137,7 @@ public class Consumer {
         this.msgRedeliver = new Rate();
         this.appId = appId;
         this.authenticationData = cnx.authenticationData;
+        this.coordinate = new NetworkCoordinate();
         PERMITS_RECEIVED_WHILE_CONSUMER_BLOCKED_UPDATER.set(this, 0);
         MESSAGE_PERMITS_UPDATER.set(this, 0);
         UNACKED_MESSAGES_UPDATER.set(this, 0);
@@ -284,7 +290,7 @@ public class Consumer {
         }
     }
 
-    public static int getBatchSizeforEntry(ByteBuf metadataAndPayload, Subscription subscription, long consumerId) {
+        public static int getBatchSizeforEntry(ByteBuf metadataAndPayload, Subscription subscription, long consumerId) {
         try {
             // save the reader index and restore after parsing
             metadataAndPayload.markReaderIndex();
@@ -609,6 +615,10 @@ public class Consumer {
         return priorityLevel;
     }
 
+    public long getConsumerId() {
+        return consumerId;
+    }
+
     public void redeliverUnacknowledgedMessages() {
         // cleanup unackedMessage bucket and redeliver those unack-msgs again
         clearUnAckedMsgs(this);
@@ -698,6 +708,14 @@ public class Consumer {
         public void setTotalSentMessageBytes(long totalSentMessageBytes) {
             this.totalSentMessageBytes = totalSentMessageBytes;
         }
+    }
+
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
+    }
+
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+        this.coordinate = coordinate;
     }
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);

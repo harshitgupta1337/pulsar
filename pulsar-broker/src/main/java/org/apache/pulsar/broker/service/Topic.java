@@ -103,6 +103,8 @@ public interface Topic {
 
     void checkInactiveSubscriptions();
 
+    void updateCoordinates();
+
     void checkMessageExpiry();
 
     void checkMessageDeduplicationInfo();

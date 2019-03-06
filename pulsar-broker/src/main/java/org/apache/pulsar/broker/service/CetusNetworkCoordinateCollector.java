@@ -72,5 +72,9 @@ public class CetusNetworkCoordinateCollector  {
     public ConcurrentLongHashMap<NetworkCoordinate> getProducerCoordinates() {
         return producerCoordinates;
     }
+
+    public ConcurrentLongHashMap<NetworkCoordinate> getConsumerCoordinates() { 
+        return consumerCoordinates;
+    }
     
 }

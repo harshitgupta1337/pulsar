@@ -88,6 +88,7 @@ public class PulsarClientImpl implements PulsarClient {
     private final ConnectionPool cnxPool;
     private final Timer timer;
     private final ExecutorProvider externalExecutorProvider;
+    private final CetusCoordinateProviderService coordinateProviderService;
 
     enum State {
         Open, Closing, Closed
@@ -144,6 +145,8 @@ public class PulsarClientImpl implements PulsarClient {
             lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
         }
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
+        // Cetus coordinate provider service impl
+        this.coordinateProviderService = new CetusCoordinateProviderService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
         state.set(State.Open);
