@@ -124,6 +124,11 @@ import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.zookeeper.ZooKeeperCacheListener;
 import org.apache.pulsar.zookeeper.ZooKeeperDataCache;
 import org.apache.zookeeper.CreateMode;
+// CETUS INCLUDES
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooDefs;
+//*******************************************************************
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
@@ -907,6 +912,30 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
 
     public void updateCoordinates() {
         forEachTopic(Topic::updateCoordinates);
+        writeCoordinateDataOnZookeeper();
+    }
+
+    public void writeCoordinateDataOnZookeeper() {
+        cetusNetworkCoordinateCollector.getProducerCoordinates().forEach((key, value) -> {
+            final long producerId = key;
+            final NetworkCoordinate coordinate = value;
+            try {
+                final String zooKeeperPath = getProducerZooKeeperPath(producerId);
+                createZPathIfNotExists(pulsar.getZkClient(), zooKeeperPath);
+                pulsar.getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
+            }
+            catch (Exception e) {
+               log.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
+            }
+        });
+    }
+
+    public static String getProducerZooKeeperPath(final long producerId) {
+        return COORDINATE_DATA_PATH + "/" + producerId; 
+    }
+
+    public static String getConsumerZooKeeperPath(final long consumerId) {
+        return COORDINATE_DATA_PATH + "/" + consumerId;
     }
 
     /**
@@ -1555,6 +1584,18 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         }
     }
 
+    // Attempt to create a ZooKeeper path if it does not exist.
+    private static void createZPathIfNotExists(final ZooKeeper zkClient, final String path) throws Exception {
+        if (zkClient.exists(path, false) == null) {
+            try {
+                ZkUtils.createFullPathOptimistic(zkClient, path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+                        CreateMode.PERSISTENT);
+            } catch (KeeperException.NodeExistsException e) {
+                // Ignore if already exists.
+            }
+        }
+    }
+    
     public CetusNetworkCoordinateCollector getNetworkCoordinateCollector() {
         return cetusNetworkCoordinateCollector;
     }

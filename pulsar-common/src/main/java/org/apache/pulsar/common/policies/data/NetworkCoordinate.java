@@ -1,8 +1,12 @@
 package org.apache.pulsar.common.policies.data;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
+
 import java.lang.IllegalArgumentException;
 
-public class NetworkCoordinate {
+@JsonDeserialize(as = NetworkCoordinate.class)
+public class NetworkCoordinate extends JSONWritable {
     
     private double adjustment;
     private double error;
