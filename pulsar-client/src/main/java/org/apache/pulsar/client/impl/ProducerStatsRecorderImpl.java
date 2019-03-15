@@ -65,9 +65,7 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
     private volatile double sendBytesRate;
     private volatile double[] latencyPctValues;
 
-    //CETUS
 
-    private NetworkCoordinate coordinate;
 
     private static final double[] PERCENTILES = { 0.5, 0.75, 0.95, 0.99, 0.999, 1.0 };
 
@@ -80,7 +78,6 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         totalBytesSent = null;
         totalSendFailed = null;
         totalAcksReceived = null;
-        coordinate = null;
         ds = null;
     }
 
@@ -97,7 +94,6 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         totalBytesSent = new LongAdder();
         totalSendFailed = new LongAdder();
         totalAcksReceived = new LongAdder();
-        coordinate = new NetworkCoordinate();
         ds = DoublesSketch.builder().build(256);
         init(conf);
     }
@@ -313,9 +309,6 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         }
     }
 
-    public NetworkCoordinate getNetworkCoordinate() {
-        return coordinate;
-    }
 
     private static final Logger log = LoggerFactory.getLogger(ProducerStatsRecorderImpl.class);
 }

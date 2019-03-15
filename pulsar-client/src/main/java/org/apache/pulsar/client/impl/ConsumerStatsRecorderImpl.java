@@ -64,9 +64,7 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
     private volatile double receivedMsgsRate;
     private volatile double receivedBytesRate;
 
-    //CETUS
 
-    private NetworkCoordinate coordinate;
 
     private static final DecimalFormat THROUGHPUT_FORMAT = new DecimalFormat("0.00");
 
@@ -81,7 +79,6 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
         totalReceiveFailed = null;
         totalAcksSent = null;
         totalAcksFailed = null;
-        coordinate = null;
     }
 
     public ConsumerStatsRecorderImpl(PulsarClientImpl pulsarClient, ConsumerConfigurationData<?> conf,
@@ -99,7 +96,6 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
         totalReceiveFailed = new LongAdder();
         totalAcksSent = new LongAdder();
         totalAcksFailed = new LongAdder();
-        coordinate = new NetworkCoordinate();
         init(conf);
     }
 
@@ -272,10 +268,6 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
         return receivedBytesRate;
     }
 
-    public NetworkCoordinate getNetworkCoordinate()
-    {
-        return coordinate;
-    }
 
     private static final Logger log = LoggerFactory.getLogger(ConsumerStatsRecorderImpl.class);
 }

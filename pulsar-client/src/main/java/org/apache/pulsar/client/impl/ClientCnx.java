@@ -930,6 +930,14 @@ public class ClientCnx extends PulsarHandler {
         consumers.remove(consumerId);
     }
 
+    public ConsumerImpl<?> getConsumer(final long consumerId) {
+        return consumers.get(consumerId);
+    }
+
+    public ProducerImpl<?> getProducer(final long producerId) {
+        return producers.get(producerId);
+    }
+
     void setTargetBroker(InetSocketAddress targetBrokerAddress) {
         this.proxyToTargetBrokerAddress = String.format("%s:%d", targetBrokerAddress.getHostString(),
                 targetBrokerAddress.getPort());

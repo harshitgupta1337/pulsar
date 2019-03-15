@@ -174,7 +174,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.receiverQueueRefillThreshold = conf.getReceiverQueueSize() / 2;
         this.priorityLevel = conf.getPriorityLevel();
         this.readCompacted = conf.isReadCompacted();
-        this.coordinate = new NetworkCoordinate();
+        double[] coordinateVector = new double[]{1,1,1,1,1,1,1,1};
+        this.coordinate = new NetworkCoordinate(-1,-1,-1, coordinateVector);
         this.subscriptionInitialPosition = conf.getSubscriptionInitialPosition();
 
         if (client.getConfiguration().getStatsIntervalSeconds() > 0) {
@@ -1597,14 +1598,21 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         return topicNameWithoutPartition;
     }
 
+    @Override
     public NetworkCoordinate getNetworkCoordinate() {
         return coordinate;
     }
 
+    @Override
     public void setNetworkCoordinate(NetworkCoordinate coordinate) {
         this.coordinate = coordinate;
     }
-    
+
+    @Override
+    public long getConsumerId() {
+        return consumerId;
+    }    
+
     private static final Logger log = LoggerFactory.getLogger(ConsumerImpl.class);
 
 }

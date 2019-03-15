@@ -90,6 +90,4 @@ public interface ConsumerStats extends Serializable {
     long getTotalAcksFailed();
 
 
-    // CETUS get network coordinate
-    NetworkCoordinate getNetworkCoordinate();
 }

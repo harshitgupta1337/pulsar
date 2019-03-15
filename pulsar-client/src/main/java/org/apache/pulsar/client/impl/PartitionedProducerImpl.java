@@ -40,6 +40,7 @@ import org.apache.pulsar.client.api.TopicMetadata;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.util.FutureUtil;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,8 @@ public class PartitionedProducerImpl<T> extends ProducerBase<T> {
     private MessageRouter routerPolicy;
     private final ProducerStatsRecorderImpl stats;
     private final TopicMetadata topicMetadata;
+    
+    private NetworkCoordinate coordinate;
 
     public PartitionedProducerImpl(PulsarClientImpl client, String topic, ProducerConfigurationData conf, int numPartitions,
             CompletableFuture<Producer<T>> producerCreatedFuture, Schema<T> schema, ProducerInterceptors<T> interceptors) {
@@ -59,6 +62,8 @@ public class PartitionedProducerImpl<T> extends ProducerBase<T> {
         this.topicMetadata = new TopicMetadataImpl(numPartitions);
         this.routerPolicy = getMessageRouter();
         stats = client.getConfiguration().getStatsIntervalSeconds() > 0 ? new ProducerStatsRecorderImpl() : null;
+
+        this.coordinate = new NetworkCoordinate();
 
         int maxPendingMessages = Math.min(conf.getMaxPendingMessages(),
                 conf.getMaxPendingMessagesAcrossPartitions() / numPartitions);
@@ -244,6 +249,21 @@ public class PartitionedProducerImpl<T> extends ProducerBase<T> {
     @Override
     String getHandlerName() {
         return "partition-producer";
+    }
+
+    @Override
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
+    }    
+
+    @Override
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+    
+    @Override
+    public long getProducerId() {
+        return 0;
     }
 
 }

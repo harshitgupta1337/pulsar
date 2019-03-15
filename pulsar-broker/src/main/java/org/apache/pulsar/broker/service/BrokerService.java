@@ -387,7 +387,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         int interval = 100;
 
         cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
-                                                           interval, interval, TimeUnit.MILLISECONDS);
+                                                           0, interval, TimeUnit.MILLISECONDS);
     }
 
     void startBacklogQuotaChecker() {
@@ -911,10 +911,11 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     }
 
     public void updateCoordinates() {
-        forEachTopic(Topic::updateCoordinates);
-        writeCoordinateDataOnZookeeper();
+        //forEachTopic(Topic::updateCoordinates);
+        //writeCoordinateDataOnZookeeper();
     }
-
+    
+    /*
     public void writeCoordinateDataOnZookeeper() {
         cetusNetworkCoordinateCollector.getProducerCoordinates().forEach((key, value) -> {
             final long producerId = key;
@@ -937,6 +938,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     public static String getConsumerZooKeeperPath(final long consumerId) {
         return COORDINATE_DATA_PATH + "/" + consumerId;
     }
+    */
 
     /**
      * Iterates over all loaded topics in the broker

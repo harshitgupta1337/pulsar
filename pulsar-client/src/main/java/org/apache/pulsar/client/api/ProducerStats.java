@@ -107,8 +107,6 @@ public interface ProducerStats extends Serializable {
      */
     long getTotalAcksReceived();
 
-    //CETUS: Network Coordinate
 
-    NetworkCoordinate getNetworkCoordinate();
 
 }

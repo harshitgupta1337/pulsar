@@ -379,4 +379,7 @@ public interface PulsarClient extends Closeable {
      *             if the forceful shutdown fails
      */
     void shutdown() throws PulsarClientException;
+
+    public int producersCount();
+    public int consumersCount();
 }

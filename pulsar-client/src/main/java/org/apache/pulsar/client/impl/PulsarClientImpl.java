@@ -43,6 +43,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import io.netty.buffer.ByteBuf;
+
+import org.apache.pulsar.common.api.Commands;
 import org.apache.pulsar.client.api.ClientConfiguration;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -67,6 +70,10 @@ import org.apache.pulsar.client.impl.schema.AutoProduceBytesSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchema;
 import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetTopicsOfNamespace.Mode;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
@@ -740,6 +747,7 @@ public class PulsarClientImpl implements PulsarClient {
         log.info("Updating service URL to {}", serviceUrl);
 
         conf.setServiceUrl(serviceUrl);
+        coordinateProviderService.updateServiceUrl(serviceUrl);
         lookup.updateServiceUrl(serviceUrl);
         cnxPool.closeAllConnections();
     }
@@ -829,17 +837,92 @@ public class PulsarClientImpl implements PulsarClient {
         }
     }
 
-    @VisibleForTesting
-    int producersCount() {
+    @Override
+    public int producersCount() {
         synchronized (producers) {
             return producers.size();
         }
     }
 
-    @VisibleForTesting
-    int consumersCount() {
+    @Override
+    public int consumersCount() {
         synchronized (consumers) {
             return consumers.size();
         }
     }
+
+    public void sendNetworkCoordinates() {
+        synchronized(producers) {
+            producers.forEach((producer, id) -> {
+                ProducerImpl<?> producerImpl = (ProducerImpl<?>) producer;
+                ClientCnx cnx = producerImpl.cnx();
+                long requestId = newRequestId();
+                ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse( producerImpl, requestId));
+                cnx.sendNetworkCoordinates(msg, requestId);
+            });
+        }
+
+         synchronized(consumers) {
+            consumers.forEach((consumer, id) -> {
+                ConsumerImpl<?> consumerImpl = (ConsumerImpl<?>) consumer;
+                ClientCnx cnx = consumerImpl.cnx();
+                long requestId = newRequestId();
+                ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(consumerImpl, requestId));
+                cnx.sendNetworkCoordinates(msg, requestId);
+            });
+        }
+    }
+   
+    CommandGetNetworkCoordinateResponse.Builder createGetAllNetworkCoordinateResponse(long requestId)
+    {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+
+        synchronized(producers) {
+            producers.forEach((producer, id) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo((ProducerImpl<?>) producer))); 
+        }
+        synchronized(consumers) { 
+            consumers.forEach((consumer, id) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo((ConsumerImpl<?>) consumer))); 
+        }
+
+	return commandGetNetworkCoordinateResponseBuilder;
+    }
+
+    CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	coordinateInfoBuilder.setNodeType("producer");
+	coordinateInfoBuilder.setNodeId(producer.producerId);
+        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
+	return coordinateInfoBuilder;
+    }
+
+    CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	coordinateInfoBuilder.setNodeType("consumer");
+	coordinateInfoBuilder.setNodeId(consumer.consumerId);
+        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
+	return coordinateInfoBuilder;
+    }
+
+    CoordinateVector.Builder createCoordinateVector(double coordinate) {
+        CoordinateVector.Builder coordinateVectorBuilder = CoordinateVector.newBuilder();
+        coordinateVectorBuilder.setCoordinate(coordinate);
+        return coordinateVectorBuilder;
+    }
+    
+
 }

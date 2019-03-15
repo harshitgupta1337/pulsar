@@ -141,8 +141,8 @@ public class ServerCnx extends PulsarHandler {
     private boolean authenticateOriginalAuthData;
     private final boolean schemaValidationEnforced;
 
-    private final CetusNetworkCoordinateCollector coordinateCollector;
-    private final ConcurrentLongHashMap<CompletableFuture<Optional<CetusNetworkCoordinateCollector>>> pendingGetCoordinateRequests;
+    //private final CetusNetworkCoordinateCollector coordinateCollector;
+    //private final ConcurrentLongHashMap<CompletableFuture<Optional<CetusNetworkCoordinateCollector>>> pendingGetCoordinateRequests;
 
     enum State {
         Start, Connected, Failed
@@ -163,8 +163,8 @@ public class ServerCnx extends PulsarHandler {
         this.proxyRoles = service.pulsar().getConfiguration().getProxyRoles();
         this.authenticateOriginalAuthData = service.pulsar().getConfiguration().authenticateOriginalAuthData();
         this.schemaValidationEnforced = pulsar.getConfiguration().isSchemaValidationEnforced();
-	    this.coordinateCollector = new CetusNetworkCoordinateCollector();
-        this.pendingGetCoordinateRequests = new ConcurrentLongHashMap<>(16,1);
+	    //this.coordinateCollector = new CetusNetworkCoordinateCollector();
+        //this.pendingGetCoordinateRequests = new ConcurrentLongHashMap<>(16,1);
     }
 
     @Override
@@ -569,7 +569,7 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    coordinateCollector.putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    service.getNetworkCoordinateCollector().putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                  }
             }
             else if(nodeType.equals("consumer")) {
@@ -583,7 +583,7 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    coordinateCollector.putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    service.getNetworkCoordinateCollector().putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                  }
             }
             else {
@@ -602,10 +602,10 @@ public class ServerCnx extends PulsarHandler {
            double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
            double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
-               coordinateCollector.putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+               service.getNetworkCoordinateCollector().putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
 	       }
            else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
-               coordinateCollector.putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+               service.getNetworkCoordinateCollector().putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
            }
            else {
                log.debug("Is not returning a producer or consumer value.");
@@ -1579,6 +1579,7 @@ public class ServerCnx extends PulsarHandler {
         }
     }
 
+    /*
     // CETUS: Method to send a coordinate request to the client
     public CompletableFuture<Optional<CetusNetworkCoordinateCollector>> sendGetCoordinate(ByteBuf request, long requestId) {
         CompletableFuture<Optional<CetusNetworkCoordinateCollector>> future = new CompletableFuture<>();
@@ -1598,7 +1599,7 @@ public class ServerCnx extends PulsarHandler {
 
     
     }
-
+    */
     private static final Logger log = LoggerFactory.getLogger(ServerCnx.class);
 
     /**

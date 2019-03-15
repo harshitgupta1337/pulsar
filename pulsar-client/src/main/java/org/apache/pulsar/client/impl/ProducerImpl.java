@@ -1411,8 +1411,18 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.connectionHandler.grabCnx();
     }
 
+    @Override
     public NetworkCoordinate getNetworkCoordinate() {
         return coordinate;
+    }
+
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) { 
+        this.coordinate = coordinate;
+    }
+
+    @Override
+    public long getProducerId() { 
+        return producerId;
     }
 
     private static final Logger log = LoggerFactory.getLogger(ProducerImpl.class);

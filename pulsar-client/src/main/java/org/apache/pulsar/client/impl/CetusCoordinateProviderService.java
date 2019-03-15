@@ -45,7 +45,8 @@ import org.apache.pulsar.common.api.Commands;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandLookupTopicResponse;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandLookupTopicResponse.LookupType;
-
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.client.impl.ClientCnx;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
@@ -73,17 +74,32 @@ public class CetusCoordinateProviderService {
 
     void startCoordinateSendService() {
         int interval = 100;
-        coordinateSendService.scheduleAtFixedRate(safeRun(() -> sendCoordinates()), 
+        this.coordinateSendService.scheduleAtFixedRate(safeRun(() -> sendCoordinates()), 
                                                   interval, interval, TimeUnit.MILLISECONDS);
     }
 
+    /*
     public void sendCoordinates() {
-        client.getCnxPool().getConnection(serviceAddress).thenCompose(clientCnx -> {
+        client.getCnxPool().getConnection(serviceAddress).thenAccept(clientCnx -> {
             long requestId = client.newRequestId();
-            ByteBuf msg = Commands.newGetNetworkCoordinateResponse(clientCnx.createGetAllNetworkCoordinateResponse(requestId));
-            return clientCnx.sendNetworkCoordinates(msg, requestId);
-        });
+            ByteBuf msg = Commands.newGetNetworkCoordinateResponse(client.createGetAllNetworkCoordinateResponse(requestId));
+            //CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
+            //commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+            //CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+            //coordinateInfoBuilder.setNodeType("consumer");
+            //coordinateInfoBuilder.setNodeId(4);
+            //coordinateInfoBuilder.set
+            clientCnx.sendNetworkCoordinates(msg, requestId);
+        }).exceptionally((e) -> {
+            log.warn("{} failed to send network coordinate response: {}", e.getCause().getMessage(), e);
+            return null;
+            });
              
+    }
+    */
+
+    public void sendCoordinates() {
+        client.sendNetworkCoordinates();
     }
 
     public void updateServiceUrl(String serviceUrl) throws PulsarClientException {
@@ -99,6 +115,8 @@ public class CetusCoordinateProviderService {
             throw new PulsarClientException.InvalidServiceURL(e);
         }
     }
+    
+    
 
     private static final Logger log = LoggerFactory.getLogger(CetusCoordinateProviderService.class);
 };

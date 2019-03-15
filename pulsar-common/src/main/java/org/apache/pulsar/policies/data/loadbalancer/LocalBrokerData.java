@@ -81,7 +81,7 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
     private String brokerVersionString;
 
     //CETUS: Network Coordinate Addition
-    private NetworkCoordinateData coordinateData;
+    //private NetworkCoordinateData coordinateData;
 
     
     // This place-holder requires to identify correct LoadManagerReport type while deserializing
@@ -111,7 +111,7 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
         bundles = new HashSet<>();
         lastBundleGains = new HashSet<>();
         lastBundleLosses = new HashSet<>();
-        coordinateData = new NetworkCoordinateData();
+        //coordinateData = new NetworkCoordinateData();
     }
 
     /**
@@ -439,6 +439,7 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
         return getLastStats();
     }
 
+    /*
     // CETUS: Get and set network coordinate information for broker
     public NetworkCoordinateData getCoordinateData() {
         return coordinateData;
@@ -447,5 +448,6 @@ public class LocalBrokerData extends JSONWritable implements LoadManagerReport {
     public void setCoordinate(NetworkCoordinateData coordinateData) {
         this.coordinateData = coordinateData;
     }
+    */
 
 }

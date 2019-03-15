@@ -316,11 +316,14 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
                 checkArgument(cmd.hasGetNetworkCoordinate());
                 handleGetNetworkCoordinate(cmd.getGetNetworkCoordinate());
                 cmd.getGetNetworkCoordinate().recycle();
+                break;
 
             case GET_NETWORK_COORDINATE_RESPONSE:
                 checkArgument(cmd.hasGetNetworkCoordinateResponse());
                 handleGetNetworkCoordinateResponse(cmd.getGetNetworkCoordinateResponse());
                 cmd.getGetNetworkCoordinateResponse().recycle();
+                break;
+
             }
         } finally {
             if (cmdBuilder != null) {

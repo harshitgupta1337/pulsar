@@ -53,8 +53,8 @@ public class CetusNetworkCoordinateCollector extends JSONWritable {
     private final ConcurrentLongHashMap<NetworkCoordinate> consumerCoordinates;
 
     public CetusNetworkCoordinateCollector() {
-        producerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>();
-        consumerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>();
+        producerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>(16,1);
+        consumerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>(16,1);
     } 
 
     public void putConsumerCoordinate(long nodeId, NetworkCoordinate coordinate) { 
