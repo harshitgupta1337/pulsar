@@ -24,7 +24,13 @@ import static com.scurrilous.circe.checksum.Crc32cIntChecksum.resumeChecksum;
 import static java.lang.String.format;
 import static org.apache.pulsar.common.api.Commands.hasChecksum;
 import static org.apache.pulsar.common.api.Commands.readChecksum;
-
+// CETUS
+import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import io.netty.util.concurrent.DefaultThreadFactory;
+//***********************************************************************
 import com.google.common.collect.Queues;
 
 import io.netty.buffer.ByteBuf;
@@ -118,7 +124,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     private final ConnectionHandler connectionHandler;
 
     private NetworkCoordinate coordinate;
-    private ScheduledExecutorService coordinateSender;
+    private ScheduledExecutorService coordinateProviderService;
 
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater
@@ -134,7 +140,10 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.pendingMessages = Queues.newArrayBlockingQueue(conf.getMaxPendingMessages());
         this.pendingCallbacks = Queues.newArrayBlockingQueue(conf.getMaxPendingMessages());
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
+        // CETUS
         this.coordinate = new NetworkCoordinate();
+        this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
+        //*********************************************************
         this.compressor = CompressionCodecProvider
                 .getCompressionCodec(convertCompressionType(conf.getCompressionType()));
 
@@ -194,6 +203,19 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             new Backoff(100, TimeUnit.MILLISECONDS, 60, TimeUnit.SECONDS, Math.max(100, conf.getSendTimeoutMs() - 100), TimeUnit.MILLISECONDS),
             this);
         grabCnx();
+        startCoordinateProviderService();
+    }
+
+    void startCoordinateProviderService() {
+        int interval = 100;
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+    }
+
+    public void sendCoordinate() {
+        ClientCnx cnx = cnx();
+        long requestId = client.newRequestId();
+        ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
+        cnx.sendNetworkCoordinates(msg, requestId); 
     }
 
     public ConnectionHandler getConnectionHandler() {

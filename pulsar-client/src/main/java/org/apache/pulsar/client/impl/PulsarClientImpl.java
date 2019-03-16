@@ -95,7 +95,6 @@ public class PulsarClientImpl implements PulsarClient {
     private final ConnectionPool cnxPool;
     private final Timer timer;
     private final ExecutorProvider externalExecutorProvider;
-    private final CetusCoordinateProviderService coordinateProviderService;
 
     enum State {
         Open, Closing, Closed
@@ -152,8 +151,6 @@ public class PulsarClientImpl implements PulsarClient {
             lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
         }
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
-        // Cetus coordinate provider service impl
-        this.coordinateProviderService = new CetusCoordinateProviderService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
         state.set(State.Open);
@@ -747,7 +744,6 @@ public class PulsarClientImpl implements PulsarClient {
         log.info("Updating service URL to {}", serviceUrl);
 
         conf.setServiceUrl(serviceUrl);
-        coordinateProviderService.updateServiceUrl(serviceUrl);
         lookup.updateServiceUrl(serviceUrl);
         cnxPool.closeAllConnections();
     }
@@ -851,78 +847,6 @@ public class PulsarClientImpl implements PulsarClient {
         }
     }
 
-    public void sendNetworkCoordinates() {
-        synchronized(producers) {
-            producers.forEach((producer, id) -> {
-                ProducerImpl<?> producerImpl = (ProducerImpl<?>) producer;
-                ClientCnx cnx = producerImpl.cnx();
-                long requestId = newRequestId();
-                ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse( producerImpl, requestId));
-                cnx.sendNetworkCoordinates(msg, requestId);
-            });
-        }
-
-         synchronized(consumers) {
-            consumers.forEach((consumer, id) -> {
-                ConsumerImpl<?> consumerImpl = (ConsumerImpl<?>) consumer;
-                ClientCnx cnx = consumerImpl.cnx();
-                long requestId = newRequestId();
-                ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(consumerImpl, requestId));
-                cnx.sendNetworkCoordinates(msg, requestId);
-            });
-        }
-    }
-   
-    CommandGetNetworkCoordinateResponse.Builder createGetAllNetworkCoordinateResponse(long requestId)
-    {
-        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
-        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
-
-        synchronized(producers) {
-            producers.forEach((producer, id) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo((ProducerImpl<?>) producer))); 
-        }
-        synchronized(consumers) { 
-            consumers.forEach((consumer, id) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo((ConsumerImpl<?>) consumer))); 
-        }
-
-	return commandGetNetworkCoordinateResponseBuilder;
-    }
-
-    CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
-        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
-	coordinateInfoBuilder.setNodeType("producer");
-	coordinateInfoBuilder.setNodeId(producer.producerId);
-        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
-        coordinateInfoBuilder.setHeight(coordinate.getHeight());
-        coordinateInfoBuilder.setError(coordinate.getError());
-        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
-        double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < coordinateVector.length; i++) {
-            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
-        }
-	return coordinateInfoBuilder;
-    }
-
-    CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
-        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
-	coordinateInfoBuilder.setNodeType("consumer");
-	coordinateInfoBuilder.setNodeId(consumer.consumerId);
-        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
-        coordinateInfoBuilder.setHeight(coordinate.getHeight());
-        coordinateInfoBuilder.setError(coordinate.getError());
-        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
-        double[] coordinateVector = coordinate.getCoordinateVector();
-        for (int i = 0; i < coordinateVector.length; i++) {
-            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
-        }
-	return coordinateInfoBuilder;
-    }
-
-    CoordinateVector.Builder createCoordinateVector(double coordinate) {
-        CoordinateVector.Builder coordinateVectorBuilder = CoordinateVector.newBuilder();
-        coordinateVectorBuilder.setCoordinate(coordinate);
-        return coordinateVectorBuilder;
-    }
     
 
 }

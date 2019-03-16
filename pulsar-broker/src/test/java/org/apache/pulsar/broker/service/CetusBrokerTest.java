@@ -166,9 +166,9 @@ public class CetusBrokerTest extends BrokerTestBase {
         NetworkCoordinate consumerCoordinate = new NetworkCoordinate();
         NetworkCoordinate producerCoordinate = new NetworkCoordinate();
 
-        if(pulsar.getZkClient().exists(coordinateZkPath, null) != null)
+        if(pulsar.getZkClient().exists(consumerCoordinateZkPath, null) != null)
         {
-            consumerCoordinate = readJson(pulsar.getZkClient().getData(coordinateZkPath, null, null), NetworkCoordinate.class);
+            consumerCoordinate = readJson(pulsar.getZkClient().getData(consumerCoordinateZkPath, null, null), NetworkCoordinate.class);
         }  
         
         assertTrue(consumerCoordinate.getAdjustment() == 1);

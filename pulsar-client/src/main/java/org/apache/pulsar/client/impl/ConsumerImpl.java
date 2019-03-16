@@ -27,6 +27,13 @@ import static org.apache.pulsar.common.api.Commands.readChecksum;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+// CETUS
+import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import io.netty.util.concurrent.DefaultThreadFactory;
+//***********************************************************************
 
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Timeout;
@@ -146,6 +153,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     private Producer<T> deadLetterProducer;
 
     private NetworkCoordinate coordinate;
+    private ScheduledExecutorService coordinateProviderService;
 
     enum SubscriptionMode {
         // Make the subscription to be backed by a durable cursor that will retain messages and persist the current
@@ -174,8 +182,9 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.receiverQueueRefillThreshold = conf.getReceiverQueueSize() / 2;
         this.priorityLevel = conf.getPriorityLevel();
         this.readCompacted = conf.isReadCompacted();
-        double[] coordinateVector = new double[]{1,1,1,1,1,1,1,1};
-        this.coordinate = new NetworkCoordinate(-1,-1,-1, coordinateVector);
+        // CETUS
+        this.coordinate = new NetworkCoordinate();
+        this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
         this.subscriptionInitialPosition = conf.getSubscriptionInitialPosition();
 
         if (client.getConfiguration().getStatsIntervalSeconds() > 0) {
@@ -239,6 +248,19 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         topicNameWithoutPartition = topicName.getPartitionedTopicName();
 
         grabCnx();
+        startCoordinateProviderService();
+    }
+
+    void startCoordinateProviderService() {
+        int interval = 100;
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+    }
+
+    public void sendCoordinate() {
+        ClientCnx cnx = cnx();
+        long requestId = client.newRequestId();
+        ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
+        cnx.sendNetworkCoordinates(msg, requestId); 
     }
 
     public ConnectionHandler getConnectionHandler() {
