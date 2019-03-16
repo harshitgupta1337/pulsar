@@ -118,6 +118,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     private final ConnectionHandler connectionHandler;
 
     private NetworkCoordinate coordinate;
+    private ScheduledExecutorService coordinateSender;
 
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater

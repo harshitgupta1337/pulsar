@@ -912,10 +912,10 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
 
     public void updateCoordinates() {
         //forEachTopic(Topic::updateCoordinates);
-        //writeCoordinateDataOnZookeeper();
+        writeCoordinateDataOnZookeeper();
     }
     
-    /*
+    
     public void writeCoordinateDataOnZookeeper() {
         cetusNetworkCoordinateCollector.getProducerCoordinates().forEach((key, value) -> {
             final long producerId = key;
@@ -929,16 +929,28 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                log.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
             }
         });
+
+        cetusNetworkCoordinateCollector.getConsumerCoordinates().forEach((key, value) -> {
+            final long consumerId = key;
+            final NetworkCoordinate coordinate = value;
+            try {
+                final String zooKeeperPath = getConsumerZooKeeperPath(consumerId);
+                createZPathIfNotExists(pulsar.getZkClient(), zooKeeperPath);
+                pulsar.getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
+            }
+            catch (Exception e) {
+               log.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
+            }
+        });
     }
 
     public static String getProducerZooKeeperPath(final long producerId) {
-        return COORDINATE_DATA_PATH + "/" + producerId; 
+        return COORDINATE_DATA_PATH + "/producer/" + producerId; 
     }
 
     public static String getConsumerZooKeeperPath(final long consumerId) {
-        return COORDINATE_DATA_PATH + "/" + consumerId;
+        return COORDINATE_DATA_PATH + "/consumer/" + consumerId;
     }
-    */
 
     /**
      * Iterates over all loaded topics in the broker

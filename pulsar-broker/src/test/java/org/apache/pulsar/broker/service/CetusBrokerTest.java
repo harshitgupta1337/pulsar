@@ -48,6 +48,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.bookkeeper.mledger.ManagedLedgerConfig;
 import org.apache.bookkeeper.mledger.ManagedLedgerException;
 import org.apache.bookkeeper.mledger.impl.ManagedLedgerFactoryImpl;
@@ -105,6 +108,10 @@ public class CetusBrokerTest extends BrokerTestBase {
         super.internalCleanup();
     }
 
+    protected static <T> T readJson(final byte[] data, final Class<T> clazz) throws IOException {
+        return ObjectMapperFactory.getThreadLocal().readValue(data, clazz);
+    } 
+
     @Test
     public void CoordinateReceivedTest() throws Exception {
         final String topicName = "non-persistent://prop/ns-abc/coordinateTopic";
@@ -153,7 +160,18 @@ public class CetusBrokerTest extends BrokerTestBase {
 
         //assertTrue(brokerService.getNetworkCoordinateCollector().getConsumerCoordinate(consumerId).getAdjustment() == 1);
 
-     
+        String consumerCoordinateZkPath = "/cetus/coordinate-data/consumer/" + consumerId;
+        String producerCoordinateZkPath = "/cetus/coordinate-data/producer/" + producerId;
+
+        NetworkCoordinate consumerCoordinate = new NetworkCoordinate();
+        NetworkCoordinate producerCoordinate = new NetworkCoordinate();
+
+        if(pulsar.getZkClient().exists(coordinateZkPath, null) != null)
+        {
+            consumerCoordinate = readJson(pulsar.getZkClient().getData(coordinateZkPath, null, null), NetworkCoordinate.class);
+        }  
+        
+        assertTrue(consumerCoordinate.getAdjustment() == 1);
     }
 }
 
