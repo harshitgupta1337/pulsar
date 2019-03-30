@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.pulsar.broker.service;
+package org.apache.pulsar.broker;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -45,14 +45,14 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
-@JsonDeserialize(as = CetusNetworkCoordinateCollector.class)
-public class CetusNetworkCoordinateCollector extends JSONWritable {
-    public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateCollector.class);
+@JsonDeserialize(as = CetusNetworkCoordinateData.class)
+public class CetusNetworkCoordinateData extends JSONWritable {
+    public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateData.class);
 
     private final ConcurrentLongHashMap<NetworkCoordinate> producerCoordinates;
     private final ConcurrentLongHashMap<NetworkCoordinate> consumerCoordinates;
 
-    public CetusNetworkCoordinateCollector() {
+    public CetusNetworkCoordinateData() {
         producerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>(16,1);
         consumerCoordinates = new ConcurrentLongHashMap<NetworkCoordinate>(16,1);
     } 

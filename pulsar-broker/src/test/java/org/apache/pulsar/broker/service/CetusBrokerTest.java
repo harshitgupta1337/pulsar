@@ -148,13 +148,13 @@ public class CetusBrokerTest extends BrokerTestBase {
 
         Thread.sleep(10000);
 
-        assertTrue(brokerService.getNetworkCoordinateCollector().getConsumerCoordinates().size() == 1);
+        assertTrue(brokerService.pulsar().getNetworkCoordinateData().getConsumerCoordinates().size() == 1);
 
-        double adjustment = brokerService.getNetworkCoordinateCollector().getConsumerCoordinate(consumerId).getAdjustment();
+        double adjustment = brokerService.pulsar().getNetworkCoordinateData().getConsumerCoordinate(consumerId).getAdjustment();
 
         assertTrue(adjustment == 1 || adjustment == -1);
 
-        adjustment = brokerService.getNetworkCoordinateCollector().getProducerCoordinate(producerId).getAdjustment();
+        adjustment = brokerService.pulsar().getNetworkCoordinateData().getProducerCoordinate(producerId).getAdjustment();
 
         assertTrue(adjustment == 1);
 

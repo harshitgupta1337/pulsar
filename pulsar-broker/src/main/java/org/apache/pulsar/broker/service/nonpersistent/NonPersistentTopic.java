@@ -89,7 +89,7 @@ import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.utils.StatsOutputStream;
 import org.apache.zookeeper.KeeperException;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
-import org.apache.pulsar.broker.service.CetusNetworkCoordinateCollector;
+import org.apache.pulsar.broker.CetusNetworkCoordinateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1002,12 +1002,12 @@ public class NonPersistentTopic implements Topic {
     @Override
     public void updateCoordinates() {
         producers.forEach(producer -> {
-            brokerService.getNetworkCoordinateCollector().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
+            brokerService.pulsar().getNetworkCoordinateData().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
             
         });
 
         subscriptions.forEach((subName, sub) -> sub.getConsumers().forEach(consumer -> {
-            brokerService.getNetworkCoordinateCollector().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
+            brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
         }));
     }
 

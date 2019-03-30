@@ -84,8 +84,6 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.apache.pulsar.broker.loadbalance.CetusLoadData;
-import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,8 +92,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     // Path to ZNode whose children contain BundleData jsons for each bundle (new API version of ResourceQuota).
     public static final String BUNDLE_DATA_ZPATH = "/loadbalance/bundle-data";
-
-    public static final String CETUS_COORDINATE_DATA_ROOT = "/cetus/coordinate-data";
 
     // Default message rate to assume for unseen bundles.
     public static final double DEFAULT_MESSAGE_RATE = 50;
@@ -197,7 +193,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     private Map<String, String> brokerToProducerConsumerMap;
 
     // Cetus: Keeps coordinates for reach producer and consumer
-    private ZooKeeperDataCache<NetworkCoordinate> producerConsumerCoordinateDataCache;
+    private ZookeeperDataCache<NetworkCoordinate> producerConsumerCoordinateDataCache;
 
     private static final Deserializer<LocalBrokerData> loadReportDeserializer = (key, content) -> jsonMapper()
             .readValue(content, LocalBrokerData.class);
@@ -217,8 +213,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
         this.brokerToFailureDomainMap = Maps.newHashMap();
         // CETUS
-        this.brokerToProducerConsumerMap = Maps.newHashMap();
-        this.cetusLoadData = new CetusLoadData();
+        this.brokerToClientMap = Maps.newHashMap();
         //
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
             @Override
@@ -466,7 +461,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         }
         updateAllBrokerData();
         updateBundleData();
-        //latencyStatsUpdated();
+        latencyStatsUpdated();
         // broker has latest load-report: check if any bundle requires split
         checkNamespaceBundleSplit();
     }
@@ -798,33 +793,27 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     // by our algorithm.
     public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
        synchronized(brokerCandidateCache) {
-            final String bundle = serviceUnit.toString();
+            final String bundle = serviceUnit.toString;
             if(preallocatedBundleToBroker.containsKey(bundle)) {
-                return Optional.of(preallocatedBundleToBroker.get(bundle));
+                return Optional.of(preallocatedBundletoBroker.get(bundle));
             }
-            //Optional<String> broker = getBrokerWithLeastLatency(brokerCandidateCache, latencyData);
-            Optional<String> broker = Optional.of("1");
-            final BundleData data = loadData.getBundleData().computeIfAbsent(bundle,
-                    key -> getBundleDataOrDefault(bundle));
-            brokerCandidateCache.clear();
+            Optional<String> broker = getBrokerWithLeastLatency(brokerCandidateCache, latencyData);
 
             loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
             preallocatedBundleToBroker.put(bundle, broker.get());
 
-            final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+            final String nameSpaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-            brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
-                .add(bundleRange);
+            brokerToNamespaceToBundleRange.get(broker.get().computeIfAbset(namespaceName, k -> new HashSet<>())
+                .add(bundleRange));
             return broker;
              
         } 
     }
 
-    /*
     private Optional<String> getBrokerWithLeastLatency(zkCache brokerCandidateCache) {
         
     }
-    */
    
     /**
      * As any broker, start the load manager.
@@ -1032,7 +1021,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         }
     }
 
-    /*
     // CETUS: Migrate bundle from one broker to another
     private void migrateBundle(String bundle,final String broker1, final String broker2) {
         // Get admin client
@@ -1045,21 +1033,20 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
         
     }
-    */
    
     // CETUS: Updates network coordinate data from zookeeper as leader
     private void updateNetworkCoordinateData(final NetworkCoordinateData nwCoordData) {
         if ( pulsar.getLeaderElectionService() == null || !pulsar.getLeaderElectionService().isLeader()) {
             return;
         }
-        for(Map.Entry<String, BrokerData> brokerEntry : loadData.getBrokerData().entrySet()) {
+        for(Map.entry<String, BrokerData> brokerEntry : loadData.getBrokerData().entrySet()) {
             final String broker = brokerEntry.getKey();
             final BrokerData brokerData = brokerEntry.getValue();
             final Map<String, NamespaceBundleStats> statsMap = brokerData.getLocalData().getLastStats();
              
             try {
-               String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
-               final NetworkCoordinate coordinate; 
+               String key = String.format("%s/%s", LoadManager.CETUS_COORDINATE_DATA_ROOT, broker);
+               final NetworkCoordinate 
             }
             catch(Exception e) {
                 log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
@@ -1068,9 +1055,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     
     }
 
-    private String getCoordinateZPath(final String broker) {
+    private NetworkCoordinate getCoordinateZPath(final String broker) {
         final String brokerZPath = "/cetus/coordinate-data/" + broker;
-        return brokerZPath;
     }
     
     /**

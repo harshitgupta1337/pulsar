@@ -143,10 +143,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final int port;
     private final int tlsPort;
 
-    // CETUS: Coordinate Data Zk Path
-    public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
-
-    private final ConcurrentOpenHashMap<String, CompletableFuture<Optional<Topic>>> topics;
+        private final ConcurrentOpenHashMap<String, CompletableFuture<Optional<Topic>>> topics;
 
     private final ConcurrentOpenHashMap<String, PulsarClient> replicationClients;
 
@@ -176,10 +173,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final ScheduledExecutorService messageExpiryMonitor;
     private final ScheduledExecutorService compactionMonitor;
 
-    // Cetus
-    private final ScheduledExecutorService cetusNetworkCoordinateCollectorService;
 
-    private final CetusNetworkCoordinateCollector cetusNetworkCoordinateCollector;
 
     private DistributedIdGenerator producerNameGenerator;
 
@@ -212,9 +206,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.keepAliveIntervalSeconds = pulsar.getConfiguration().getKeepAliveIntervalSeconds();
         this.configRegisteredListeners = new ConcurrentOpenHashMap<>();
         this.pendingTopicLoadingQueue = Queues.newConcurrentLinkedQueue();
-        this.cetusNetworkCoordinateCollector = new CetusNetworkCoordinateCollector();
-
-        this.multiLayerTopicsMap = new ConcurrentOpenHashMap<>();
+                this.multiLayerTopicsMap = new ConcurrentOpenHashMap<>();
         this.pulsarStats = new PulsarStats(pulsar);
         this.offlineTopicStatCache = new ConcurrentOpenHashMap<>();
 
@@ -247,8 +239,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-compaction-monitor"));
 
 
-        this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
-        this.backlogQuotaManager = new BacklogQuotaManager(pulsar);
+                this.backlogQuotaManager = new BacklogQuotaManager(pulsar);
         this.backlogQuotaChecker = Executors
                 .newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-backlog-quota-checker"));
         this.authenticationService = new AuthenticationService(pulsar.getConfiguration());
@@ -332,8 +323,6 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.startMessageExpiryMonitor();
         this.startCompactionMonitor();
         this.startBacklogQuotaChecker();
-        // CETUS - start service in constructor
-        this.startCoordinateCollectorService();
         // register listener to capture zk-latency
         ClientCnxnAspect.addListener(zkStatsListener);
         ClientCnxnAspect.registerExecutor(pulsar.getExecutor());
@@ -382,13 +371,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         }
     }
     
-    // CETUS: Coordinate Collector Service start
-    void startCoordinateCollectorService() {
-        int interval = 100;
-
-        cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
-                                                           0, interval, TimeUnit.MILLISECONDS);
-    }
+    
 
     void startBacklogQuotaChecker() {
         if (pulsar().getConfiguration().isBacklogQuotaCheckEnabled()) {
@@ -910,47 +893,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         forEachTopic(Topic::checkInactiveSubscriptions);
     }
 
-    public void updateCoordinates() {
-        //forEachTopic(Topic::updateCoordinates);
-        writeCoordinateDataOnZookeeper();
-    }
     
-    
-    public void writeCoordinateDataOnZookeeper() {
-        cetusNetworkCoordinateCollector.getProducerCoordinates().forEach((key, value) -> {
-            final long producerId = key;
-            final NetworkCoordinate coordinate = value;
-            try {
-                final String zooKeeperPath = getProducerZooKeeperPath(producerId);
-                createZPathIfNotExists(pulsar.getZkClient(), zooKeeperPath);
-                pulsar.getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
-            }
-            catch (Exception e) {
-               log.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
-            }
-        });
-
-        cetusNetworkCoordinateCollector.getConsumerCoordinates().forEach((key, value) -> {
-            final long consumerId = key;
-            final NetworkCoordinate coordinate = value;
-            try {
-                final String zooKeeperPath = getConsumerZooKeeperPath(consumerId);
-                createZPathIfNotExists(pulsar.getZkClient(), zooKeeperPath);
-                pulsar.getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
-            }
-            catch (Exception e) {
-               log.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
-            }
-        });
-    }
-
-    public static String getProducerZooKeeperPath(final long producerId) {
-        return COORDINATE_DATA_PATH + "/producer/" + producerId; 
-    }
-
-    public static String getConsumerZooKeeperPath(final long consumerId) {
-        return COORDINATE_DATA_PATH + "/consumer/" + consumerId;
-    }
 
     /**
      * Iterates over all loaded topics in the broker
@@ -1598,19 +1541,5 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         }
     }
 
-    // Attempt to create a ZooKeeper path if it does not exist.
-    private static void createZPathIfNotExists(final ZooKeeper zkClient, final String path) throws Exception {
-        if (zkClient.exists(path, false) == null) {
-            try {
-                ZkUtils.createFullPathOptimistic(zkClient, path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-                        CreateMode.PERSISTENT);
-            } catch (KeeperException.NodeExistsException e) {
-                // Ignore if already exists.
-            }
-        }
-    }
     
-    public CetusNetworkCoordinateCollector getNetworkCoordinateCollector() {
-        return cetusNetworkCoordinateCollector;
-    }
 }

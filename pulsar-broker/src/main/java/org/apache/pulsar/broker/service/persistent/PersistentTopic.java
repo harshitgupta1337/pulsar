@@ -119,7 +119,7 @@ import org.slf4j.LoggerFactory;
 
 // Cetus
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
-import org.apache.pulsar.broker.service.CetusNetworkCoordinateCollector;
+import org.apache.pulsar.broker.CetusNetworkCoordinateData;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.google.common.base.MoreObjects;
@@ -1734,12 +1734,12 @@ public class PersistentTopic implements Topic, AddEntryCallback {
     @Override
     public void updateCoordinates() {
         producers.forEach(producer -> {
-            brokerService.getNetworkCoordinateCollector().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
+            brokerService.pulsar().getNetworkCoordinateData().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
             
         });
 
         subscriptions.forEach((subName, sub) -> sub.getConsumers().forEach(consumer -> {
-            brokerService.getNetworkCoordinateCollector().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
+            brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
         }));
     }
 
