@@ -1730,6 +1730,7 @@ public class PersistentTopic implements Topic, AddEntryCallback {
         return ledger.getLastConfirmedEntry();
     }
 
+    /*
     // CETUS
     @Override
     public void updateCoordinates() {
@@ -1742,6 +1743,7 @@ public class PersistentTopic implements Topic, AddEntryCallback {
             brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
         }));
     }
+    */
 
     public synchronized void triggerCompaction()
             throws PulsarServerException, AlreadyRunningException {

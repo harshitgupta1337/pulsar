@@ -558,6 +558,7 @@ public class ServerCnx extends PulsarHandler {
             if(nodeType.equals("producer")) {
                 for(int i = 0; i < commandGetNetworkCoordinateResponse.getCoordinateInfoCount(); i++)
                 {
+                    String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getTopic();
                     double[] coordinates = new double[8];
                     for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
                     {
@@ -566,12 +567,20 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    service.pulsar().getNetworkCoordinateData().putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    if(service.pulsar().getTopicToCoordinateDataMap().containsKey(topic)) {
+                        service.pulsar().getTopicToCoordinateDataMap().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    }
+                    else {
+                        service.pulsar().getTopicToCoordinateDataMap().put(topic, new CetusNetworkCoordinateData());
+                        service.pulsar().getTopicToCoordinateDataMap().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+
+                    }
                  }
             }
             else if(nodeType.equals("consumer")) {
                 for(int i = 0; i < commandGetNetworkCoordinateResponse.getCoordinateInfoCount(); i++)
                 {
+                    String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getTopic();
                     double[] coordinates = new double[8];
                     for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
                     {
@@ -580,7 +589,14 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    service.pulsar().getNetworkCoordinateData().putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    if(service.pulsar().getTopicToCoordinateDataMap().containsKey(topic)) {
+                        service.pulsar().getTopicToCoordinateDataMap().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    }
+                    else {
+                        service.pulsar().getTopicToCoordinateDataMap().put(topic, new CetusNetworkCoordinateData());
+                        service.pulsar().getTopicToCoordinateDataMap().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+
+                    }
                  }
             }
             else {
@@ -589,7 +605,7 @@ public class ServerCnx extends PulsarHandler {
             
         }
         else {
-          
+           String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getTopic(); 
            double[] coordinates = new double[8];
            for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getCoordinatesCount(); j++) 
            {
@@ -599,10 +615,24 @@ public class ServerCnx extends PulsarHandler {
            double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
            double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
-               service.pulsar().getNetworkCoordinateData().putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                if(service.pulsar().getTopicToCoordinateDataMap().containsKey(topic)) {    
+                    service.pulsar().getTopicToCoordinateDataMap().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                }
+                else {
+                    service.pulsar().getTopicToCoordinateDataMap().put(topic, new CetusNetworkCoordinateData());
+                    service.pulsar().getTopicToCoordinateDataMap().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+
+                }
 	       }
            else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
-               service.pulsar().getNetworkCoordinateData().putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                if(service.pulsar().getTopicToCoordinateDataMap().containsKey(topic)) {
+                    service.pulsar().getTopicToCoordinateDataMap().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                }
+                else {
+                    service.pulsar().getTopicToCoordinateDataMap().put(topic, new CetusNetworkCoordinateData());
+                    service.pulsar().getTopicToCoordinateDataMap().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+
+                }
            }
            else {
                log.debug("Is not returning a producer or consumer value.");

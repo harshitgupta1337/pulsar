@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.apache.bookkeeper.client.BookKeeper;
@@ -176,8 +177,7 @@ public class PulsarService implements AutoCloseable {
     // Cetus
     private final ScheduledExecutorService cetusNetworkCoordinateCollectorService;
 
-    private CetusNetworkCoordinateData cetusNetworkCoordinateData;
-
+    private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicToCoordinateDataMap;
     private final MessagingServiceShutdownHook shutdownService;
 
     private MetricsGenerator metricsGenerator;
@@ -213,7 +213,8 @@ public class PulsarService implements AutoCloseable {
                 .newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-load-manager"));
         this.functionWorkerService = functionWorkerService;
         // Cetus Netowrk Coordinate Data
-        this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();
+        //this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();
+        this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
         this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
 
 
@@ -1057,12 +1058,12 @@ public class PulsarService implements AutoCloseable {
     
     
 
-    public static String getProducerZooKeeperPath(final long producerId) {
-        return COORDINATE_DATA_PATH + "/producer/" + producerId; 
-    }
+    public String getProducerZooKeeperPath(final String topic, final long producerId) {
+        return COORDINATE_DATA_PATH + "/" + getAdvertisedAddress() + "/" + topic + "/producer/" + producerId; 
+    } 
 
-    public static String getConsumerZooKeeperPath(final long consumerId) {
-        return COORDINATE_DATA_PATH + "/consumer/" + consumerId;
+    public String getConsumerZooKeeperPath(final String topic, final long consumerId) {
+        return COORDINATE_DATA_PATH + "/" + getAdvertisedAddress() + "/" + topic + "/consumer/" + consumerId;
     }
 
     // Attempt to create a ZooKeeper path if it does not exist.
@@ -1078,34 +1079,38 @@ public class PulsarService implements AutoCloseable {
     }
 
     public void writeCoordinateDataOnZookeeper() {
-        cetusNetworkCoordinateData.getProducerCoordinates().forEach((key, value) -> {
-            final long producerId = key;
-            final NetworkCoordinate coordinate = value;
-            try {
-                final String zooKeeperPath = getProducerZooKeeperPath(producerId);
-                createZPathIfNotExists(getZkClient(), zooKeeperPath);
-                getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
-            }
-            catch (Exception e) {
-               LOG.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
-            }
-        });
-
-        cetusNetworkCoordinateData.getConsumerCoordinates().forEach((key, value) -> {
-            final long consumerId = key;
-            final NetworkCoordinate coordinate = value;
-            try {
-                final String zooKeeperPath = getConsumerZooKeeperPath(consumerId);
-                createZPathIfNotExists(getZkClient(), zooKeeperPath);
-                getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
-            }
-            catch (Exception e) {
-               LOG.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
-            }
-        });
+        for(Map.Entry<String, CetusNetworkCoordinateData> entry : this.topicToCoordinateDataMap.entrySet()) {
+            final String topic = TopicName.get(entry.getKey()).getLookupName();
+            final CetusNetworkCoordinateData cetusNetworkCoordinateData = entry.getValue();
+            cetusNetworkCoordinateData.getProducerCoordinates().forEach((key, value) -> {
+                final long producerId = key;
+                final NetworkCoordinate coordinate = value;
+                try {
+                    final String zooKeeperPath = getProducerZooKeeperPath(topic, producerId);
+                    createZPathIfNotExists(getZkClient(), zooKeeperPath);
+                    getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
+                }
+                catch (Exception e) {
+                   LOG.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
+                }
+            });
+            cetusNetworkCoordinateData.getConsumerCoordinates().forEach((key, value) -> {
+                final long consumerId = key;
+                final NetworkCoordinate coordinate = value;
+                try {
+                    final String zooKeeperPath = getConsumerZooKeeperPath(topic, consumerId);
+                    createZPathIfNotExists(getZkClient(), zooKeeperPath);
+                    getZkClient().setData(zooKeeperPath, coordinate.getJsonBytes(), -1);
+                }
+                catch (Exception e) {
+                   LOG.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
+                }
+            });
+        }
     }
-    
-    public CetusNetworkCoordinateData getNetworkCoordinateData() {
-        return cetusNetworkCoordinateData;
+  
+
+    public ConcurrentHashMap<String, CetusNetworkCoordinateData> getTopicToCoordinateDataMap() {
+        return topicToCoordinateDataMap;
     }
 }

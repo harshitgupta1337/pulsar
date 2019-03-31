@@ -998,6 +998,7 @@ public class NonPersistentTopic implements Topic {
         throw new UnsupportedOperationException("getLastMessageId is not supported on non-persistent topic");
     }
 
+    /*
     // CETUS
     @Override
     public void updateCoordinates() {
@@ -1010,6 +1011,7 @@ public class NonPersistentTopic implements Topic {
             brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
         }));
     }
+    */
 
     public void markBatchMessagePublished() {
         this.hasBatchMessagePublished = true;

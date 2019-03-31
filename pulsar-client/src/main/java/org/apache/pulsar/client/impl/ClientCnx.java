@@ -74,6 +74,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandSendReceipt;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
 
@@ -537,8 +538,10 @@ public class ClientCnx extends PulsarHandler {
 
     CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
         CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
-	coordinateInfoBuilder.setNodeType("producer");
-	coordinateInfoBuilder.setNodeId(producer.producerId);
+	    coordinateInfoBuilder.setNodeType("producer");
+	    coordinateInfoBuilder.setNodeId(producer.producerId);
+        //TopicName topicName = new TopicName(producer.getTopic());
+        coordinateInfoBuilder.setTopic(producer.getTopic());
         NetworkCoordinate coordinate = producer.getNetworkCoordinate();
         coordinateInfoBuilder.setHeight(coordinate.getHeight());
         coordinateInfoBuilder.setError(coordinate.getError());
@@ -547,13 +550,15 @@ public class ClientCnx extends PulsarHandler {
         for (int i = 0; i < coordinateVector.length; i++) {
             coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
         }
-	return coordinateInfoBuilder;
+	    return coordinateInfoBuilder;
     }
 
     CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
         CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
-	coordinateInfoBuilder.setNodeType("consumer");
-	coordinateInfoBuilder.setNodeId(consumer.consumerId);
+	    coordinateInfoBuilder.setNodeType("consumer");
+	    coordinateInfoBuilder.setNodeId(consumer.consumerId);
+        //TopicName topicName = new TopicName(consumer.getTopic());
+        coordinateInfoBuilder.setTopic(consumer.getTopic());
         NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
         coordinateInfoBuilder.setHeight(coordinate.getHeight());
         coordinateInfoBuilder.setError(coordinate.getError());
