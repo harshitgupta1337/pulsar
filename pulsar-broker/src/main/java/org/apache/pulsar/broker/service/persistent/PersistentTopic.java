@@ -119,7 +119,7 @@ import org.slf4j.LoggerFactory;
 
 // Cetus
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
-import org.apache.pulsar.broker.CetusNetworkCoordinateData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.google.common.base.MoreObjects;

@@ -89,7 +89,7 @@ import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.utils.StatsOutputStream;
 import org.apache.zookeeper.KeeperException;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
-import org.apache.pulsar.broker.CetusNetworkCoordinateData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

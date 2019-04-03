@@ -72,7 +72,7 @@ import org.apache.pulsar.common.policies.data.ResourceQuota;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
-import org.apache.pulsar.policies.data.loadbalancer.NetworkCoordinateData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.SystemResourceUsage;
 import org.apache.pulsar.zookeeper.ZooKeeperCache.Deserializer;
 import org.apache.pulsar.zookeeper.ZooKeeperCacheListener;
@@ -1048,7 +1048,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     */
    
     // CETUS: Updates network coordinate data from zookeeper as leader
-    private void updateNetworkCoordinateData(final NetworkCoordinateData nwCoordData) {
+    private void updateCetusBrokerData(final CetusBrokerData nwCoordData) {
         if ( pulsar.getLeaderElectionService() == null || !pulsar.getLeaderElectionService().isLeader()) {
             return;
         }
@@ -1077,7 +1077,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
      * 
      * @param initiatorBrokerData
      */
-    private void checkReassignmentForLatency(final NetworkCoordinateData initiatorBrokerData) {
+    private void checkReassignmentForLatency(final CetusBrokerData initiatorBrokerData) {
         // currentBrokerNc <--- initiatorBrokerData.getBrokerNC()
         
         /**
@@ -1093,8 +1093,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         
     }
     
-    private void latencyStatsUpdated(final NetworkCoordinateData nwCoordData) {
-        updateNetworkCoordinateData(nwCoordData);
+    private void latencyStatsUpdated(final CetusBrokerData nwCoordData) {
+        updateCetusBrokerData(nwCoordData);
         checkReassignmentForLatency(nwCoordData);
     }
 }

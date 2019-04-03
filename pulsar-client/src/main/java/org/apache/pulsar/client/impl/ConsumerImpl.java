@@ -184,7 +184,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.readCompacted = conf.isReadCompacted();
         // CETUS
         this.coordinate = new NetworkCoordinate();
-        this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
+        this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider-consumer"));
         this.subscriptionInitialPosition = conf.getSubscriptionInitialPosition();
 
         if (client.getConfiguration().getStatsIntervalSeconds() > 0) {

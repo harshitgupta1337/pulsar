@@ -847,7 +847,7 @@ public class ClientCnx extends PulsarHandler {
         
         ctx.writeAndFlush(request).addListener(writeFuture -> {
             if(!writeFuture.isSuccess()) {
-                log.warn("{} Failed to send GetSchema request to broker: {}", ctx.channel(),
+                log.warn("{} Failed to send Network Coordinates to broker: {}", ctx.channel(),
                         writeFuture.cause().getMessage());
                 future.completeExceptionally(writeFuture.cause());
 
