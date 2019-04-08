@@ -1097,6 +1097,7 @@ public class PulsarService implements AutoCloseable {
             getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
             LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getTopicNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
+            /*
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getTopicNetworkCoordinates().entrySet()) {
                 final String topic = TopicName.get(entry.getKey()).getLookupName();
                 final CetusNetworkCoordinateData cetusNetworkCoordinateData = entry.getValue();
@@ -1128,7 +1129,7 @@ public class PulsarService implements AutoCloseable {
                         LOG.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
                     }
                 });
-            }
+            }*/
         }
         catch (Exception e) {
             LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getAdvertisedAddress(), e);

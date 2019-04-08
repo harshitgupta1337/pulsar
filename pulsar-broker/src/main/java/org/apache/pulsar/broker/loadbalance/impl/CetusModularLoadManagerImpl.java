@@ -73,6 +73,7 @@ import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.SystemResourceUsage;
 import org.apache.pulsar.zookeeper.ZooKeeperCache.Deserializer;
 import org.apache.pulsar.zookeeper.ZooKeeperCacheListener;
@@ -86,6 +87,7 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.apache.pulsar.broker.loadbalance.CetusLoadData;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.pulsar.common.util.CoordinateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,6 +127,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     // ZooKeeper cache of the local broker data, stored in LoadManager.LOADBALANCE_BROKER_ROOT.
     private ZooKeeperDataCache<LocalBrokerData> brokerDataCache;
+
+    // CETUS Zookeeper cache of the cetus broker data
+    private ZooKeeperDataCache<CetusBrokerData> cetusBrokerDataCache;
 
     // Broker host usage object used to calculate system resource usage.
     private BrokerHostUsage brokerHostUsage;
@@ -466,9 +471,37 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         }
         updateAllBrokerData();
         updateBundleData();
-        //latencyStatsUpdated();
+        updateLatencyData();
         // broker has latest load-report: check if any bundle requires split
         checkNamespaceBundleSplit();
+    }
+
+    private void updateLatencyData() {
+        final Set<String> activeBrokers = getAvailableBrokers();
+        final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerData();
+        for (String broker : activeBrokers) {
+            try {
+                String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
+                final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
+                    .orElseThrow(KeeperException.NoNodeException::new);
+
+                if(cetusBrokerDataMap.containsKey(broker)) {
+                    cetusBrokerDataMap.put(broker, cetusLocalData);
+                }
+                else {
+                   cetusBrokerDataMap.put(broker, new CetusBrokerData(cetusLocalData)); 
+                }
+            }
+            catch (NoNodeException ne){
+                log.debug("Couldn't get broker data, removing from map: {}", ne);
+                cetusBrokerDataMap.remove(broker);
+                log.warn("[{}] broker load-report znode not present", broker, ne);
+            } 
+            catch (Exception e) {
+                log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
+            }
+
+        }
     }
 
     // As the leader broker, update the broker data map in loadData by querying ZooKeeper for the broker data put there
@@ -589,10 +622,13 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         }
     }
 
+    
     /**
      * As the leader broker, select bundles for the namespace service to unload so that they may be reassigned to new
      * brokers.
      */
+
+    /* CETUS - Remove and replace with coordinate based unload mechanism
     @Override
     public synchronized void doLoadShedding() {
         if (!LoadManagerShared.isLoadSheddingEnabled(pulsar)) {
@@ -630,6 +666,46 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 });
             });
         }
+    }
+    */
+
+
+    // CETUS - Unload Bundles
+    @Override
+    public synchronized void doLoadShedding() {
+        if (getAvailableBrokers().size() <= 1) {
+            log.info("Only 1 broker available: no load shedding will be performed");
+            return;
+        }
+        // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
+        // map.
+        final long timeout = System.currentTimeMillis()
+                - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
+        final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
+        recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+
+        for (LoadSheddingStrategy strategy : loadSheddingPipeline) {
+            final Multimap<String, String> bundlesToUnload = strategy.findBundlesForUnloading(loadData, conf);
+
+            bundlesToUnload.asMap().forEach((broker, bundles) -> {
+                bundles.forEach(bundle -> {
+                    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+                    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
+                    if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
+                        return;
+                    }
+
+                    log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
+                    try {
+                        pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                        loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                    } catch (PulsarServerException | PulsarAdminException e) {
+                        log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                    }
+                });
+            });
+        }
+
     }
 
     public boolean shouldAntiAffinityNamespaceUnload(String namespace, String bundle, String currentBroker) {
@@ -927,19 +1003,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         }
     }
 
-    // CETUS - Write producer/consumer data to zookeeper
-    /*
-    public void writeClientDataOnZooKeeper() {
-	try {
-	    updateClientData();
-	    if(needClientDataUpdate()) {
-		zkClient.setData(brokerZnodePath, clientData.getJsonBytes(), -1);
-	} catch (exception e) {
-	    log.warn("Error writing client data on Zookeeper: {}", e);
-	}
-	
-    }
-    */
 
     @Override
     public Deserializer<LocalBrokerData> getLoadReportDeserializer() {
@@ -1047,26 +1110,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     }
     */
    
-    // CETUS: Updates network coordinate data from zookeeper as leader
-    private void updateCetusBrokerData(final CetusBrokerData nwCoordData) {
-        if ( pulsar.getLeaderElectionService() == null || !pulsar.getLeaderElectionService().isLeader()) {
-            return;
-        }
-        for(Map.Entry<String, BrokerData> brokerEntry : loadData.getBrokerData().entrySet()) {
-            final String broker = brokerEntry.getKey();
-            final BrokerData brokerData = brokerEntry.getValue();
-            final Map<String, NamespaceBundleStats> statsMap = brokerData.getLocalData().getLastStats();
-             
-            try {
-               String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
-               final NetworkCoordinate coordinate; 
-            }
-            catch(Exception e) {
-                log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
-            }
-        }
-    
-    }
 
     private String getCoordinateZPath(final String broker) {
         final String brokerZPath = "/cetus/coordinate-data/" + broker;
@@ -1094,7 +1137,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     }
     
     private void latencyStatsUpdated(final CetusBrokerData nwCoordData) {
-        updateCetusBrokerData(nwCoordData);
         checkReassignmentForLatency(nwCoordData);
     }
 }

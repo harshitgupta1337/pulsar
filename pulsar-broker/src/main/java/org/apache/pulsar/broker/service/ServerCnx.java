@@ -572,7 +572,7 @@ public class ServerCnx extends PulsarHandler {
                         log.info("Existing topic, name: {}",topic);
                     }
                     else {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData());
+                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
                         service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                         log.info("New Topic, name: {}", topic);
 
@@ -595,7 +595,7 @@ public class ServerCnx extends PulsarHandler {
                         service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                     }
                     else {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData());
+                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
                         service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
 
                     }
@@ -622,7 +622,7 @@ public class ServerCnx extends PulsarHandler {
                     log.info("Existing topic, name: {} consumerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
                 }
                 else {
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData());
+                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
                     service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                     log.info("New topic, name: {} consumerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
 
@@ -635,7 +635,7 @@ public class ServerCnx extends PulsarHandler {
 
                 }
                 else {
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData());
+                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
                     service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                     log.info("Existing topic, name: {} producerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
 

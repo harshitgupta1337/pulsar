@@ -1,26 +1,28 @@
 package org.apache.pulsar.broker.loadbalance;
-
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 import org.apache.pulsar.broker.BundleLatencyData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 
 /**
  * This class contains all information necessary to load balance Cetus
- * @author harshitg
+ * @author harshitg, tlandle
  *
  */
-public class CetusLoadData extends LoadData {
+public class CetusLoadData {
 
-	private Map<String, BundleLatencyData> bundleLatencyData;
+	private ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap;
 	
     /**
      * Initialize a CetusLoadData.
      */
     public CetusLoadData() {
-        super(); 
+        cetusBrokerDataMap = new ConcurrentHashMap<String, CetusBrokerData>(16,1);
     }
     
-    public Map<String, BundleLatencyData> getBundleLatencyData() {
-    	return bundleLatencyData;
+    public ConcurrentHashMap<String, CetusBrokerData> getCetusBrokerData() {
+    	return cetusBrokerDataMap;
     }
 }

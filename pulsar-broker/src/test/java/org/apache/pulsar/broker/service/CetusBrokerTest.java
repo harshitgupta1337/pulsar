@@ -185,6 +185,7 @@ public class CetusBrokerTest extends BrokerTestBase {
             cetusBrokerData = readJson(pulsar.getZkClient().getData(brokerZkPath, null, null), CetusBrokerData.class);
             log.info("Got Cetus Broker Data from: {}", brokerZkPath);
             log.info("Cetus Broker Topic Coordinate Map Size: {}", cetusBrokerData.getTopicNetworkCoordinates().size());
+            /*
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getTopicNetworkCoordinates().entrySet())
             {
                 CetusNetworkCoordinateData cetusNetworkCoordinateData = readJson(pulsar.getZkClient().getData(getTopicZkPath(TopicName.get(entry.getKey()).getLookupName(), brokerService), null, null), CetusNetworkCoordinateData.class);
@@ -209,7 +210,7 @@ public class CetusBrokerTest extends BrokerTestBase {
                 });
             }
             log.info("Cetus Broker Topic Coordinate Producer Map Size: {}", cetusBrokerData.getTopicNetworkCoordinates().get(topicName).getProducerCoordinates().size());
-
+        */
         }
 
 
