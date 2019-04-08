@@ -24,6 +24,7 @@ import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.common.util.CoordinateUtil;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.broker.namespace.NamespaceService;
 
 /**
  * Load management component which determines the criteria for unloading bundles for Cetus
@@ -39,5 +40,5 @@ public interface CetusBundleUnloadingStrategy {
      *            The service configuration.
      * @return A map from all selected bundles to the brokers on which they reside.
      */
-    Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf);
+    Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService);
 }

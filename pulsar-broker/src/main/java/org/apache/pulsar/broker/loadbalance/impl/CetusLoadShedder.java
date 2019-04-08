@@ -56,11 +56,16 @@ public class CetusLoadShedder implements CetusBundleUnloadingStrategy {
 
     private final Multimap<String, String> selectedBundleCache = ArrayListMultimap.create();
 
-    public Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf) {
+    public Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService) {
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getTopicNetworkCoordinates().entrySet()) { 
                 if(CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), entry.getValue().getBrokerNwCoordinate()) < topicEntry.getValue().distanceToBroker()) {
-                    selectedBundleCache.put(entry.getKey(), NamespaceService.getBundle(TopicName.get(topicEntry.getKey())).toString());
+                    try {
+                        selectedBundleCache.put(entry.getKey(), namespaceService.getBundle(TopicName.get(topicEntry.getKey())).toString());
+                    }
+                    catch (Exception e) {
+                        log.warn("Cannot find bundle!: {}", e);
+                    }
                 }
             }
         }

@@ -61,6 +61,7 @@ import org.apache.pulsar.broker.loadbalance.LoadManager;
 import org.apache.pulsar.broker.loadbalance.LoadSheddingStrategy;
 import org.apache.pulsar.broker.loadbalance.ModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.ModularLoadManagerStrategy;
+import org.apache.pulsar.broker.loadbalance.CetusBundleUnloadingStrategy;
 import org.apache.pulsar.broker.loadbalance.impl.LoadManagerShared.BrokerTopicLoadingPredicate;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.naming.NamespaceBundleFactory;
@@ -163,6 +164,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     // Pipeline used to determine what namespaces, if any, should be unloaded.
     private final List<LoadSheddingStrategy> loadSheddingPipeline;
 
+    private final CetusBundleUnloadingStrategy bundleUnloadingStrategy;
+
     // Local data for the broker this is running on.
     private LocalBrokerData localData;
 
@@ -218,6 +221,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         loadData = new LoadData();
         loadSheddingPipeline = new ArrayList<>();
         loadSheddingPipeline.add(new OverloadShedder());
+        bundleUnloadingStrategy = new CetusLoadShedder();
         preallocatedBundleToBroker = new ConcurrentHashMap<>();
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
         this.brokerToFailureDomainMap = Maps.newHashMap();
@@ -684,8 +688,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
         recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
-        for (LoadSheddingStrategy strategy : loadSheddingPipeline) {
-            final Multimap<String, String> bundlesToUnload = strategy.findBundlesForUnloading(loadData, conf);
+        final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerData(), conf, pulsar.getNamespaceService());
 
             bundlesToUnload.asMap().forEach((broker, bundles) -> {
                 bundles.forEach(bundle -> {
@@ -704,7 +707,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     }
                 });
             });
-        }
 
     }
 

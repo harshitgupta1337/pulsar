@@ -38,6 +38,11 @@ public class CetusBrokerData extends JSONWritable {
         this.brokerNwCoordinate = new NetworkCoordinate();
         this.topicNwCoordinates = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
     }
+    
+    public CetusBrokerData(CetusBrokerData cetusBrokerData) {
+        this.brokerNwCoordinate = cetusBrokerData.getBrokerNwCoordinate();
+        this.topicNwCoordinates = cetusBrokerData.getTopicNetworkCoordinates();
+    }
      
     public NetworkCoordinate getBrokerNwCoordinate() {
         return brokerNwCoordinate;

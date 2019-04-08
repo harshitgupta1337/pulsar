@@ -34,20 +34,24 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
+import org.apache.pulsar.common.util.CoordinateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
-@JsonDeserialize(as = CetusNetworkCoordinateData.class)
-public class CetusNetworkCoordinateData extends JSONWritable {
+//@JsonDeserialize(as = CetusNetworkCoordinateData.class)
+//public class CetusNetworkCoordinateData extends JSONWritable {
+public class CetusNetworkCoordinateData {
     public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateData.class);
+
+    private CetusBrokerData cetusBrokerData;
 
     private ConcurrentHashMap<Long, NetworkCoordinate> producerCoordinates;
     private ConcurrentHashMap<Long, NetworkCoordinate> consumerCoordinates;
 
-    public CetusNetworkCoordinateData() {
+    public CetusNetworkCoordinateData(CetusBrokerData cetusBrokerData) {
         producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
         consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
     } 
@@ -68,6 +72,59 @@ public class CetusNetworkCoordinateData extends JSONWritable {
         return producerCoordinates.get(nodeId);
     }
 
+    public double getProducerConsumerCoordinateAvgValue() {
+        double total = 0.0;
+        //producerCoordinates.forEach((producerId, coordinate) -> {
+        for(Map.Entry<Long, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
+            total += entry.getValue().getCoordinateAvg();
+        }
+        //consumerCoordinates.forEach((consumerId, coordinate) -> {
+        for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
+            total += entry.getValue().getCoordinateAvg();
+        }
+
+        return (double) (total/(producerCoordinates.size() + consumerCoordinates.size()));
+    }
+
+    public NetworkCoordinate getProducerConsumerAvgCoordinate() {
+        double[] totalCoordinateVector = new double[8];
+        double totalAdjustment = 0.0;
+        double totalHeight = 0.0;
+        double totalError = 0.0;
+        //producerCoordinates.forEach((producerId, coordinate) -> {
+        for(Map.Entry<Long, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
+            double[] coordinateVector = entry.getValue().getCoordinateVector();
+            for(int i = 0; i < coordinateVector.length; i++) {
+                totalCoordinateVector[i]+= coordinateVector[i];
+            }
+            totalAdjustment += entry.getValue().getAdjustment();
+            totalHeight += entry.getValue().getHeight();
+            totalError += entry.getValue().getError();
+        }
+        //consumerCoordinates.forEach((consumerId, coordinate) -> {
+        for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
+             double[] coordinateVector = entry.getValue().getCoordinateVector();
+            for(int i = 0; i < coordinateVector.length; i++) {
+                totalCoordinateVector[i]+= coordinateVector[i];
+            }
+            totalAdjustment += entry.getValue().getAdjustment();
+            totalHeight += entry.getValue().getHeight();
+            totalError += entry.getValue().getError();
+        }
+
+        double[] avgCoordinateVector = new double[8];
+        for(int i = 0; i < avgCoordinateVector.length; i++) {
+            avgCoordinateVector[i] = (totalCoordinateVector[i]/(producerCoordinates.size() + consumerCoordinates.size()));
+        }
+        double avgAdjustment =  (totalAdjustment/(producerCoordinates.size() + consumerCoordinates.size()));
+        double avgHeight =  (totalHeight/(producerCoordinates.size() + consumerCoordinates.size()));
+        double avgError =   (totalError/(producerCoordinates.size() + consumerCoordinates.size()));
+        NetworkCoordinate avgCoordinate = new NetworkCoordinate(avgAdjustment, avgError, avgHeight, avgCoordinateVector);
+
+
+        return avgCoordinate; 
+    }
+
     public ConcurrentHashMap<Long, NetworkCoordinate> getProducerCoordinates() {
         return producerCoordinates;
     }
@@ -84,4 +141,7 @@ public class CetusNetworkCoordinateData extends JSONWritable {
         return consumerCoordinates;
     }
     
+    public double distanceToBroker() {
+      return CoordinateUtil.calculateDistance(cetusBrokerData.getBrokerNwCoordinate(), getProducerConsumerAvgCoordinate());
+    }
 }

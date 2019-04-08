@@ -5,8 +5,9 @@ import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
 import java.lang.IllegalArgumentException;
 
-@JsonDeserialize(as = NetworkCoordinate.class)
-public class NetworkCoordinate extends JSONWritable {
+//@JsonDeserialize(as = NetworkCoordinate.class)
+//public class NetworkCoordinate extends JSONWritable {
+public class NetworkCoordinate {
     
     private double adjustment;
     private double error;
@@ -64,6 +65,14 @@ public class NetworkCoordinate extends JSONWritable {
 
     public double[] getCoordinateVector() {
         return coordinateVector;
+    }
+
+    public double getCoordinateAvg() {
+        double total = 0;
+        for(double coordinate : coordinateVector) {
+            total += coordinate;
+        }
+        return (double) total/coordinateVector.length;
     }
 
 }
