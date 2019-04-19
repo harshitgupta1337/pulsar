@@ -14,15 +14,23 @@ import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 public class CetusLoadData {
 
 	private ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap;
+
+    private ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap;
 	
     /**
      * Initialize a CetusLoadData.
      */
     public CetusLoadData() {
         cetusBrokerDataMap = new ConcurrentHashMap<String, CetusBrokerData>(16,1);
+        cetusBundleDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
     }
     
-    public ConcurrentHashMap<String, CetusBrokerData> getCetusBrokerData() {
+    public ConcurrentHashMap<String, CetusBrokerData> getCetusBrokerDataMap() {
     	return cetusBrokerDataMap;
     }
+
+     public ConcurrentHashMap<String, CetusNetworkCoordinateData> getCetusBundleDataMap() {
+    	return cetusBundleDataMap;
+    }
+
 }

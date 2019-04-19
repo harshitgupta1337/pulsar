@@ -41,20 +41,27 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
-//@JsonDeserialize(as = CetusNetworkCoordinateData.class)
-//public class CetusNetworkCoordinateData extends JSONWritable {
 public class CetusNetworkCoordinateData {
     public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateData.class);
 
-    private CetusBrokerData cetusBrokerData;
+    //private CetusBrokerData cetusBrokerData;
+
+    private NetworkCoordinate brokerCoordinate;
 
     private ConcurrentHashMap<Long, NetworkCoordinate> producerCoordinates;
     private ConcurrentHashMap<Long, NetworkCoordinate> consumerCoordinates;
 
-    public CetusNetworkCoordinateData(CetusBrokerData cetusBrokerData) {
-        producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
-        consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+    public CetusNetworkCoordinateData() {
+        this.brokerCoordinate = new NetworkCoordinate();
+        this.producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+        this.consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
     } 
+
+    public CetusNetworkCoordinateData(NetworkCoordinate brokerCoordinate) {
+        this.brokerCoordinate = brokerCoordinate;
+        this.producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+        this.consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+    }
 
     public void putConsumerCoordinate(long nodeId, NetworkCoordinate coordinate) { 
         consumerCoordinates.put(nodeId, coordinate);
@@ -72,6 +79,15 @@ public class CetusNetworkCoordinateData {
         return producerCoordinates.get(nodeId);
     }
 
+    public void setBrokerCoordinate(NetworkCoordinate coordinate) {
+        this.brokerCoordinate = coordinate;
+    }
+
+    public NetworkCoordinate getBrokerCoordinate() {
+        return brokerCoordinate;
+    }
+
+    
     public double getProducerConsumerCoordinateAvgValue() {
         double total = 0.0;
         //producerCoordinates.forEach((producerId, coordinate) -> {
@@ -142,6 +158,6 @@ public class CetusNetworkCoordinateData {
     }
     
     public double distanceToBroker() {
-      return CoordinateUtil.calculateDistance(cetusBrokerData.getBrokerNwCoordinate(), getProducerConsumerAvgCoordinate());
+      return CoordinateUtil.calculateDistance(this.brokerCoordinate, getProducerConsumerAvgCoordinate());
     }
 }

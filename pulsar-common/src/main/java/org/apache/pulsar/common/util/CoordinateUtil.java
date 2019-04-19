@@ -52,7 +52,7 @@ public class CoordinateUtil {
         double[] coordinateVectorA = coordinateA.getCoordinateVector();
         double[] coordinateVectorB = coordinateB.getCoordinateVector();
         for(int i = 0; i < coordinateVectorA.length; i++) {
-            double diff = coordinateVectorA[i] + coordinateVectorB[i];
+            double diff = coordinateVectorA[i] - coordinateVectorB[i];
             sumsq = diff*diff;
         }
         

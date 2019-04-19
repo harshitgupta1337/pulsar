@@ -1075,7 +1075,7 @@ public class PulsarService implements AutoCloseable {
 
 
     public String getBrokerZooKeeperPath() {
-        return COORDINATE_DATA_PATH + "/" + getAdvertisedAddress();
+        return COORDINATE_DATA_PATH + "/" + getAdvertisedAddress() + ":" + config.getWebServicePort();
     }
 
     // Attempt to create a ZooKeeper path if it does not exist.
@@ -1095,7 +1095,7 @@ public class PulsarService implements AutoCloseable {
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
             getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
-            LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getTopicNetworkCoordinates().size());
+            LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
             /*
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getTopicNetworkCoordinates().entrySet()) {
@@ -1132,7 +1132,7 @@ public class PulsarService implements AutoCloseable {
             }*/
         }
         catch (Exception e) {
-            LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getAdvertisedAddress(), e);
+            LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getBrokerZooKeeperPath(), e);
         } 
     }
   

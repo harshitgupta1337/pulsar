@@ -92,7 +92,7 @@ import org.apache.pulsar.common.util.CoordinateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<LocalBrokerData> {
+public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
     private static final Logger log = LoggerFactory.getLogger(CetusModularLoadManagerImpl.class);
 
     // Path to ZNode whose children contain BundleData jsons for each bundle (new API version of ResourceQuota).
@@ -141,6 +141,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     // Path to the ZNode containing the LocalBrokerData json for this broker.
     private String brokerZnodePath;
+
+    //CETUS 
+    private String cetusBrokerZnodePath;
 
     // Strategy to use for splitting bundles.
     private BundleSplitStrategy bundleSplitStrategy;
@@ -201,14 +204,15 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     private Map<String, String> brokerToFailureDomainMap;
 
-    // Cetus: map of brokers to clients they are currently connected to
-    private Map<String, String> brokerToProducerConsumerMap;
 
-    // Cetus: Keeps coordinates for reach producer and consumer
-    private ZooKeeperDataCache<NetworkCoordinate> producerConsumerCoordinateDataCache;
 
     private static final Deserializer<LocalBrokerData> loadReportDeserializer = (key, content) -> jsonMapper()
             .readValue(content, LocalBrokerData.class);
+
+    private static final Deserializer<CetusBrokerData> cetusDeserializer = (key, content) -> jsonMapper()
+           .readValue(content, CetusBrokerData.class);
+
+
 
     /**
      * Initializes fields which do not depend on PulsarService. initialize(PulsarService) should subsequently be called.
@@ -226,7 +230,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
         this.brokerToFailureDomainMap = Maps.newHashMap();
         // CETUS
-        this.brokerToProducerConsumerMap = Maps.newHashMap();
+        //this.brokerToProducerConsumerMap = Maps.newHashMap();
         this.cetusLoadData = new CetusLoadData();
         //
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
@@ -275,8 +279,18 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             }
         };
 
-        brokerDataCache.registerListener(this);
+        //brokerDataCache.registerListener(this);
 
+        cetusBrokerDataCache = new ZooKeeperDataCache<CetusBrokerData>(pulsar.getLocalZkCache()) {
+            @Override
+            public CetusBrokerData deserialize(String key, byte[] content) throws Exception {
+                return ObjectMapperFactory.getThreadLocal().readValue(content, CetusBrokerData.class);
+            }
+        };
+
+        cetusBrokerDataCache.registerListener(this);
+
+    
         if (SystemUtils.IS_OS_LINUX) {
             brokerHostUsage = new LinuxBrokerHostUsageImpl(pulsar);
         } else {
@@ -416,472 +430,480 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     // Get the ZooKeeper path for the given bundle full name.
     private static String getBundleDataZooKeeperPath(final String bundle) {
-        return BUNDLE_DATA_ZPATH + "/" + bundle;
-    }
-
-    // Use the Pulsar client to acquire the namespace bundle stats.
-    private Map<String, NamespaceBundleStats> getBundleStats() {
-        return pulsar.getBrokerService().getBundleStats();
-    }
-
-    // Use the thread local ObjectMapperFactory to read the given json data into an instance of the given class.
-    private static <T> T readJson(final byte[] data, final Class<T> clazz) throws IOException {
-        return ObjectMapperFactory.getThreadLocal().readValue(data, clazz);
-    }
-
-    private double percentChange(final double oldValue, final double newValue) {
-        if (oldValue == 0) {
-            if (newValue == 0) {
-                // Avoid NaN
-                return 0;
-            }
-            return Double.POSITIVE_INFINITY;
+            return BUNDLE_DATA_ZPATH + "/" + bundle;
         }
-        return 100 * Math.abs((oldValue - newValue) / oldValue);
-    }
 
-    // Determine if the broker data requires an update by delegating to the update condition.
-    private boolean needBrokerDataUpdate() {
-        final long updateMaxIntervalMillis = TimeUnit.MINUTES
-                .toMillis(conf.getLoadBalancerReportUpdateMaxIntervalMinutes());
-        long timeSinceLastReportWrittenToZooKeeper = System.currentTimeMillis() - localData.getLastUpdate();
-        if (timeSinceLastReportWrittenToZooKeeper > updateMaxIntervalMillis) {
-            log.info("Writing local data to ZooKeeper because time since last update exceeded threshold of {} minutes",
-                    conf.getLoadBalancerReportUpdateMaxIntervalMinutes());
-            // Always update after surpassing the maximum interval.
-            return true;
+        // Use the Pulsar client to acquire the namespace bundle stats.
+        private Map<String, NamespaceBundleStats> getBundleStats() {
+            return pulsar.getBrokerService().getBundleStats();
         }
-        final double maxChange = Math
-                .max(100.0 * (Math.abs(lastData.getMaxResourceUsage() - localData.getMaxResourceUsage())),
-                        Math.max(percentChange(lastData.getMsgRateIn() + lastData.getMsgRateOut(),
-                                localData.getMsgRateIn() + localData.getMsgRateOut()),
-                                Math.max(
-                                        percentChange(lastData.getMsgThroughputIn() + lastData.getMsgThroughputOut(),
-                                                localData.getMsgThroughputIn() + localData.getMsgThroughputOut()),
-                                        percentChange(lastData.getNumBundles(), localData.getNumBundles()))));
-        if (maxChange > conf.getLoadBalancerReportUpdateThresholdPercentage()) {
-            log.info("Writing local data to ZooKeeper because maximum change {}% exceeded threshold {}%; " +
-                    "time since last report written is {} seconds", maxChange,
-                    conf.getLoadBalancerReportUpdateThresholdPercentage(), timeSinceLastReportWrittenToZooKeeper/1000.0);
-            return true;
+
+        // Use the thread local ObjectMapperFactory to read the given json data into an instance of the given class.
+        private static <T> T readJson(final byte[] data, final Class<T> clazz) throws IOException {
+            return ObjectMapperFactory.getThreadLocal().readValue(data, clazz);
         }
-        return false;
-    }
 
-    // Update both the broker data and the bundle data.
-    public void updateAll() {
-        if (log.isDebugEnabled()) {
-            log.debug("Updating broker and bundle data for loadreport");
-        }
-        updateAllBrokerData();
-        updateBundleData();
-        updateLatencyData();
-        // broker has latest load-report: check if any bundle requires split
-        checkNamespaceBundleSplit();
-    }
-
-    private void updateLatencyData() {
-        final Set<String> activeBrokers = getAvailableBrokers();
-        final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerData();
-        for (String broker : activeBrokers) {
-            try {
-                String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
-                final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
-                    .orElseThrow(KeeperException.NoNodeException::new);
-
-                if(cetusBrokerDataMap.containsKey(broker)) {
-                    cetusBrokerDataMap.put(broker, cetusLocalData);
+        private double percentChange(final double oldValue, final double newValue) {
+            if (oldValue == 0) {
+                if (newValue == 0) {
+                    // Avoid NaN
+                    return 0;
                 }
-                else {
-                   cetusBrokerDataMap.put(broker, new CetusBrokerData(cetusLocalData)); 
-                }
+                return Double.POSITIVE_INFINITY;
             }
-            catch (NoNodeException ne){
-                log.debug("Couldn't get broker data, removing from map: {}", ne);
-                cetusBrokerDataMap.remove(broker);
-                log.warn("[{}] broker load-report znode not present", broker, ne);
-            } 
-            catch (Exception e) {
-                log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
-            }
-
+            return 100 * Math.abs((oldValue - newValue) / oldValue);
         }
-    }
 
-    // As the leader broker, update the broker data map in loadData by querying ZooKeeper for the broker data put there
-    // by each broker via updateLocalBrokerData.
-    private void updateAllBrokerData() {
-        final Set<String> activeBrokers = getAvailableBrokers();
-        final Map<String, BrokerData> brokerDataMap = loadData.getBrokerData();
-        for (String broker : activeBrokers) {
-            try {
-                String key = String.format("%s/%s", LoadManager.LOADBALANCE_BROKERS_ROOT, broker);
-                final LocalBrokerData localData = brokerDataCache.get(key)
-                        .orElseThrow(KeeperException.NoNodeException::new);
-
-                if (brokerDataMap.containsKey(broker)) {
-                    // Replace previous local broker data.
-                    brokerDataMap.get(broker).setLocalData(localData);
-                } else {
-                    // Initialize BrokerData object for previously unseen
-                    // brokers.
-                    brokerDataMap.put(broker, new BrokerData(localData));
-                }
-            } catch (NoNodeException ne) {
-                // it only happens if we update-brokerData before availableBrokerCache refreshed with latest data and
-                // broker's delete-znode watch-event hasn't updated availableBrokerCache
-                brokerDataMap.remove(broker);
-                log.warn("[{}] broker load-report znode not present", broker, ne);
-            } catch (Exception e) {
-                log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
-            }
-        }
-        // Remove obsolete brokers.
-        for (final String broker : brokerDataMap.keySet()) {
-            if (!activeBrokers.contains(broker)) {
-                brokerDataMap.remove(broker);
-            }
-        }
-    }
-
-    // As the leader broker, use the local broker data saved on ZooKeeper to update the bundle stats so that better load
-    // management decisions may be made.
-    private void updateBundleData() {
-        final Map<String, BundleData> bundleData = loadData.getBundleData();
-        // Iterate over the broker data.
-        for (Map.Entry<String, BrokerData> brokerEntry : loadData.getBrokerData().entrySet()) {
-            final String broker = brokerEntry.getKey();
-            final BrokerData brokerData = brokerEntry.getValue();
-            final Map<String, NamespaceBundleStats> statsMap = brokerData.getLocalData().getLastStats();
-
-            // Iterate over the last bundle stats available to the current
-            // broker to update the bundle data.
-            for (Map.Entry<String, NamespaceBundleStats> entry : statsMap.entrySet()) {
-                final String bundle = entry.getKey();
-                final NamespaceBundleStats stats = entry.getValue();
-                if (bundleData.containsKey(bundle)) {
-                    // If we recognize the bundle, add these stats as a new
-                    // sample.
-                    bundleData.get(bundle).update(stats);
-                } else {
-                    // Otherwise, attempt to find the bundle data on ZooKeeper.
-                    // If it cannot be found, use the latest stats as the first
-                    // sample.
-                    BundleData currentBundleData = getBundleDataOrDefault(bundle);
-                    currentBundleData.update(stats);
-                    bundleData.put(bundle, currentBundleData);
-                }
-            }
-
-            // Remove all loaded bundles from the preallocated maps.
-            final Map<String, BundleData> preallocatedBundleData = brokerData.getPreallocatedBundleData();
-            synchronized (preallocatedBundleData) {
-                for (String preallocatedBundleName : brokerData.getPreallocatedBundleData().keySet()) {
-                    if (brokerData.getLocalData().getBundles().contains(preallocatedBundleName)) {
-                        final Iterator<Map.Entry<String, BundleData>> preallocatedIterator = preallocatedBundleData.entrySet()
-                                .iterator();
-                        while (preallocatedIterator.hasNext()) {
-                            final String bundle = preallocatedIterator.next().getKey();
-
-                            if (bundleData.containsKey(bundle)) {
-                                preallocatedIterator.remove();
-                                preallocatedBundleToBroker.remove(bundle);
-                            }
-                        }
-                    }
-
-                    // This is needed too in case a broker which was assigned a bundle dies and comes back up.
-                    if ( preallocatedBundleToBroker.containsKey(preallocatedBundleName) ) {
-                        preallocatedBundleToBroker.remove(preallocatedBundleName);
-                    }
-                }
-            }
-
-            // Using the newest data, update the aggregated time-average data for the current broker.
-            brokerData.getTimeAverageData().reset(statsMap.keySet(), bundleData, defaultStats);
-            final Map<String, Set<String>> namespaceToBundleRange = brokerToNamespaceToBundleRange
-                    .computeIfAbsent(broker, k -> new HashMap<>());
-            synchronized (namespaceToBundleRange) {
-                namespaceToBundleRange.clear();
-                LoadManagerShared.fillNamespaceToBundlesMap(statsMap.keySet(), namespaceToBundleRange);
-                LoadManagerShared.fillNamespaceToBundlesMap(preallocatedBundleData.keySet(), namespaceToBundleRange);
-            }
-        }
-    }
-
-    /**
-     * As any broker, disable the broker this manager is running on.
-     *
-     * @throws PulsarServerException
-     *             If ZooKeeper failed to disable the broker.
-     */
-    @Override
-    public void disableBroker() throws PulsarServerException {
-        if (StringUtils.isNotEmpty(brokerZnodePath)) {
-            try {
-                pulsar.getZkClient().delete(brokerZnodePath, -1);
-            } catch (Exception e) {
-                throw new PulsarServerException(e);
-            }
-        }
-    }
-
-    
-    /**
-     * As the leader broker, select bundles for the namespace service to unload so that they may be reassigned to new
-     * brokers.
-     */
-
-    /* CETUS - Remove and replace with coordinate based unload mechanism
-    @Override
-    public synchronized void doLoadShedding() {
-        if (!LoadManagerShared.isLoadSheddingEnabled(pulsar)) {
-            return;
-        }
-        if (getAvailableBrokers().size() <= 1) {
-            log.info("Only 1 broker available: no load shedding will be performed");
-            return;
-        }
-        // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
-        // map.
-        final long timeout = System.currentTimeMillis()
-                - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
-        final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
-        recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
-
-        for (LoadSheddingStrategy strategy : loadSheddingPipeline) {
-            final Multimap<String, String> bundlesToUnload = strategy.findBundlesForUnloading(loadData, conf);
-
-            bundlesToUnload.asMap().forEach((broker, bundles) -> {
-                bundles.forEach(bundle -> {
-                    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
-                    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-                    if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
-                        return;
-                    }
-
-                    log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
-                    try {
-                        pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                        loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                    } catch (PulsarServerException | PulsarAdminException e) {
-                        log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
-                    }
-                });
-            });
-        }
-    }
-    */
-
-
-    // CETUS - Unload Bundles
-    @Override
-    public synchronized void doLoadShedding() {
-        if (getAvailableBrokers().size() <= 1) {
-            log.info("Only 1 broker available: no load shedding will be performed");
-            return;
-        }
-        // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
-        // map.
-        final long timeout = System.currentTimeMillis()
-                - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
-        final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
-        recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
-
-        final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerData(), conf, pulsar.getNamespaceService());
-
-            bundlesToUnload.asMap().forEach((broker, bundles) -> {
-                bundles.forEach(bundle -> {
-                    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
-                    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-                    if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
-                        return;
-                    }
-
-                    log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
-                    try {
-                        pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                        loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                    } catch (PulsarServerException | PulsarAdminException e) {
-                        log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
-                    }
-                });
-            });
-
-    }
-
-    public boolean shouldAntiAffinityNamespaceUnload(String namespace, String bundle, String currentBroker) {
-        try {
-            Optional<Policies> nsPolicies = pulsar.getConfigurationCache().policiesCache()
-                    .get(path(POLICIES, namespace));
-            if (!nsPolicies.isPresent() || StringUtils.isBlank(nsPolicies.get().antiAffinityGroup)) {
+        // Determine if the broker data requires an update by delegating to the update condition.
+        private boolean needBrokerDataUpdate() {
+            final long updateMaxIntervalMillis = TimeUnit.MINUTES
+                    .toMillis(conf.getLoadBalancerReportUpdateMaxIntervalMinutes());
+            long timeSinceLastReportWrittenToZooKeeper = System.currentTimeMillis() - localData.getLastUpdate();
+            if (timeSinceLastReportWrittenToZooKeeper > updateMaxIntervalMillis) {
+                log.info("Writing local data to ZooKeeper because time since last update exceeded threshold of {} minutes",
+                        conf.getLoadBalancerReportUpdateMaxIntervalMinutes());
+                // Always update after surpassing the maximum interval.
                 return true;
             }
-
-            synchronized (brokerCandidateCache) {
-                brokerCandidateCache.clear();
-                ServiceUnitId serviceUnit = pulsar.getNamespaceService().getNamespaceBundleFactory()
-                        .getBundle(namespace, bundle);
-                LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache,
-                        getAvailableBrokers(), brokerTopicLoadingPredicate);
-                return LoadManagerShared.shouldAntiAffinityNamespaceUnload(namespace, bundle, currentBroker, pulsar,
-                        brokerToNamespaceToBundleRange, brokerCandidateCache);
+            final double maxChange = Math
+                    .max(100.0 * (Math.abs(lastData.getMaxResourceUsage() - localData.getMaxResourceUsage())),
+                            Math.max(percentChange(lastData.getMsgRateIn() + lastData.getMsgRateOut(),
+                                    localData.getMsgRateIn() + localData.getMsgRateOut()),
+                                    Math.max(
+                                            percentChange(lastData.getMsgThroughputIn() + lastData.getMsgThroughputOut(),
+                                                    localData.getMsgThroughputIn() + localData.getMsgThroughputOut()),
+                                            percentChange(lastData.getNumBundles(), localData.getNumBundles()))));
+            if (maxChange > conf.getLoadBalancerReportUpdateThresholdPercentage()) {
+                log.info("Writing local data to ZooKeeper because maximum change {}% exceeded threshold {}%; " +
+                        "time since last report written is {} seconds", maxChange,
+                        conf.getLoadBalancerReportUpdateThresholdPercentage(), timeSinceLastReportWrittenToZooKeeper/1000.0);
+                return true;
             }
-
-        } catch (Exception e) {
-            log.warn("Failed to check anti-affinity namespace ownership for {}/{}/{}, {}", namespace, bundle,
-                    currentBroker, e.getMessage());
-
-        }
-        return true;
-    }
-
-    /**
-     * As the leader broker, attempt to automatically detect and split hot namespace bundles.
-     */
-    @Override
-    public void checkNamespaceBundleSplit() {
-
-        if (!conf.isLoadBalancerAutoBundleSplitEnabled() || pulsar.getLeaderElectionService() == null
-                || !pulsar.getLeaderElectionService().isLeader()) {
-            return;
-        }
-        final boolean unloadSplitBundles = pulsar.getConfiguration().isLoadBalancerAutoUnloadSplitBundlesEnabled();
-        synchronized (bundleSplitStrategy) {
-            final Set<String> bundlesToBeSplit = bundleSplitStrategy.findBundlesToSplit(loadData, pulsar);
-            NamespaceBundleFactory namespaceBundleFactory = pulsar.getNamespaceService().getNamespaceBundleFactory();
-            for (String bundleName : bundlesToBeSplit) {
-                try {
-                    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundleName);
-                    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundleName);
-                    if (!namespaceBundleFactory
-                            .canSplitBundle(namespaceBundleFactory.getBundle(namespaceName, bundleRange))) {
-                        continue;
-                    }
-                    log.info("Load-manager splitting bundle {} and unloading {}", bundleName, unloadSplitBundles);
-                    pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange,
-                            unloadSplitBundles);
-                    // Make sure the same bundle is not selected again.
-                    loadData.getBundleData().remove(bundleName);
-                    localData.getLastStats().remove(bundleName);
-                    // Clear namespace bundle-cache
-                    this.pulsar.getNamespaceService().getNamespaceBundleFactory()
-                            .invalidateBundleCache(NamespaceName.get(namespaceName));
-                    deleteBundleDataFromZookeeper(bundleName);
-                    log.info("Successfully split namespace bundle {}", bundleName);
-                } catch (Exception e) {
-                    log.error("Failed to split namespace bundle {}", bundleName, e);
-                }
-            }
+            return false;
         }
 
-    }
-
-    /**
-     * When the broker data ZooKeeper nodes are updated, update the broker data map.
-     */
-    @Override
-    public void onUpdate(final String path, final LocalBrokerData data, final Stat stat) {
-        scheduler.submit(this::updateAll);
-    }
-
-    
-    /**
-     * As the leader broker, find a suitable broker for the assignment of the given bundle.
-     *
-     * @param serviceUnit
-     *            ServiceUnitId for the bundle.
-     * @return The name of the selected broker, as it appears on ZooKeeper.
-     */
-    /*
-    @Override
-    public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
-        // Use brokerCandidateCache as a lock to reduce synchronization.
-        synchronized (brokerCandidateCache) {
-            final String bundle = serviceUnit.toString();
-            if (preallocatedBundleToBroker.containsKey(bundle)) {
-                // If the given bundle is already in preallocated, return the selected broker.
-                return Optional.of(preallocatedBundleToBroker.get(bundle));
-            }
-            final BundleData data = loadData.getBundleData().computeIfAbsent(bundle,
-                    key -> getBundleDataOrDefault(bundle));
-            brokerCandidateCache.clear();
-            LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-                    brokerTopicLoadingPredicate);
-
-            // filter brokers which owns topic higher than threshold
-            LoadManagerShared.filterBrokersWithLargeTopicCount(brokerCandidateCache, loadData,
-                    conf.getLoadBalancerBrokerMaxTopics());
-
-            // distribute namespaces to domain and brokers according to anti-affinity-group
-            LoadManagerShared.filterAntiAffinityGroupOwnedBrokers(pulsar, serviceUnit.toString(), brokerCandidateCache,
-                    brokerToNamespaceToBundleRange, brokerToFailureDomainMap);
-            // distribute bundles evenly to candidate-brokers
-
-            LoadManagerShared.removeMostServicingBrokersForNamespace(serviceUnit.toString(), brokerCandidateCache,
-                    brokerToNamespaceToBundleRange);
-            log.info("{} brokers being considered for assignment of {}", brokerCandidateCache.size(), bundle);
-
-            // Use the filter pipeline to finalize broker candidates.
-            try {
-                for (BrokerFilter filter : filterPipeline) {
-                    filter.filter(brokerCandidateCache, data, loadData, conf);
-                }
-            } catch ( BrokerFilterException x ) {
-                // restore the list of brokers to the full set
-                LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-                        brokerTopicLoadingPredicate);
-            }
-
-            if ( brokerCandidateCache.isEmpty() ) {
-                // restore the list of brokers to the full set
-                LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-                        brokerTopicLoadingPredicate);
-            }
-
-            // Choose a broker among the potentially smaller filtered list, when possible
-            Optional<String> broker = placementStrategy.selectBroker(brokerCandidateCache, data, loadData, conf);
+        // Update both the broker data and the bundle data.
+        public void updateAll() {
             if (log.isDebugEnabled()) {
-                log.debug("Selected broker {} from candidate brokers {}", broker, brokerCandidateCache);
+                log.debug("Updating broker and bundle data for loadreport");
+            }
+            updateAllBrokerData();
+            updateBundleData();
+            updateLatencyData();
+            // broker has latest load-report: check if any bundle requires split
+            checkNamespaceBundleSplit();
+        }
+
+        private void updateLatencyData() {
+            final Set<String> activeBrokers = getAvailableBrokers();
+            //final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
+            //final ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap = cetusLoadData.getCetusBundleDataMap();
+            for (String broker : activeBrokers) {
+                try {
+                    String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
+                    final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
+                        .orElseThrow(KeeperException.NoNodeException::new);
+
+                    if(cetusLoadData.getCetusBrokerDataMap().containsKey(broker)) {
+                        cetusLoadData.getCetusBrokerDataMap().put(broker, cetusLocalData);
+                    }
+                    else {
+                       cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
+                    }
+                    for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
+                        log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), entry.getValue());
+                        log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
+                    }
+                }
+                catch (NoNodeException ne){
+                    log.debug("Couldn't get broker data, removing from map: {}", ne);
+                    //cetusBrokerDataMap.remove(broker);
+                    log.warn("[{}] broker load-report znode not present", broker, ne);
+                } 
+                catch (Exception e) {
+                    log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
+                }
+
+            }
+        }
+
+        // As the leader broker, update the broker data map in loadData by querying ZooKeeper for the broker data put there
+        // by each broker via updateLocalBrokerData.
+        private void updateAllBrokerData() {
+            final Set<String> activeBrokers = getAvailableBrokers();
+            final Map<String, BrokerData> brokerDataMap = loadData.getBrokerData();
+            for (String broker : activeBrokers) {
+                try {
+                    String key = String.format("%s/%s", LoadManager.LOADBALANCE_BROKERS_ROOT, broker);
+                    final LocalBrokerData localData = brokerDataCache.get(key)
+                            .orElseThrow(KeeperException.NoNodeException::new);
+
+                    if (brokerDataMap.containsKey(broker)) {
+                        // Replace previous local broker data.
+                        brokerDataMap.get(broker).setLocalData(localData);
+                    } else {
+                        // Initialize BrokerData object for previously unseen
+                        // brokers.
+                        brokerDataMap.put(broker, new BrokerData(localData));
+                    }
+                } catch (NoNodeException ne) {
+                    // it only happens if we update-brokerData before availableBrokerCache refreshed with latest data and
+                    // broker's delete-znode watch-event hasn't updated availableBrokerCache
+                    brokerDataMap.remove(broker);
+                    log.warn("[{}] broker load-report znode not present", broker, ne);
+                } catch (Exception e) {
+                    log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
+                }
+            }
+            // Remove obsolete brokers.
+            for (final String broker : brokerDataMap.keySet()) {
+                if (!activeBrokers.contains(broker)) {
+                    brokerDataMap.remove(broker);
+                }
+            }
+        }
+
+        // As the leader broker, use the local broker data saved on ZooKeeper to update the bundle stats so that better load
+        // management decisions may be made.
+        private void updateBundleData() {
+            final Map<String, BundleData> bundleData = loadData.getBundleData();
+            // Iterate over the broker data.
+            for (Map.Entry<String, BrokerData> brokerEntry : loadData.getBrokerData().entrySet()) {
+                final String broker = brokerEntry.getKey();
+                final BrokerData brokerData = brokerEntry.getValue();
+                final Map<String, NamespaceBundleStats> statsMap = brokerData.getLocalData().getLastStats();
+
+                // Iterate over the last bundle stats available to the current
+                // broker to update the bundle data.
+                for (Map.Entry<String, NamespaceBundleStats> entry : statsMap.entrySet()) {
+                    final String bundle = entry.getKey();
+                    final NamespaceBundleStats stats = entry.getValue();
+                    if (bundleData.containsKey(bundle)) {
+                        // If we recognize the bundle, add these stats as a new
+                        // sample.
+                        bundleData.get(bundle).update(stats);
+                    } else {
+                        // Otherwise, attempt to find the bundle data on ZooKeeper.
+                        // If it cannot be found, use the latest stats as the first
+                        // sample.
+                        BundleData currentBundleData = getBundleDataOrDefault(bundle);
+                        currentBundleData.update(stats);
+                        bundleData.put(bundle, currentBundleData);
+                    }
+                }
+
+                // Remove all loaded bundles from the preallocated maps.
+                final Map<String, BundleData> preallocatedBundleData = brokerData.getPreallocatedBundleData();
+                synchronized (preallocatedBundleData) {
+                    for (String preallocatedBundleName : brokerData.getPreallocatedBundleData().keySet()) {
+                        if (brokerData.getLocalData().getBundles().contains(preallocatedBundleName)) {
+                            final Iterator<Map.Entry<String, BundleData>> preallocatedIterator = preallocatedBundleData.entrySet()
+                                    .iterator();
+                            while (preallocatedIterator.hasNext()) {
+                                final String bundle = preallocatedIterator.next().getKey();
+
+                                if (bundleData.containsKey(bundle)) {
+                                    preallocatedIterator.remove();
+                                    preallocatedBundleToBroker.remove(bundle);
+                                }
+                            }
+                        }
+
+                        // This is needed too in case a broker which was assigned a bundle dies and comes back up.
+                        if ( preallocatedBundleToBroker.containsKey(preallocatedBundleName) ) {
+                            preallocatedBundleToBroker.remove(preallocatedBundleName);
+                        }
+                    }
+                }
+
+                // Using the newest data, update the aggregated time-average data for the current broker.
+                brokerData.getTimeAverageData().reset(statsMap.keySet(), bundleData, defaultStats);
+                final Map<String, Set<String>> namespaceToBundleRange = brokerToNamespaceToBundleRange
+                        .computeIfAbsent(broker, k -> new HashMap<>());
+                synchronized (namespaceToBundleRange) {
+                    namespaceToBundleRange.clear();
+                    LoadManagerShared.fillNamespaceToBundlesMap(statsMap.keySet(), namespaceToBundleRange);
+                    LoadManagerShared.fillNamespaceToBundlesMap(preallocatedBundleData.keySet(), namespaceToBundleRange);
+                }
+            }
+        }
+
+        /**
+         * As any broker, disable the broker this manager is running on.
+         *
+         * @throws PulsarServerException
+         *             If ZooKeeper failed to disable the broker.
+         */
+        @Override
+        public void disableBroker() throws PulsarServerException {
+            if (StringUtils.isNotEmpty(brokerZnodePath)) {
+                try {
+                    pulsar.getZkClient().delete(brokerZnodePath, -1);
+                } catch (Exception e) {
+                    throw new PulsarServerException(e);
+                }
+            }
+        }
+
+        
+        /**
+         * As the leader broker, select bundles for the namespace service to unload so that they may be reassigned to new
+         * brokers.
+         */
+
+        /*
+        // CETUS - Remove and replace with coordinate based unload mechanism
+        @Override
+        public synchronized void doLoadShedding() {
+            if (!LoadManagerShared.isLoadSheddingEnabled(pulsar)) {
+                return;
+            }
+            if (getAvailableBrokers().size() <= 1) {
+                log.info("Only 1 broker available: no load shedding will be performed");
+                return;
+            }
+            // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
+            // map.
+            final long timeout = System.currentTimeMillis()
+                    - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
+            final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
+            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+
+            for (LoadSheddingStrategy strategy : loadSheddingPipeline) {
+                final Multimap<String, String> bundlesToUnload = strategy.findBundlesForUnloading(loadData, conf);
+
+                bundlesToUnload.asMap().forEach((broker, bundles) -> {
+                    bundles.forEach(bundle -> {
+                        final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+                        final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
+                        if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
+                            return;
+                        }
+
+                        log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
+                        try {
+                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                            loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                        } catch (PulsarServerException | PulsarAdminException e) {
+                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                        }
+                    });
+                });
+            }
+        }
+        */
+
+        // CETUS - Unload Bundles
+        @Override
+        public synchronized void doLoadShedding() {
+            if (getAvailableBrokers().size() <= 1) {
+                log.info("Only 1 broker available: no load shedding will be performed");
+                return;
+            }
+            // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
+            // map.
+            final long timeout = System.currentTimeMillis()
+                    - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
+            final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
+            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+
+            log.info("Starting load shedding");
+            final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
+            log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
+
+                bundlesToUnload.asMap().forEach((broker, bundles) -> {
+                    bundles.forEach(bundle -> {
+                        final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+                        final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
+                        if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
+                            return;
+                        }
+
+                        log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
+                        try {
+                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                            loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                        } catch (PulsarServerException | PulsarAdminException e) {
+                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                        }
+                    });
+                });
+
+        }
+
+        public boolean shouldAntiAffinityNamespaceUnload(String namespace, String bundle, String currentBroker) {
+            try {
+                Optional<Policies> nsPolicies = pulsar.getConfigurationCache().policiesCache()
+                        .get(path(POLICIES, namespace));
+                if (!nsPolicies.isPresent() || StringUtils.isBlank(nsPolicies.get().antiAffinityGroup)) {
+                    return true;
+                }
+
+                synchronized (brokerCandidateCache) {
+                    brokerCandidateCache.clear();
+                    ServiceUnitId serviceUnit = pulsar.getNamespaceService().getNamespaceBundleFactory()
+                            .getBundle(namespace, bundle);
+                    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache,
+                            getAvailableBrokers(), brokerTopicLoadingPredicate);
+                    return LoadManagerShared.shouldAntiAffinityNamespaceUnload(namespace, bundle, currentBroker, pulsar,
+                            brokerToNamespaceToBundleRange, brokerCandidateCache);
+                }
+
+            } catch (Exception e) {
+                log.warn("Failed to check anti-affinity namespace ownership for {}/{}/{}, {}", namespace, bundle,
+                        currentBroker, e.getMessage());
+
+            }
+            return true;
+        }
+
+        /**
+         * As the leader broker, attempt to automatically detect and split hot namespace bundles.
+         */
+        @Override
+        public void checkNamespaceBundleSplit() {
+
+            if (!conf.isLoadBalancerAutoBundleSplitEnabled() || pulsar.getLeaderElectionService() == null
+                    || !pulsar.getLeaderElectionService().isLeader()) {
+                return;
+            }
+            final boolean unloadSplitBundles = pulsar.getConfiguration().isLoadBalancerAutoUnloadSplitBundlesEnabled();
+            synchronized (bundleSplitStrategy) {
+                final Set<String> bundlesToBeSplit = bundleSplitStrategy.findBundlesToSplit(loadData, pulsar);
+                NamespaceBundleFactory namespaceBundleFactory = pulsar.getNamespaceService().getNamespaceBundleFactory();
+                for (String bundleName : bundlesToBeSplit) {
+                    try {
+                        final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundleName);
+                        final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundleName);
+                        if (!namespaceBundleFactory
+                                .canSplitBundle(namespaceBundleFactory.getBundle(namespaceName, bundleRange))) {
+                            continue;
+                        }
+                        log.info("Load-manager splitting bundle {} and unloading {}", bundleName, unloadSplitBundles);
+                        pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange,
+                                unloadSplitBundles);
+                        // Make sure the same bundle is not selected again.
+                        loadData.getBundleData().remove(bundleName);
+                        localData.getLastStats().remove(bundleName);
+                        // Clear namespace bundle-cache
+                        this.pulsar.getNamespaceService().getNamespaceBundleFactory()
+                                .invalidateBundleCache(NamespaceName.get(namespaceName));
+                        deleteBundleDataFromZookeeper(bundleName);
+                        log.info("Successfully split namespace bundle {}", bundleName);
+                    } catch (Exception e) {
+                        log.error("Failed to split namespace bundle {}", bundleName, e);
+                    }
+                }
             }
 
-            if (!broker.isPresent()) {
-                // No brokers available
+        }
+
+        /**
+         * When the broker data ZooKeeper nodes are updated, update the broker data map.
+         */
+        @Override
+        public void onUpdate(final String path, final CetusBrokerData data, final Stat stat) {
+            scheduler.submit(this::updateAll);
+        }
+
+        
+        /**
+         * As the leader broker, find a suitable broker for the assignment of the given bundle.
+         *
+         * @param serviceUnit
+         *            ServiceUnitId for the bundle.
+         * @return The name of the selected broker, as it appears on ZooKeeper.
+         */
+        /*
+        @Override
+        public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
+            // Use brokerCandidateCache as a lock to reduce synchronization.
+            synchronized (brokerCandidateCache) {
+                final String bundle = serviceUnit.toString();
+                if (preallocatedBundleToBroker.containsKey(bundle)) {
+                    // If the given bundle is already in preallocated, return the selected broker.
+                    return Optional.of(preallocatedBundleToBroker.get(bundle));
+                }
+                final BundleData data = loadData.getBundleData().computeIfAbsent(bundle,
+                        key -> getBundleDataOrDefault(bundle));
+                brokerCandidateCache.clear();
+                LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
+                        brokerTopicLoadingPredicate);
+
+                // filter brokers which owns topic higher than threshold
+                LoadManagerShared.filterBrokersWithLargeTopicCount(brokerCandidateCache, loadData,
+                        conf.getLoadBalancerBrokerMaxTopics());
+
+                // distribute namespaces to domain and brokers according to anti-affinity-group
+                LoadManagerShared.filterAntiAffinityGroupOwnedBrokers(pulsar, serviceUnit.toString(), brokerCandidateCache,
+                        brokerToNamespaceToBundleRange, brokerToFailureDomainMap);
+                // distribute bundles evenly to candidate-brokers
+
+                LoadManagerShared.removeMostServicingBrokersForNamespace(serviceUnit.toString(), brokerCandidateCache,
+                        brokerToNamespaceToBundleRange);
+                log.info("{} brokers being considered for assignment of {}", brokerCandidateCache.size(), bundle);
+
+                // Use the filter pipeline to finalize broker candidates.
+                try {
+                    for (BrokerFilter filter : filterPipeline) {
+                        filter.filter(brokerCandidateCache, data, loadData, conf);
+                    }
+                } catch ( BrokerFilterException x ) {
+                    // restore the list of brokers to the full set
+                    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
+                            brokerTopicLoadingPredicate);
+                }
+
+                if ( brokerCandidateCache.isEmpty() ) {
+                    // restore the list of brokers to the full set
+                    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
+                            brokerTopicLoadingPredicate);
+                }
+
+                // Choose a broker among the potentially smaller filtered list, when possible
+                Optional<String> broker = placementStrategy.selectBroker(brokerCandidateCache, data, loadData, conf);
+                if (log.isDebugEnabled()) {
+                    log.debug("Selected broker {} from candidate brokers {}", broker, brokerCandidateCache);
+                }
+
+                if (!broker.isPresent()) {
+                    // No brokers available
+                    return broker;
+                }
+
+                final double overloadThreshold = conf.getLoadBalancerBrokerOverloadedThresholdPercentage() / 100.0;
+                final double maxUsage = loadData.getBrokerData().get(broker.get()).getLocalData().getMaxResourceUsage();
+                if (maxUsage > overloadThreshold) {
+                    // All brokers that were in the filtered list were overloaded, so check if there is a better broker
+                    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
+                            brokerTopicLoadingPredicate);
+                    broker = placementStrategy.selectBroker(brokerCandidateCache, data, loadData, conf);
+                }
+
+                // Add new bundle to preallocated.
+                loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
+                preallocatedBundleToBroker.put(bundle, broker.get());
+
+                final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+                final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
+                brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
+                        .add(bundleRange);
                 return broker;
             }
-
-            final double overloadThreshold = conf.getLoadBalancerBrokerOverloadedThresholdPercentage() / 100.0;
-            final double maxUsage = loadData.getBrokerData().get(broker.get()).getLocalData().getMaxResourceUsage();
-            if (maxUsage > overloadThreshold) {
-                // All brokers that were in the filtered list were overloaded, so check if there is a better broker
-                LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-                        brokerTopicLoadingPredicate);
-                broker = placementStrategy.selectBroker(brokerCandidateCache, data, loadData, conf);
-            }
-
-            // Add new bundle to preallocated.
-            loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-            preallocatedBundleToBroker.put(bundle, broker.get());
-
-            final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
-            final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-            brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
-                    .add(bundleRange);
-            return broker;
         }
-    }
-    */
+        */
 
-    // CETUS broker assignment selection - narrow down to specific singlular broker chosen
-    // by our algorithm.
-    public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
+        // CETUS broker assignment selection - narrow down to specific singlular broker chosen
+        // by our algorithm.
+        public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
        synchronized(brokerCandidateCache) {
             final String bundle = serviceUnit.toString();
             if(preallocatedBundleToBroker.containsKey(bundle)) {
                 return Optional.of(preallocatedBundleToBroker.get(bundle));
             }
-            //Optional<String> broker = getBrokerWithLeastLatency(brokerCandidateCache, latencyData);
-            Optional<String> broker = Optional.of("1");
+            Optional<String> broker = getBrokerWithLeastLatency(bundle);
+            //Optional<String> broker = Optional.of("1");
             final BundleData data = loadData.getBundleData().computeIfAbsent(bundle,
                     key -> getBundleDataOrDefault(bundle));
             brokerCandidateCache.clear();
@@ -898,11 +920,39 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         } 
     }
 
-    /*
-    private Optional<String> getBrokerWithLeastLatency(zkCache brokerCandidateCache) {
-        
+    private Optional<String> getBrokerWithLeastLatency(final String bundle) {
+                Optional<String> minDistanceBroker = Optional.of("");
+                double minDistance = 100000;
+                log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerDataMap().size());
+                for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
+                    if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
+                        log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
+ 
+                        if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < minDistance) {
+                            log.info("Bundle broker found: {}  Distance : {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
+                            try {
+                            minDistance = CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
+                            minDistanceBroker = Optional.of(brokerEntry.getKey()); 
+                            }
+                            catch (Exception e) {
+                                log.warn("Cannot find bundle!: {}", e);
+                            }
+                        }
+
+                    }
+                    else {
+                        for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBundleDataMap().entrySet()) {
+                            log.info("Bundle in Bundle Map: {}", entry.getKey());
+                        }
+                        log.info("Choosing first broker available. Bundle Map Size: {}, bundle: {} brokerZnode: {} ", cetusLoadData.getCetusBundleDataMap().size(), bundle, cetusBrokerZnodePath);
+
+                        cetusLoadData.getCetusBundleDataMap().put(bundle, new CetusNetworkCoordinateData());
+                        return Optional.of(brokerEntry.getKey());
+
+                    }
+            }
+            return minDistanceBroker;
     }
-    */
    
     /**
      * As any broker, start the load manager.
@@ -915,14 +965,18 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         try {
             // Register the brokers in zk list
             createZPathIfNotExists(zkClient, LoadManager.LOADBALANCE_BROKERS_ROOT);
+            createZPathIfNotExists(zkClient, CETUS_COORDINATE_DATA_ROOT);
 
             String lookupServiceAddress = pulsar.getAdvertisedAddress() + ":" + conf.getWebServicePort();
             brokerZnodePath = LoadManager.LOADBALANCE_BROKERS_ROOT + "/" + lookupServiceAddress;
+            cetusBrokerZnodePath = CETUS_COORDINATE_DATA_ROOT + "/" + lookupServiceAddress;
             final String timeAverageZPath = TIME_AVERAGE_BROKER_ZPATH + "/" + lookupServiceAddress;
+            pulsar.writeCoordinateDataOnZookeeper();
             updateLocalBrokerData();
             try {
                 ZkUtils.createFullPathOptimistic(zkClient, brokerZnodePath, localData.getJsonBytes(),
                         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+                ZkUtils.createFullPathOptimistic(zkClient, cetusBrokerZnodePath, pulsar.getCetusBrokerData().getJsonBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             } catch (KeeperException.NodeExistsException e) {
                 long ownerZkSessionId = getBrokerZnodeOwner();
                 if (ownerZkSessionId != 0 && ownerZkSessionId != zkClient.getSessionId()) {
@@ -933,6 +987,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 }
                 // Node may already be created by another load manager: in this case update the data.
                 zkClient.setData(brokerZnodePath, localData.getJsonBytes(), -1);
+                zkClient.setData(cetusBrokerZnodePath, pulsar.getCetusBrokerData().getJsonBytes(), -1);
             } catch (Exception e) {
                 // Catching exception here to print the right error message
                 log.error("Unable to create znode - [{}] for load balance on zookeeper ", brokerZnodePath, e);
@@ -963,6 +1018,10 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         if (brokerDataCache != null) {
             brokerDataCache.close();
             brokerDataCache.clear();
+        }
+        if(cetusBrokerDataCache != null) {
+            cetusBrokerDataCache.close();
+            cetusBrokerDataCache.clear();
         }
         scheduler.shutdown();
     }

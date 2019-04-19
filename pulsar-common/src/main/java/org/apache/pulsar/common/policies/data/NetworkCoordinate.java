@@ -5,8 +5,6 @@ import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
 import java.lang.IllegalArgumentException;
 
-//@JsonDeserialize(as = NetworkCoordinate.class)
-//public class NetworkCoordinate extends JSONWritable {
 public class NetworkCoordinate {
     
     private double adjustment;

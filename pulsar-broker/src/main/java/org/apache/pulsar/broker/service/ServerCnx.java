@@ -559,6 +559,13 @@ public class ServerCnx extends PulsarHandler {
                 for(int i = 0; i < commandGetNetworkCoordinateResponse.getCoordinateInfoCount(); i++)
                 {
                     String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getTopic();
+                    String bundle = "";
+                    try {
+                        bundle = getBrokerService().pulsar().getNamespaceService().getBundle(TopicName.get(topic)).toString();
+                    }
+                    catch (Exception e) {
+                        log.warn("Cannot get bundle for topic: {}", e);
+                    }
                     double[] coordinates = new double[8];
                     for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
                     {
@@ -567,13 +574,17 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    if(service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().containsKey(topic)) {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                         log.info("Existing topic, name: {}",topic);
+                        log.info("Existing bundle, name: {}", bundle);
+                    }
+                    else if(bundle.equals("")) { 
+                        // Do nothing
                     }
                     else {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                         log.info("New Topic, name: {}", topic);
 
                     }
@@ -582,7 +593,14 @@ public class ServerCnx extends PulsarHandler {
             else if(nodeType.equals("consumer")) {
                 for(int i = 0; i < commandGetNetworkCoordinateResponse.getCoordinateInfoCount(); i++)
                 {
-                    String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getTopic();
+                    String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getTopic(); 
+                    String bundle = "";
+                    try {
+                        bundle = getBrokerService().pulsar().getNamespaceService().getBundle(TopicName.get(topic)).toString();
+                    }
+                    catch (Exception e) {
+                        log.warn("Cannot find bundle for topic: {} : {}",topic , e);
+                    }
                     double[] coordinates = new double[8];
                     for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
                     {
@@ -591,12 +609,15 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    if(service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().containsKey(topic)) {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(topic)) {
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    }
+                    else if (bundle.equals("")) { 
+                        // Do nothing
                     }
                     else {
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
-                        service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
 
                     }
                  }
@@ -607,7 +628,15 @@ public class ServerCnx extends PulsarHandler {
             
         }
         else {
-           String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getTopic(); 
+           String topic = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getTopic();
+           String bundle = "";
+           try {
+                bundle = getBrokerService().pulsar().getNamespaceService().getBundle(TopicName.get(topic)).toString();
+           }
+           catch (Exception e) {
+            log.warn("Cannot find bundle for topic: {} : {}", topic, e);
+           }
+ 
            double[] coordinates = new double[8];
            for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getCoordinatesCount(); j++) 
            {
@@ -617,29 +646,37 @@ public class ServerCnx extends PulsarHandler {
            double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
            double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
-                if(service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().containsKey(topic)) {    
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
-                    log.info("Existing topic, name: {} consumerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
+                if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {    
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    log.info("Existing topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
+                    log.info("Existing bundle, name: {}", bundle);
+                }
+                else if(bundle.equals("")) {
+                    // Do nothing
                 }
                 else {
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
-                    log.info("New topic, name: {} consumerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    log.info("New topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
+                    log.info("New bundle, name: {}", bundle);
 
                 }
 	       }
            else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
-                if(service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().containsKey(topic)) {
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
                     log.info("Existing topic, name: {} consumerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
+                    log.info("Existing bundle, name: {}", bundle);
 
                 }
+                else if(bundle.equals("")) { 
+                    // Do nothing
+                }
                 else {
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().put(topic, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData()));
-                    service.pulsar().getCetusBrokerData().getTopicNetworkCoordinates().get(topic).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
-                    log.info("Existing topic, name: {} producerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
-
-
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(adjustment, error, height, coordinates));
+                    log.info("New topic, name: {} producerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
+                    log.info("New bundle, name: {}", bundle);
                 }
            }
            else {

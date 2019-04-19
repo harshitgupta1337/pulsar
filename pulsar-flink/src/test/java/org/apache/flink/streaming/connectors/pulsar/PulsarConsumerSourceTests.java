@@ -40,6 +40,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.MessageImpl;
 import org.apache.pulsar.shade.io.netty.buffer.Unpooled;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -361,6 +362,8 @@ public class PulsarConsumerSourceTests {
         private AtomicInteger currentMessage = new AtomicInteger();
 
         private final Map<MessageId, MessageId> acknowledgedIds = new ConcurrentHashMap<>();
+        
+        private NetworkCoordinate coordinate = new NetworkCoordinate();
 
         private TestConsumer(int numMessages) {
             messages.addAll(createMessages(0, numMessages));
@@ -503,6 +506,21 @@ public class PulsarConsumerSourceTests {
         @Override
         public String getConsumerName() {
             return "test-consumer-0";
+        }
+         
+        @Override   
+        public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+            this.coordinate = coordinate;
+        }
+
+        @Override 
+        public NetworkCoordinate getNetworkCoordinate() {
+            return coordinate;
+        }
+
+        @Override
+        public long getConsumerId() {
+            return 1;
         }
     }
 

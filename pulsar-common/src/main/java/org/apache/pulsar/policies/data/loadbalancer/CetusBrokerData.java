@@ -32,16 +32,16 @@ import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 public class CetusBrokerData extends JSONWritable {
     private NetworkCoordinate brokerNwCoordinate;
     
-    private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicNwCoordinates;
+    private ConcurrentHashMap<String, CetusNetworkCoordinateData> bundleNwCoordinates;
     
     public CetusBrokerData() {
         this.brokerNwCoordinate = new NetworkCoordinate();
-        this.topicNwCoordinates = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
+        this.bundleNwCoordinates = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
     }
     
     public CetusBrokerData(CetusBrokerData cetusBrokerData) {
         this.brokerNwCoordinate = cetusBrokerData.getBrokerNwCoordinate();
-        this.topicNwCoordinates = cetusBrokerData.getTopicNetworkCoordinates();
+        this.bundleNwCoordinates = cetusBrokerData.getBundleNetworkCoordinates();
     }
      
     public NetworkCoordinate getBrokerNwCoordinate() {
@@ -52,12 +52,12 @@ public class CetusBrokerData extends JSONWritable {
         this.brokerNwCoordinate = brokerNwCoordinate;
     }
 
-    public ConcurrentHashMap<String, CetusNetworkCoordinateData> getTopicNetworkCoordinates() {
-        return topicNwCoordinates;
+    public ConcurrentHashMap<String, CetusNetworkCoordinateData> getBundleNetworkCoordinates() {
+        return bundleNwCoordinates;
     }
 
-    public void setTopicNetworkCoordinates( ConcurrentHashMap<String, CetusNetworkCoordinateData> topicNwCoordinates) {
-        this.topicNwCoordinates = topicNwCoordinates;
+    public void setBundleNetworkCoordinates( ConcurrentHashMap<String, CetusNetworkCoordinateData> bundleNwCoordinates) {
+        this.bundleNwCoordinates = bundleNwCoordinates;
     }
     
     
