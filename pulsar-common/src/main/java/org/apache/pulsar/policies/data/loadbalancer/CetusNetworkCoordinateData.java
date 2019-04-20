@@ -107,6 +107,13 @@ public class CetusNetworkCoordinateData {
         double totalAdjustment = 0.0;
         double totalHeight = 0.0;
         double totalError = 0.0;
+
+        if(producerCoordinates.size() == 0 && consumerCoordinates.size() == 0)
+        {
+            double[] coordinateVector = new double[]{0,0,0,0,0,0,0,0};
+            NetworkCoordinate coordinate = new NetworkCoordinate(totalAdjustment, totalHeight, totalError, coordinateVector);
+            return coordinate;
+        }
         //producerCoordinates.forEach((producerId, coordinate) -> {
         for(Map.Entry<Long, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
             double[] coordinateVector = entry.getValue().getCoordinateVector();

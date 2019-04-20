@@ -941,13 +941,29 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                     }
                     else {
-                        for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBundleDataMap().entrySet()) {
-                            log.info("Bundle in Bundle Map: {}", entry.getKey());
-                        }
+                       //for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBundleDataMap().entrySet()) {
+
+                         //   log.info("Bundle in Bundle Map: {}", entry.getKey());
+                        //}
                         log.info("Choosing first broker available. Bundle Map Size: {}, bundle: {} brokerZnode: {} ", cetusLoadData.getCetusBundleDataMap().size(), bundle, cetusBrokerZnodePath);
 
                         cetusLoadData.getCetusBundleDataMap().put(bundle, new CetusNetworkCoordinateData());
-                        return Optional.of(brokerEntry.getKey());
+                        if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
+                        log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
+ 
+                        if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < minDistance) {
+                            log.info("Bundle broker found: {}  Distance : {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
+                            try {
+                            minDistance = CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
+                            minDistanceBroker = Optional.of(brokerEntry.getKey()); 
+                            }
+                            catch (Exception e) {
+                                log.warn("Cannot find bundle!: {}", e);
+                            }
+                        }
+                        }
+
+                        //return Optional.of(brokerEntry.getKey());
 
                     }
             }
