@@ -1,0 +1,6 @@
+target/
+.vagrant/
+nb-*
+.idea/
+serf-client.iml
+*.versionsBackup
