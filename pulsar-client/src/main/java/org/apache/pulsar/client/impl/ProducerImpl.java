@@ -30,6 +30,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import org.apache.pulsar.common.serf.SerfClient;
+import no.tv2.serf.client.*;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
@@ -125,6 +127,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     private NetworkCoordinate coordinate;
     private ScheduledExecutorService coordinateProviderService;
+    private SerfClient serfClient;
 
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater
@@ -142,6 +145,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
         // CETUS
         this.coordinate = new NetworkCoordinate();
+        this.serfClient = new SerfClient(client.getSerfIp(), client.getSerfPort());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
         //*********************************************************
         this.compressor = CompressionCodecProvider
@@ -208,10 +212,15 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     void startCoordinateProviderService() {
         int interval = 100;
+        try {
+        }
+        catch (Exception e) {
+        }
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
 
     public void sendCoordinate() {
+        this.coordinate = serfClient.getCoordinate();
         ClientCnx cnx = cnx();
         long requestId = client.newRequestId();
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));

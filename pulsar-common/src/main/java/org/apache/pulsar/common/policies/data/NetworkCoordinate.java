@@ -6,13 +6,15 @@ import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 import java.lang.IllegalArgumentException;
 
 public class NetworkCoordinate {
-    
+
+    private boolean valid;    
     private double adjustment;
     private double error;
     private double height;
     private double[] coordinateVector;
 
     public NetworkCoordinate() {
+        this.valid = false;
         this.adjustment = 0;
         this.error = 0;
         this.height = 0;
@@ -23,11 +25,12 @@ public class NetworkCoordinate {
         }
     }
 
-    public NetworkCoordinate(double adjustment, 
+    public NetworkCoordinate(   boolean valid, 
+                                double adjustment, 
                                 double error, 
                                 double height,
                                 double[] coordinateVector) {
-
+            this.valid = valid;
             this.adjustment = adjustment;
             this.error = error;
             this.height = height;
@@ -71,6 +74,14 @@ public class NetworkCoordinate {
             total += coordinate;
         }
         return (double) total/coordinateVector.length;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
     }
 
 }

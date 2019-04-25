@@ -51,13 +51,14 @@ message CoordinateVector {
 
 message CoordinateInfo {
     optional string node_type               = 1;
-    optional string topic                   = 2;
-    optional uint64 node_id                 = 3;
-    optional double error                   = 4; 
-    optional double height                  = 5;
-    optional double adjustment              = 6;
+    optional bool valid                     = 2;
+    optional string topic                   = 3;
+    optional uint64 node_id                 = 4;
+    optional double error                   = 5; 
+    optional double height                  = 6;
+    optional double adjustment              = 7;
     // coordinates
-    repeated CoordinateVector coordinates   = 7; 
+    repeated CoordinateVector coordinates   = 8; 
 }
 
 message KeyValue {

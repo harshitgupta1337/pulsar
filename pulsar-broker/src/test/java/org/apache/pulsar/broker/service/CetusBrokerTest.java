@@ -141,8 +141,8 @@ public class CetusBrokerTest extends BrokerTestBase {
         log.info("Got Service");
 
         double[] coordinateVector = new double[]{1,1,1,1,1,1,1,1};
-        NetworkCoordinate coordinate = new NetworkCoordinate(1,1,1, coordinateVector);
-        NetworkCoordinate coordinate2 = new NetworkCoordinate(2,2,2, coordinateVector);
+        NetworkCoordinate coordinate = new NetworkCoordinate(true, 1,1,1, coordinateVector);
+        NetworkCoordinate coordinate2 = new NetworkCoordinate(true, 2,2,2, coordinateVector);
 
         consumer.setNetworkCoordinate(coordinate);
         assertTrue(consumer.getNetworkCoordinate().getAdjustment() == 1);
@@ -184,9 +184,9 @@ public class CetusBrokerTest extends BrokerTestBase {
 
         //assertTrue(brokerService.getNetworkCoordinateCollector().getConsumerCoordinate(consumerId).getAdjustment() == 1);
 
-        String brokerZkPath = "/cetus/coordinate-data" + "/" + brokerService.pulsar().getAdvertisedAddress();
+        String brokerZkPath = "/cetus/coordinate-data" + "/" + brokerService.pulsar().getAdvertisedAddress() + ":" + brokerService.pulsar().getConfiguration().getWebServicePort();
 
-        log.info("Got Broker advertised address");
+        log.info("Got Broker advertised address: {}", brokerZkPath);
         CetusBrokerData cetusBrokerData = null;
         NetworkCoordinate consumerCoordinate = new NetworkCoordinate();
         NetworkCoordinate producerCoordinate = new NetworkCoordinate();

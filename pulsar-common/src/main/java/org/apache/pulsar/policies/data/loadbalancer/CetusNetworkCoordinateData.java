@@ -111,7 +111,7 @@ public class CetusNetworkCoordinateData {
         if(producerCoordinates.size() == 0 && consumerCoordinates.size() == 0)
         {
             double[] coordinateVector = new double[]{0,0,0,0,0,0,0,0};
-            NetworkCoordinate coordinate = new NetworkCoordinate(totalAdjustment, totalHeight, totalError, coordinateVector);
+            NetworkCoordinate coordinate = new NetworkCoordinate(false, totalAdjustment, totalHeight, totalError, coordinateVector);
             return coordinate;
         }
         //producerCoordinates.forEach((producerId, coordinate) -> {
@@ -125,24 +125,30 @@ public class CetusNetworkCoordinateData {
             totalError += entry.getValue().getError();
         }
         //consumerCoordinates.forEach((consumerId, coordinate) -> {
+        int notValid = 0;
         for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
-             double[] coordinateVector = entry.getValue().getCoordinateVector();
-            for(int i = 0; i < coordinateVector.length; i++) {
-                totalCoordinateVector[i]+= coordinateVector[i];
+            if(entry.getValue().isValid()) {
+                double[] coordinateVector = entry.getValue().getCoordinateVector();
+                for(int i = 0; i < coordinateVector.length; i++) {
+                    totalCoordinateVector[i]+= coordinateVector[i];
+                }
+                totalAdjustment += entry.getValue().getAdjustment();
+                totalHeight += entry.getValue().getHeight();
+                totalError += entry.getValue().getError();
             }
-            totalAdjustment += entry.getValue().getAdjustment();
-            totalHeight += entry.getValue().getHeight();
-            totalError += entry.getValue().getError();
+            else {
+                notValid += 1;
+            }
         }
 
         double[] avgCoordinateVector = new double[8];
         for(int i = 0; i < avgCoordinateVector.length; i++) {
-            avgCoordinateVector[i] = (totalCoordinateVector[i]/(producerCoordinates.size() + consumerCoordinates.size()));
+            avgCoordinateVector[i] = (totalCoordinateVector[i]/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
         }
-        double avgAdjustment =  (totalAdjustment/(producerCoordinates.size() + consumerCoordinates.size()));
-        double avgHeight =  (totalHeight/(producerCoordinates.size() + consumerCoordinates.size()));
-        double avgError =   (totalError/(producerCoordinates.size() + consumerCoordinates.size()));
-        NetworkCoordinate avgCoordinate = new NetworkCoordinate(avgAdjustment, avgError, avgHeight, avgCoordinateVector);
+        double avgAdjustment =  (totalAdjustment/(producerCoordinates.size() + consumerCoordinates.size() - notValid));
+        double avgHeight =  (totalHeight/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
+        double avgError =   (totalError/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
+        NetworkCoordinate avgCoordinate = new NetworkCoordinate(true, avgAdjustment, avgError, avgHeight, avgCoordinateVector);
 
 
         return avgCoordinate; 

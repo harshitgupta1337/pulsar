@@ -543,6 +543,7 @@ public class ClientCnx extends PulsarHandler {
         //TopicName topicName = new TopicName(producer.getTopic());
         coordinateInfoBuilder.setTopic(producer.getTopic());
         NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        coordinateInfoBuilder.setValid(coordinate.isValid());
         coordinateInfoBuilder.setHeight(coordinate.getHeight());
         coordinateInfoBuilder.setError(coordinate.getError());
         coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
@@ -560,6 +561,7 @@ public class ClientCnx extends PulsarHandler {
         //TopicName topicName = new TopicName(consumer.getTopic());
         coordinateInfoBuilder.setTopic(consumer.getTopic());
         NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        coordinateInfoBuilder.setValid(coordinate.isValid());
         coordinateInfoBuilder.setHeight(coordinate.getHeight());
         coordinateInfoBuilder.setError(coordinate.getError());
         coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());

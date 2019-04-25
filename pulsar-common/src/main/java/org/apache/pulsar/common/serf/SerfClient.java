@@ -50,6 +50,8 @@ import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 // Serf Client includes
 import no.tv2.serf.client.*;
@@ -63,20 +65,26 @@ public class SerfClient {
     private Client client;
     //private Query query;
 
-    public SerfClient(String ip, int port) throws Exception {
-        ep = new SocketEndpoint(ip, port);
-        client = new Client(ep);
-        //client.handshake();
+    public SerfClient(String ip, int port)  {
+        try {
+            ep = new SocketEndpoint(ip, port);
+            client = new Client(ep);
+            client.handshake();
+        } 
+        catch (Exception e) {
+            log.warn("Cannot connect to serf!: {}", e);
+        }
     }
 
     //private parseCoordinateResponse() { 
     //}
 
     public NetworkCoordinate getCoordinate() {
-        //QuerySubscription querySubscription = client.query("get-coordinate", "
         NetworkCoordinate coordinate = new NetworkCoordinate();
         try {
-            coordinate =  client.getCoordinates().getCoordinate(); 
+            InetAddress IAddress = InetAddress.getLocalHost();
+            String hostName = IAddress.getHostName();
+            coordinate =  client.getCoordinates(hostName).getCoordinate(); 
         }
         catch (Exception e) {
             log.warn("Cannot get coordinate from serf!: {}" , e);

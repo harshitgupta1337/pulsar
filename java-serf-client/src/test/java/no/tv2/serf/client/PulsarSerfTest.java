@@ -12,6 +12,8 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 
 /**
@@ -47,9 +49,11 @@ public class PulsarSerfTest {
     }
 
     @Test
-    public void testCoordinate() throws SerfCommunicationException {
+    public void testCoordinate() throws SerfCommunicationException,UnknownHostException {
         log.info("Test Get Coordinate");
-        CoordinateResponse response = client.getCoordinates("pulsar06");
+        InetAddress IAddress = InetAddress.getLocalHost();
+        String hostName = IAddress.getHostName();
+        CoordinateResponse response = client.getCoordinates(hostName);
         log.info("Adjustment: {} Error: {}  Height: {} CoordinateVec {}", response.getCoordinate().getAdjustment(), response.getCoordinate().getError(), response.getCoordinate().getHeight(), response.getCoordinate().getCoordinateVector());
     }
 } 

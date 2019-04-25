@@ -117,6 +117,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.common.serf.SerfClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,6 +178,9 @@ public class PulsarService implements AutoCloseable {
 
     // Cetus
     private final ScheduledExecutorService cetusNetworkCoordinateCollectorService;
+    private final String SERF_RPC_IP = "0.0.0.0";
+    private final int SERF_RPC_PORT = 7373;
+    private SerfClient serfClient;
 
     //private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicToCoordinateDataMap;
     private final CetusBrokerData cetusBrokerData; 
@@ -219,6 +223,7 @@ public class PulsarService implements AutoCloseable {
         //this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
         this.cetusBrokerData = new CetusBrokerData();
         this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
+        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT);
 
 
 
@@ -1055,6 +1060,7 @@ public class PulsarService implements AutoCloseable {
     }
 
     public void updateCoordinates() {
+        cetusBrokerData.setBrokerNwCoordinate(serfClient.getCoordinate());
         writeCoordinateDataOnZookeeper();
     }
     

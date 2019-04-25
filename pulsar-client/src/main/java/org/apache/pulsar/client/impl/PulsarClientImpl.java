@@ -100,6 +100,9 @@ public class PulsarClientImpl implements PulsarClient {
         Open, Closing, Closed
     }
 
+    private static final String SERF_RPC_IP = "0.0.0.0";
+    private static final int SERF_RPC_PORT = 7373;
+
     private AtomicReference<State> state = new AtomicReference<>();
     private final IdentityHashMap<ProducerBase<?>, Boolean> producers;
     private final IdentityHashMap<ConsumerBase<?>, Boolean> consumers;
@@ -847,6 +850,12 @@ public class PulsarClientImpl implements PulsarClient {
         }
     }
 
-    
+    public String getSerfIp() {
+        return SERF_RPC_IP;
+    } 
+
+    public int getSerfPort() {
+        return SERF_RPC_PORT;
+    }
 
 }

@@ -273,12 +273,12 @@ public class CetusLoadStrategyTest {
         final String bundleName = pulsar1.getNamespaceService().getBundle(TopicName.get(topicName)).toString();
         final String subName = "successSub";
         double[] coordinateVector3 = new double[]{10,10,10,10,10,10,10,10};
-        NetworkCoordinate coordinate3 = new NetworkCoordinate(0,0,0, coordinateVector3);
+        NetworkCoordinate coordinate3 = new NetworkCoordinate(true, 0,0,0, coordinateVector3);
         pulsar2.getCetusBrokerData().setBrokerNwCoordinate(coordinate3);
 
         double[] coordinateVector = new double[]{1,1,1,1,1,1,1,1};
-        NetworkCoordinate coordinate = new NetworkCoordinate(1,1,1, coordinateVector);
-        NetworkCoordinate coordinate2 = new NetworkCoordinate(2,2,2, coordinateVector);
+        NetworkCoordinate coordinate = new NetworkCoordinate(true, 1,1,1, coordinateVector);
+        NetworkCoordinate coordinate2 = new NetworkCoordinate(true, 2,2,2, coordinateVector);
 
         pulsar1.getCetusBrokerData().setBrokerNwCoordinate(coordinate);
  

@@ -29,7 +29,7 @@ class CoordinateParser {
     public NetworkCoordinate parse(Map<String, Value> body) {
        
         double[] coordinateVector = new double[]{1,1,1,1,1,1,1,1}; 
-        NetworkCoordinate coordinate = new NetworkCoordinate(1,1,1,coordinateVector);
+        NetworkCoordinate coordinate = new NetworkCoordinate(false, 1,1,1,coordinateVector);
 
         Map<String, Value> map = (Map<String, Value>) body;
 
@@ -73,7 +73,7 @@ class CoordinateParser {
                         break;
             }
         }
-        return new NetworkCoordinate(adjustment, error, height, coordinateVector);
+        return new NetworkCoordinate(true, adjustment, error, height, coordinateVector);
     }
 
 }
