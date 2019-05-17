@@ -33,6 +33,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import org.apache.pulsar.common.serf.SerfClient;
 //***********************************************************************
 
 import io.netty.buffer.ByteBuf;
@@ -155,6 +156,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     private NetworkCoordinate coordinate;
     private ScheduledExecutorService coordinateProviderService;
 
+    private SerfClient serfClient;
+
     enum SubscriptionMode {
         // Make the subscription to be backed by a durable cursor that will retain messages and persist the current
         // position
@@ -184,6 +187,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.readCompacted = conf.isReadCompacted();
         // CETUS
         this.coordinate = new NetworkCoordinate();
+        this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider-consumer"));
         this.subscriptionInitialPosition = conf.getSubscriptionInitialPosition();
 
@@ -257,6 +261,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     }
 
     public void sendCoordinate() {
+        coordinate = serfClient.getCoordinate();
         ClientCnx cnx = cnx();
         long requestId = client.newRequestId();
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));

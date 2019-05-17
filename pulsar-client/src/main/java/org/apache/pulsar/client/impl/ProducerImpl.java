@@ -24,6 +24,7 @@ import static com.scurrilous.circe.checksum.Crc32cIntChecksum.resumeChecksum;
 import static java.lang.String.format;
 import static org.apache.pulsar.common.api.Commands.hasChecksum;
 import static org.apache.pulsar.common.api.Commands.readChecksum;
+import java.nio.charset.Charset;
 // CETUS
 import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 import java.util.concurrent.ScheduledExecutorService;
@@ -31,7 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.pulsar.common.serf.SerfClient;
-import no.tv2.serf.client.*;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
@@ -81,6 +81,7 @@ import org.apache.pulsar.common.util.DateFormatter;
 import org.apache.pulsar.common.util.FutureUtil;
 import org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import java.net.InetAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,7 +146,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
         // CETUS
         this.coordinate = new NetworkCoordinate();
-        this.serfClient = new SerfClient(client.getSerfIp(), client.getSerfPort());
+      
+        this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
         //*********************************************************
         this.compressor = CompressionCodecProvider
@@ -207,15 +209,37 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             new Backoff(100, TimeUnit.MILLISECONDS, 60, TimeUnit.SECONDS, Math.max(100, conf.getSendTimeoutMs() - 100), TimeUnit.MILLISECONDS),
             this);
         grabCnx();
+        //joinSerfCluster();
         startCoordinateProviderService();
+    }
+
+    void joinSerfCluster() {
+        //ByteBuf msg;
+        try {
+            //Thread.sleep(10000);
+            ClientCnx cnx = cnx();
+            log.info("Got cnx");
+            long requestId = client.newRequestId();
+            log.info("Got client request id: {} Serf Bind IP: {} Serf Port: {}", requestId,client.getSerfBindIp(), client.getSerfBindPort());
+                       //msg = Commands.newSerfJoin(requestId, client.getSerfBindIp(), client.getSerfBindPort());
+            //ByteBuf newMsg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
+            //log.info("Message: {}", newMsg.readCharSequence(newMsg.capacity(), Charset.forName("utf-8")).toString());
+            //cnx.sendSerfInfo(msg, requestId);
+            //cnx().ctx().writeAndFlush(newMsg);
+            ByteBuf newMsg = Commands.newSerfJoin(cnx.createSerfJoin(this.client, requestId));
+            cnx.ctx().writeAndFlush(newMsg);
+            log.info("Sent serf message");
+        }
+        catch (Exception e) {
+            log.warn("Unable to send request for serf join!: {}", e);
+        }
+
     }
 
     void startCoordinateProviderService() {
         int interval = 100;
-        try {
-        }
-        catch (Exception e) {
-        }
+        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
 
@@ -1039,6 +1063,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
                     return null;
                 });
+
+                //joinSerfCluster();
     }
 
     @Override

@@ -42,6 +42,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import io.netty.buffer.ByteBuf;
 
@@ -101,7 +103,12 @@ public class PulsarClientImpl implements PulsarClient {
     }
 
     private static final String SERF_RPC_IP = "0.0.0.0";
-    private static final int SERF_RPC_PORT = 7373;
+    private static final int SERF_RPC_PORT = 7374;
+
+    private static final String SERF_BIND_IP = "0.0.0.0";
+    private static final int SERF_BIND_PORT = 8000;
+
+    private final String nodeName;
 
     private AtomicReference<State> state = new AtomicReference<>();
     private final IdentityHashMap<ProducerBase<?>, Boolean> producers;
@@ -146,6 +153,7 @@ public class PulsarClientImpl implements PulsarClient {
         this.eventLoopGroup = eventLoopGroup;
         this.conf = conf;
         conf.getAuthentication().start();
+         
         this.cnxPool = cnxPool;
         externalExecutorProvider = new ExecutorProvider(conf.getNumListenerThreads(), getThreadFactory("pulsar-external-listener"));
         if (conf.getServiceUrl().startsWith("http")) {
@@ -156,11 +164,23 @@ public class PulsarClientImpl implements PulsarClient {
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
+        try {
+            InetAddress IAddress = InetAddress.getLocalHost();
+            //this.nodeName = IAddress.getHostName();
+        }
+        catch (Exception e) {
+        }
+        
+        this.nodeName = "n2";
         state.set(State.Open);
+        joinSerfCluster();
     }
 
     public ClientConfigurationData getConfiguration() {
         return conf;
+    }
+
+    protected void joinSerfCluster() {
     }
 
     @Override
@@ -850,12 +870,24 @@ public class PulsarClientImpl implements PulsarClient {
         }
     }
 
-    public String getSerfIp() {
+    public String getSerfBindIp() {
+        return SERF_BIND_IP;
+    }
+
+    public long getSerfBindPort() {
+        return SERF_BIND_PORT;
+    }
+
+    public String getSerfRpcIp() {
         return SERF_RPC_IP;
     } 
 
-    public int getSerfPort() {
+    public long getSerfRpcPort() {
         return SERF_RPC_PORT;
+    }
+
+    public String getNodeName() {
+        return nodeName;
     }
 
 }

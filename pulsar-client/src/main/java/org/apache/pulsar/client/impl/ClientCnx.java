@@ -71,6 +71,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandProducerSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandReachedEndOfTopic;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSendError;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSendReceipt;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
@@ -578,6 +579,16 @@ public class ClientCnx extends PulsarHandler {
         return coordinateVectorBuilder;
     }
 
+    CommandSerfJoin.Builder createSerfJoin(PulsarClientImpl client, long requestId) {
+        log.info("Got into serf join builder");
+        CommandSerfJoin.Builder commandSerfJoinBuilder = CommandSerfJoin.newBuilder();
+        commandSerfJoinBuilder.setAddress(client.getSerfBindIp());
+        commandSerfJoinBuilder.setRequestId(requestId);
+        commandSerfJoinBuilder.setPort(client.getSerfBindPort());
+        log.info("Created Serf Join Message!");
+        return commandSerfJoinBuilder;
+    }
+
     
     // caller of this method needs to be protected under pendingLookupRequestSemaphore
     private void addPendingLookupRequests(long requestId, CompletableFuture<LookupDataResult> future) {
@@ -857,6 +868,13 @@ public class ClientCnx extends PulsarHandler {
         });
 
         return future;
+    }
+
+    public void sendSerfInfo(ByteBuf request) {
+        
+        ctx.writeAndFlush(request);
+        log.info("Sent serf info");
+
     }
 
     /**
