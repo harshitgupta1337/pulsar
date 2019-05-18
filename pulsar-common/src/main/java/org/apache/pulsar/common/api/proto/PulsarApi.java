@@ -24329,6 +24329,485 @@ public final class PulsarApi {
     // @@protoc_insertion_point(class_scope:pulsar.proto.CommandGetNetworkCoordinateResponse)
   }
   
+  public interface CommandSerfJoinOrBuilder
+      extends org.apache.pulsar.shaded.com.google.protobuf.v241.MessageLiteOrBuilder {
+    
+    // required uint64 request_id = 1;
+    boolean hasRequestId();
+    long getRequestId();
+    
+    // optional string address = 2;
+    boolean hasAddress();
+    String getAddress();
+    
+    // optional uint64 port = 3;
+    boolean hasPort();
+    long getPort();
+  }
+  public static final class CommandSerfJoin extends
+      org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
+      implements CommandSerfJoinOrBuilder, org.apache.pulsar.common.util.protobuf.ByteBufCodedOutputStream.ByteBufGeneratedMessage  {
+    // Use CommandSerfJoin.newBuilder() to construct.
+    private io.netty.util.Recycler.Handle handle;
+    private CommandSerfJoin(io.netty.util.Recycler.Handle handle) {
+      this.handle = handle;
+    }
+    
+     private static final io.netty.util.Recycler<CommandSerfJoin> RECYCLER = new io.netty.util.Recycler<CommandSerfJoin>() {
+            protected CommandSerfJoin newObject(Handle handle) {
+              return new CommandSerfJoin(handle);
+            }
+          };
+        
+        public void recycle() {
+            this.initFields();
+            this.memoizedIsInitialized = -1;
+            this.bitField0_ = 0;
+            this.memoizedSerializedSize = -1;
+            if (handle != null) { RECYCLER.recycle(this, handle); }
+        }
+         
+    private CommandSerfJoin(boolean noInit) {}
+    
+    private static final CommandSerfJoin defaultInstance;
+    public static CommandSerfJoin getDefaultInstance() {
+      return defaultInstance;
+    }
+    
+    public CommandSerfJoin getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+    
+    private int bitField0_;
+    // required uint64 request_id = 1;
+    public static final int REQUEST_ID_FIELD_NUMBER = 1;
+    private long requestId_;
+    public boolean hasRequestId() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    public long getRequestId() {
+      return requestId_;
+    }
+    
+    // optional string address = 2;
+    public static final int ADDRESS_FIELD_NUMBER = 2;
+    private java.lang.Object address_;
+    public boolean hasAddress() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    public String getAddress() {
+      java.lang.Object ref = address_;
+      if (ref instanceof String) {
+        return (String) ref;
+      } else {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString bs = 
+            (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+        String s = bs.toStringUtf8();
+        if (org.apache.pulsar.shaded.com.google.protobuf.v241.Internal.isValidUtf8(bs)) {
+          address_ = s;
+        }
+        return s;
+      }
+    }
+    private org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString getAddressBytes() {
+      java.lang.Object ref = address_;
+      if (ref instanceof String) {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString b = 
+            org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString.copyFromUtf8((String) ref);
+        address_ = b;
+        return b;
+      } else {
+        return (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+      }
+    }
+    
+    // optional uint64 port = 3;
+    public static final int PORT_FIELD_NUMBER = 3;
+    private long port_;
+    public boolean hasPort() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    public long getPort() {
+      return port_;
+    }
+    
+    private void initFields() {
+      requestId_ = 0L;
+      address_ = "";
+      port_ = 0L;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+      
+      if (!hasRequestId()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      memoizedIsInitialized = 1;
+      return true;
+    }
+    
+    public void writeTo(org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream output)
+                        throws java.io.IOException {
+        throw new RuntimeException("Cannot use CodedOutputStream");
+    }
+    
+    public void writeTo(org.apache.pulsar.common.util.protobuf.ByteBufCodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeUInt64(1, requestId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getAddressBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeUInt64(3, port_);
+      }
+    }
+    
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+    
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeUInt64Size(1, requestId_);
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeBytesSize(2, getAddressBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeUInt64Size(3, port_);
+      }
+      memoizedSerializedSize = size;
+      return size;
+    }
+    
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+    
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString data)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+         throw new RuntimeException("Disabled");
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString data,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+         throw new RuntimeException("Disabled");
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(byte[] data)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        byte[] data,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+      return newBuilder().mergeFrom(data, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        java.io.InputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseDelimitedFrom(
+        java.io.InputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      Builder builder = newBuilder();
+      if (builder.mergeDelimitedFrom(input, extensionRegistry)) {
+        return builder.buildParsed();
+      } else {
+        return null;
+      }
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input).buildParsed();
+    }
+    public static org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin parseFrom(
+        org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input,
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return newBuilder().mergeFrom(input, extensionRegistry)
+               .buildParsed();
+    }
+    
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+    
+    public static final class Builder extends
+        org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite.Builder<
+          org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin, Builder>
+        implements org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoinOrBuilder, org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream.ByteBufMessageBuilder  {
+      // Construct using org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.newBuilder()
+      private final io.netty.util.Recycler.Handle handle;
+      private Builder(io.netty.util.Recycler.Handle handle) {
+        this.handle = handle;
+        maybeForceBuilderInitialization();
+      }
+      private final static io.netty.util.Recycler<Builder> RECYCLER = new io.netty.util.Recycler<Builder>() {
+         protected Builder newObject(io.netty.util.Recycler.Handle handle) {
+               return new Builder(handle);
+             }
+            };
+      
+       public void recycle() {
+                clear();
+                if (handle != null) {RECYCLER.recycle(this, handle);}
+            }
+      
+      private void maybeForceBuilderInitialization() {
+      }
+      private static Builder create() {
+        return RECYCLER.get();
+      }
+      
+      public Builder clear() {
+        super.clear();
+        requestId_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        address_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        port_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        return this;
+      }
+      
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin getDefaultInstanceForType() {
+        return org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance();
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin build() {
+        org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+      
+      private org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin buildParsed()
+          throws org.apache.pulsar.shaded.com.google.protobuf.v241.InvalidProtocolBufferException {
+        org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(
+            result).asInvalidProtocolBufferException();
+        }
+        return result;
+      }
+      
+      public org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin buildPartial() {
+        org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin result = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.RECYCLER.get();
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.requestId_ = requestId_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.address_ = address_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.port_ = port_;
+        result.bitField0_ = to_bitField0_;
+        return result;
+      }
+      
+      public Builder mergeFrom(org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin other) {
+        if (other == org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance()) return this;
+        if (other.hasRequestId()) {
+          setRequestId(other.getRequestId());
+        }
+        if (other.hasAddress()) {
+          setAddress(other.getAddress());
+        }
+        if (other.hasPort()) {
+          setPort(other.getPort());
+        }
+        return this;
+      }
+      
+      public final boolean isInitialized() {
+        if (!hasRequestId()) {
+          
+          return false;
+        }
+        return true;
+      }
+      
+      public Builder mergeFrom(org.apache.pulsar.shaded.com.google.protobuf.v241.CodedInputStream input,
+                              org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+                              throws java.io.IOException {
+         throw new java.io.IOException("Merge from CodedInputStream is disabled");
+                              }
+      public Builder mergeFrom(
+          org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream input,
+          org.apache.pulsar.shaded.com.google.protobuf.v241.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        while (true) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              
+              return this;
+            default: {
+              if (!input.skipField(tag)) {
+                
+                return this;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              requestId_ = input.readUInt64();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              address_ = input.readBytes();
+              break;
+            }
+            case 24: {
+              bitField0_ |= 0x00000004;
+              port_ = input.readUInt64();
+              break;
+            }
+          }
+        }
+      }
+      
+      private int bitField0_;
+      
+      // required uint64 request_id = 1;
+      private long requestId_ ;
+      public boolean hasRequestId() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      public long getRequestId() {
+        return requestId_;
+      }
+      public Builder setRequestId(long value) {
+        bitField0_ |= 0x00000001;
+        requestId_ = value;
+        
+        return this;
+      }
+      public Builder clearRequestId() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        requestId_ = 0L;
+        
+        return this;
+      }
+      
+      // optional string address = 2;
+      private java.lang.Object address_ = "";
+      public boolean hasAddress() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      public String getAddress() {
+        java.lang.Object ref = address_;
+        if (!(ref instanceof String)) {
+          String s = ((org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref).toStringUtf8();
+          address_ = s;
+          return s;
+        } else {
+          return (String) ref;
+        }
+      }
+      public Builder setAddress(String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        address_ = value;
+        
+        return this;
+      }
+      public Builder clearAddress() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        address_ = getDefaultInstance().getAddress();
+        
+        return this;
+      }
+      void setAddress(org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString value) {
+        bitField0_ |= 0x00000002;
+        address_ = value;
+        
+      }
+      
+      // optional uint64 port = 3;
+      private long port_ ;
+      public boolean hasPort() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      public long getPort() {
+        return port_;
+      }
+      public Builder setPort(long value) {
+        bitField0_ |= 0x00000004;
+        port_ = value;
+        
+        return this;
+      }
+      public Builder clearPort() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        port_ = 0L;
+        
+        return this;
+      }
+      
+      // @@protoc_insertion_point(builder_scope:pulsar.proto.CommandSerfJoin)
+    }
+    
+    static {
+      defaultInstance = new CommandSerfJoin(true);
+      defaultInstance.initFields();
+    }
+    
+    // @@protoc_insertion_point(class_scope:pulsar.proto.CommandSerfJoin)
+  }
+  
   public interface CommandGetLastMessageIdOrBuilder
       extends org.apache.pulsar.shaded.com.google.protobuf.v241.MessageLiteOrBuilder {
     
@@ -27409,6 +27888,10 @@ public final class PulsarApi {
     // optional .pulsar.proto.CommandGetNetworkCoordinateResponse getNetworkCoordinateResponse = 37;
     boolean hasGetNetworkCoordinateResponse();
     org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse getGetNetworkCoordinateResponse();
+    
+    // optional .pulsar.proto.CommandSerfJoin serfJoin = 38;
+    boolean hasSerfJoin();
+    org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin getSerfJoin();
   }
   public static final class BaseCommand extends
       org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
@@ -27483,6 +27966,7 @@ public final class PulsarApi {
       GET_SCHEMA_RESPONSE(33, 35),
       GET_NETWORK_COORDINATE(34, 36),
       GET_NETWORK_COORDINATE_RESPONSE(35, 37),
+      SERF_JOIN(36, 38),
       ;
       
       public static final int CONNECT_VALUE = 2;
@@ -27521,6 +28005,7 @@ public final class PulsarApi {
       public static final int GET_SCHEMA_RESPONSE_VALUE = 35;
       public static final int GET_NETWORK_COORDINATE_VALUE = 36;
       public static final int GET_NETWORK_COORDINATE_RESPONSE_VALUE = 37;
+      public static final int SERF_JOIN_VALUE = 38;
       
       
       public final int getNumber() { return value; }
@@ -27563,6 +28048,7 @@ public final class PulsarApi {
           case 35: return GET_SCHEMA_RESPONSE;
           case 36: return GET_NETWORK_COORDINATE;
           case 37: return GET_NETWORK_COORDINATE_RESPONSE;
+          case 38: return SERF_JOIN;
           default: return null;
         }
       }
@@ -27960,6 +28446,16 @@ public final class PulsarApi {
       return getNetworkCoordinateResponse_;
     }
     
+    // optional .pulsar.proto.CommandSerfJoin serfJoin = 38;
+    public static final int SERFJOIN_FIELD_NUMBER = 38;
+    private org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin serfJoin_;
+    public boolean hasSerfJoin() {
+      return ((bitField1_ & 0x00000020) == 0x00000020);
+    }
+    public org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin getSerfJoin() {
+      return serfJoin_;
+    }
+    
     private void initFields() {
       type_ = org.apache.pulsar.common.api.proto.PulsarApi.BaseCommand.Type.CONNECT;
       connect_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandConnect.getDefaultInstance();
@@ -27998,6 +28494,7 @@ public final class PulsarApi {
       getSchemaResponse_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandGetSchemaResponse.getDefaultInstance();
       getNetworkCoordinate_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate.getDefaultInstance();
       getNetworkCoordinateResponse_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse.getDefaultInstance();
+      serfJoin_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -28212,6 +28709,12 @@ public final class PulsarApi {
           return false;
         }
       }
+      if (hasSerfJoin()) {
+        if (!getSerfJoin().isInitialized()) {
+          memoizedIsInitialized = 0;
+          return false;
+        }
+      }
       memoizedIsInitialized = 1;
       return true;
     }
@@ -28334,6 +28837,9 @@ public final class PulsarApi {
       }
       if (((bitField1_ & 0x00000010) == 0x00000010)) {
         output.writeMessage(37, getNetworkCoordinateResponse_);
+      }
+      if (((bitField1_ & 0x00000020) == 0x00000020)) {
+        output.writeMessage(38, serfJoin_);
       }
     }
     
@@ -28490,6 +28996,10 @@ public final class PulsarApi {
       if (((bitField1_ & 0x00000010) == 0x00000010)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
           .computeMessageSize(37, getNetworkCoordinateResponse_);
+      }
+      if (((bitField1_ & 0x00000020) == 0x00000020)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeMessageSize(38, serfJoin_);
       }
       memoizedSerializedSize = size;
       return size;
@@ -28678,6 +29188,8 @@ public final class PulsarApi {
         bitField1_ = (bitField1_ & ~0x00000008);
         getNetworkCoordinateResponse_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse.getDefaultInstance();
         bitField1_ = (bitField1_ & ~0x00000010);
+        serfJoin_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance();
+        bitField1_ = (bitField1_ & ~0x00000020);
         return this;
       }
       
@@ -28861,6 +29373,10 @@ public final class PulsarApi {
           to_bitField1_ |= 0x00000010;
         }
         result.getNetworkCoordinateResponse_ = getNetworkCoordinateResponse_;
+        if (((from_bitField1_ & 0x00000020) == 0x00000020)) {
+          to_bitField1_ |= 0x00000020;
+        }
+        result.serfJoin_ = serfJoin_;
         result.bitField0_ = to_bitField0_;
         result.bitField1_ = to_bitField1_;
         return result;
@@ -28978,6 +29494,9 @@ public final class PulsarApi {
         }
         if (other.hasGetNetworkCoordinateResponse()) {
           mergeGetNetworkCoordinateResponse(other.getGetNetworkCoordinateResponse());
+        }
+        if (other.hasSerfJoin()) {
+          mergeSerfJoin(other.getSerfJoin());
         }
         return this;
       }
@@ -29187,6 +29706,12 @@ public final class PulsarApi {
         }
         if (hasGetNetworkCoordinateResponse()) {
           if (!getGetNetworkCoordinateResponse().isInitialized()) {
+            
+            return false;
+          }
+        }
+        if (hasSerfJoin()) {
+          if (!getSerfJoin().isInitialized()) {
             
             return false;
           }
@@ -29582,6 +30107,16 @@ public final class PulsarApi {
               }
               input.readMessage(subBuilder, extensionRegistry);
               setGetNetworkCoordinateResponse(subBuilder.buildPartial());
+              subBuilder.recycle();
+              break;
+            }
+            case 306: {
+              org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.Builder subBuilder = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.newBuilder();
+              if (hasSerfJoin()) {
+                subBuilder.mergeFrom(getSerfJoin());
+              }
+              input.readMessage(subBuilder, extensionRegistry);
+              setSerfJoin(subBuilder.buildPartial());
               subBuilder.recycle();
               break;
             }
@@ -31161,6 +31696,49 @@ public final class PulsarApi {
         getNetworkCoordinateResponse_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse.getDefaultInstance();
         
         bitField1_ = (bitField1_ & ~0x00000010);
+        return this;
+      }
+      
+      // optional .pulsar.proto.CommandSerfJoin serfJoin = 38;
+      private org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin serfJoin_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance();
+      public boolean hasSerfJoin() {
+        return ((bitField1_ & 0x00000020) == 0x00000020);
+      }
+      public org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin getSerfJoin() {
+        return serfJoin_;
+      }
+      public Builder setSerfJoin(org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        serfJoin_ = value;
+        
+        bitField1_ |= 0x00000020;
+        return this;
+      }
+      public Builder setSerfJoin(
+          org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.Builder builderForValue) {
+        serfJoin_ = builderForValue.build();
+        
+        bitField1_ |= 0x00000020;
+        return this;
+      }
+      public Builder mergeSerfJoin(org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin value) {
+        if (((bitField1_ & 0x00000020) == 0x00000020) &&
+            serfJoin_ != org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance()) {
+          serfJoin_ =
+            org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.newBuilder(serfJoin_).mergeFrom(value).buildPartial();
+        } else {
+          serfJoin_ = value;
+        }
+        
+        bitField1_ |= 0x00000020;
+        return this;
+      }
+      public Builder clearSerfJoin() {
+        serfJoin_ = org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin.getDefaultInstance();
+        
+        bitField1_ = (bitField1_ & ~0x00000020);
         return this;
       }
       

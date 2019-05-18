@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import com.google.common.collect.ImmutableList;
 
 // Serf Client includes
 import no.tv2.serf.client.*;
@@ -63,11 +64,13 @@ public class SerfClient {
 
     private SerfEndpoint ep;
     private Client client;
+    private final String nodeName;
     //private Query query;
 
-    public SerfClient(String ip, int port)  {
+    public SerfClient(String ip, long port, String nodeName)  {
+        this.nodeName = nodeName;
         try {
-            ep = new SocketEndpoint(ip, port);
+            ep = new SocketEndpoint(ip, (int) port);
             client = new Client(ep);
             client.handshake();
         } 
@@ -81,14 +84,33 @@ public class SerfClient {
 
     public NetworkCoordinate getCoordinate() {
         NetworkCoordinate coordinate = new NetworkCoordinate();
+        String hostName = "";
         try {
-            InetAddress IAddress = InetAddress.getLocalHost();
-            String hostName = IAddress.getHostName();
-            coordinate =  client.getCoordinates(hostName).getCoordinate(); 
+            //InetAddress IAddress = InetAddress.getLocalHost();
+            //hostName = IAddress.getHostName();
+            coordinate =  client.getCoordinates(nodeName).getCoordinate(); 
         }
         catch (Exception e) {
-            log.warn("Cannot get coordinate from serf!: {}" , e);
+            log.warn("Cannot get coordinate for hostname {} from serf!: {}", hostName , e);
         }
         return coordinate;
+    }
+
+    public void joinNode(String server) {
+        try {
+            client.join(ImmutableList.<String>of(server), false);
+        }
+        catch (Exception e) {
+            log.warn("Cannot join server  {} with Serf cluster: {}", server, e);
+        }
+    }
+
+    public void joinNodes(List<String> servers) {
+        try {
+            client.join(servers, false);
+        }
+        catch (Exception e) {
+            log.warn("Cannot join servers {} with Serf cluster: {}", servers, e);
+        }
     } 
 }

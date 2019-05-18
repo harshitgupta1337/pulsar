@@ -255,8 +255,21 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         startCoordinateProviderService();
     }
 
+    void joinSerfCluster() { 
+        try {
+            ClientCnx cnx = cnx();
+            long requestId = client.newRequestId();
+            ByteBuf newMsg = Commands.newSerfJoin(cnx.createSerfJoin(this.client, requestId));
+            cnx.ctx().writeAndFlush(newMsg);
+        }
+        catch (Exception e) {
+            log.warn("Could not join node to serf cluster!: {}", e);
+        } 
+    }
+
     void startCoordinateProviderService() {
         int interval = 100;
+        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), 1000, TimeUnit.MILLISECONDS);
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
 

@@ -63,6 +63,7 @@ import org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream;
 // CETUS
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 //*****************************************/
 import org.slf4j.Logger;
@@ -94,9 +95,9 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
 
             cmdInputStream.recycle();
 
-            if (log.isDebugEnabled()) {
-                log.debug("[{}] Received cmd {}", ctx.channel().remoteAddress(), cmd.getType());
-            }
+            //if (log.isDebugEnabled()) {
+                log.info("[{}] Received cmd {}", ctx.channel().remoteAddress(), cmd.getType());
+            //}
 
             messageReceived();
 
@@ -323,6 +324,12 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
                 handleGetNetworkCoordinateResponse(cmd.getGetNetworkCoordinateResponse());
                 cmd.getGetNetworkCoordinateResponse().recycle();
                 break;
+            
+            case SERF_JOIN:
+                checkArgument(cmd.hasSerfJoin());
+                handleSerfJoin(cmd.getSerfJoin());
+                cmd.getSerfJoin().recycle();
+                break;
 
             }
         } finally {
@@ -481,6 +488,10 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
     }
 
     protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void handleSerfJoin(CommandSerfJoin commandSerfJoin) {
         throw new UnsupportedOperationException();
     }
 

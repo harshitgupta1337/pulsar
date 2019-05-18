@@ -84,6 +84,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
 //CETUS
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
 //***************************************************************
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -91,6 +92,8 @@ import org.apache.pulsar.common.schema.SchemaVersion;
 import org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream;
 import org.apache.pulsar.common.util.protobuf.ByteBufCodedOutputStream;
 import org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Commands {
 
@@ -770,6 +773,29 @@ public class Commands {
         return res;
     }
 
+    public static ByteBuf newSerfJoin(CommandSerfJoin.Builder builder) {
+        CommandSerfJoin commandSerfJoin = builder.build();
+        log.info("Creating new serf join");
+        log.info("Address: {} Port: {}", commandSerfJoin.getAddress(), commandSerfJoin.getPort());
+        ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.SERF_JOIN).setSerfJoin(builder));
+        commandSerfJoin.recycle();
+        builder.recycle();
+        return res;
+    }
+
+    public static ByteBuf newSerfJoin(long requestId, String address, long port) {
+        CommandSerfJoin.Builder commandSerfJoinBuilder = CommandSerfJoin.newBuilder();
+        commandSerfJoinBuilder.setRequestId(requestId);
+        commandSerfJoinBuilder.setAddress(address);
+        commandSerfJoinBuilder.setPort(port);
+
+        CommandSerfJoin commandSerfJoin = commandSerfJoinBuilder.build();
+        ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.SERF_JOIN).setSerfJoin(commandSerfJoin));
+        commandSerfJoinBuilder.recycle();
+        commandSerfJoin.recycle();
+        return res;
+    }
+
     public static ByteBuf newGetTopicsOfNamespaceRequest(String namespace, long requestId, Mode mode) {
         CommandGetTopicsOfNamespace.Builder topicsBuilder = CommandGetTopicsOfNamespace.newBuilder();
         topicsBuilder.setNamespace(namespace).setRequestId(requestId).setMode(mode);
@@ -1172,4 +1198,6 @@ public class Commands {
     public static boolean peerSupportJsonSchemaAvroFormat(int peerVersion) {
         return peerVersion >= ProtocolVersion.v13.getNumber();
     }
+
+    public static final Logger log = LoggerFactory.getLogger(Commands.class);
 }

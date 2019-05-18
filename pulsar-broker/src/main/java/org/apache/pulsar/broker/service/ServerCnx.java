@@ -34,6 +34,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslHandler;
 
 import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,6 +86,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandProducer;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandRedeliverUnacknowledgedMessages;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSeek;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSend;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.InitialPosition;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.SubType;
@@ -544,9 +546,8 @@ public class ServerCnx extends PulsarHandler {
     @Override
     protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) { 
 
-        if(log.isDebugEnabled()) {
-            log.debug("Received CommandGetNetworkCoordinateResponse call");
-        }
+        
+            log.info("Received CommandGetNetworkCoordinateResponse call");
 
         long requestId = commandGetNetworkCoordinateResponse.getRequestId();
         if(commandGetNetworkCoordinateResponse.hasErrorCode())  {
@@ -576,6 +577,7 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
+                    log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                         log.info("Existing topic, name: {}",topic);
@@ -613,6 +615,7 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
+                    log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(topic)) {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                     }
@@ -650,6 +653,7 @@ public class ServerCnx extends PulsarHandler {
            double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getError();
            double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
            double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
+           log.info("Adjustment: {}", adjustment);
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
                 if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {    
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
@@ -690,6 +694,14 @@ public class ServerCnx extends PulsarHandler {
         }
      }
     
+    @Override
+    protected void handleSerfJoin(CommandSerfJoin commandSerfJoin) {
+        log.info("Joining {} to serf cluster", commandSerfJoin.getAddress());
+        long requestId = commandSerfJoin.getRequestId();
+        String serfAddress = String.format("%s:%s", commandSerfJoin.getAddress(), commandSerfJoin.getPort());
+        service.pulsar().getSerfClient().joinNode(serfAddress);
+
+    }
 
     private String getOriginalPrincipal(String originalAuthData, String originalAuthMethod, String originalPrincipal,
             SSLSession sslSession) throws AuthenticationException {
@@ -741,9 +753,10 @@ public class ServerCnx extends PulsarHandler {
                 return;
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Received CONNECT from {}", remoteAddress);
+        if (true) {
+            log.info("Received CONNECT from {}", remoteAddress);
         }
+
         ctx.writeAndFlush(Commands.newConnected(connect.getProtocolVersion()));
         state = State.Connected;
         remoteEndpointProtocolVersion = connect.getProtocolVersion();
@@ -1187,6 +1200,8 @@ public class ServerCnx extends PulsarHandler {
             ctx.writeAndFlush(Commands.newError(requestId, ServerError.AuthorizationError, ex.getMessage()));
             return null;
         });
+
+        
     }
 
     @Override

@@ -542,6 +542,12 @@ message CommandGetNetworkCoordinateResponse {
         repeated CoordinateInfo coordinate_info = 4;
 }
 
+message CommandSerfJoin {
+    required uint64 request_id      = 1;
+    optional string address         = 2;
+    optional uint64 port            = 3; 
+}
+
 message CommandGetLastMessageId {
 	required uint64 consumer_id = 1;
 	required uint64 request_id  = 2;
@@ -642,6 +648,7 @@ message BaseCommand {
 
         GET_NETWORK_COORDINATE = 36;
         GET_NETWORK_COORDINATE_RESPONSE = 37;
+        SERF_JOIN = 38;
 	}
 
 
@@ -697,4 +704,5 @@ message BaseCommand {
 
     optional CommandGetNetworkCoordinate getNetworkCoordinate = 36;
     optional CommandGetNetworkCoordinateResponse getNetworkCoordinateResponse = 37;
+    optional CommandSerfJoin serfJoin = 38;
 }

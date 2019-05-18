@@ -19,6 +19,7 @@
 package org.apache.pulsar.common.api;
 
 import java.net.SocketAddress;
+import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandPing;

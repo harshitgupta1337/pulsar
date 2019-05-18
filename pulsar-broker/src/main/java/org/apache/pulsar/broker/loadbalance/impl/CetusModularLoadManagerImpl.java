@@ -203,6 +203,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     private final BrokerTopicLoadingPredicate brokerTopicLoadingPredicate;
 
     private Map<String, String> brokerToFailureDomainMap;
+    
 
 
 
@@ -508,6 +509,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                         cetusLoadData.getCetusBrokerDataMap().put(broker, cetusLocalData);
                     }
                     else {
+                       String[] brokerIp = broker.split(":");
+                       String serfString = String.format("%s:%s", brokerIp[0], pulsar.getSerfPort());
+                       pulsar.getSerfClient().joinNode(broker);
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                     }
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {

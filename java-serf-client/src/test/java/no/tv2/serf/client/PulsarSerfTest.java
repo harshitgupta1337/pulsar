@@ -23,7 +23,7 @@ import java.net.UnknownHostException;
 public class PulsarSerfTest {
     public static final Logger log = LoggerFactory.getLogger(PulsarSerfTest.class);
 
-    public static final String SERF_RPC_IP = "127.0.0.1";
+    public static final String SERF_RPC_IP = "0.0.0.0";
     public static final int SERF_RPC_PORT = 7373;
 
     private Client client;
@@ -53,7 +53,7 @@ public class PulsarSerfTest {
         log.info("Test Get Coordinate");
         InetAddress IAddress = InetAddress.getLocalHost();
         String hostName = IAddress.getHostName();
-        CoordinateResponse response = client.getCoordinates(hostName);
+        CoordinateResponse response = client.getCoordinates("n1");
         log.info("Adjustment: {} Error: {}  Height: {} CoordinateVec {}", response.getCoordinate().getAdjustment(), response.getCoordinate().getError(), response.getCoordinate().getHeight(), response.getCoordinate().getCoordinateVector());
     }
 } 

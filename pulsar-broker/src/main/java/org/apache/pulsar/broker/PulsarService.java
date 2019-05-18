@@ -32,6 +32,8 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -181,6 +183,7 @@ public class PulsarService implements AutoCloseable {
     private final String SERF_RPC_IP = "0.0.0.0";
     private final int SERF_RPC_PORT = 7373;
     private SerfClient serfClient;
+    private final String nodeName;
 
     //private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicToCoordinateDataMap;
     private final CetusBrokerData cetusBrokerData; 
@@ -223,7 +226,14 @@ public class PulsarService implements AutoCloseable {
         //this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
         this.cetusBrokerData = new CetusBrokerData();
         this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
-        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT);
+        try{
+            InetAddress IAddress = InetAddress.getLocalHost();
+        }
+        catch (Exception e) {
+        }
+        //this.nodeName = IAddress.getHostName();
+        this.nodeName = "n1";
+        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
 
 
 
@@ -1145,5 +1155,13 @@ public class PulsarService implements AutoCloseable {
 
     public CetusBrokerData getCetusBrokerData() {
         return cetusBrokerData;
+    }
+    
+    public SerfClient getSerfClient() {
+        return serfClient;
+    }
+
+    public int getSerfPort() {
+        return SERF_RPC_PORT;
     }
 }
