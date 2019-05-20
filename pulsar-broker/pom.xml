@@ -288,13 +288,13 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
+    <!--dependency>
       <groupId>no.tv2.serf</groupId>
       <artifactId>client</artifactId>
       <version>1.0.1</version>
       <scope>system</scope>
       <systemPath>${project.basedir}/../java-serf-client/target/serf-client-1.0.1.jar</systemPath>
-    </dependency>
+    </dependency-->
 
 
   </dependencies>
