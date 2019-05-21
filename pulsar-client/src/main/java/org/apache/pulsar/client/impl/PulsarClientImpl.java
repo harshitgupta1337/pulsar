@@ -104,9 +104,13 @@ public class PulsarClientImpl implements PulsarClient {
 
     private static final String SERF_RPC_IP = "0.0.0.0";
     private static final int SERF_RPC_PORT = 7374;
+    private static final String serfRpcIp;
+    private static final int serfRpcPort;
 
     private static final String SERF_BIND_IP = "0.0.0.0";
     private static final int SERF_BIND_PORT = 8000;
+    private static final String serfBindIp;
+    private static final int serfBindPort;
 
     private final String nodeName;
 
@@ -167,11 +171,17 @@ public class PulsarClientImpl implements PulsarClient {
         try {
             InetAddress IAddress = InetAddress.getLocalHost();
             //this.nodeName = IAddress.getHostName();
+	    this.serfBindIp = IAddress.getHostAddress();
+	    this.serfRpcIp = IAddress.getHostAddress();
+	    this.serfBindPort = 8000;
+	    this.serfRpcPort =  7374;
+	    final Runtime rt = Runtime.getRuntime();
+	    String command = 
         }
         catch (Exception e) {
         }
         
-        this.nodeName = "n2";
+        //this.nodeName = "n2";
         state.set(State.Open);
         joinSerfCluster();
     }
@@ -871,19 +881,23 @@ public class PulsarClientImpl implements PulsarClient {
     }
 
     public String getSerfBindIp() {
-        return SERF_BIND_IP;
+        //return SERF_BIND_IP;
+	return serfBindIp;
     }
 
     public long getSerfBindPort() {
-        return SERF_BIND_PORT;
+        //return SERF_BIND_PORT;
+	return serfBindPort;
     }
 
     public String getSerfRpcIp() {
-        return SERF_RPC_IP;
+        //return SERF_RPC_IP;
+	return serfRpcIp;
     } 
 
     public long getSerfRpcPort() {
-        return SERF_RPC_PORT;
+        //return SERF_RPC_PORT;
+	return serfRpcPort;
     }
 
     public String getNodeName() {
