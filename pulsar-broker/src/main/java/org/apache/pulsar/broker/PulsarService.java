@@ -226,11 +226,11 @@ public class PulsarService implements AutoCloseable {
         //this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
         this.cetusBrokerData = new CetusBrokerData();
         this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
-        try{
-            InetAddress IAddress = InetAddress.getLocalHost();
-        }
-        catch (Exception e) {
-        }
+        //try{
+            //InetAddress IAddress = InetAddress.getLocalHost();
+        //}
+        //catch (Exception e) {
+        //}
         //this.nodeName = IAddress.getHostName();
         this.nodeName = "n1";
         this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
