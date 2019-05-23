@@ -44,6 +44,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
+
+import java.io.*;
 
 import io.netty.buffer.ByteBuf;
 
@@ -104,15 +107,15 @@ public class PulsarClientImpl implements PulsarClient {
 
     private static final String SERF_RPC_IP = "0.0.0.0";
     private static final int SERF_RPC_PORT = 7374;
-    private static final String serfRpcIp;
-    private static final int serfRpcPort;
+    private static String serfRpcIp;
+    private static int serfRpcPort;
 
     private static final String SERF_BIND_IP = "0.0.0.0";
     private static final int SERF_BIND_PORT = 8000;
-    private static final String serfBindIp;
-    private static final int serfBindPort;
+    private static String serfBindIp;
+    private static int serfBindPort;
 
-    private final String nodeName;
+    private static String nodeName;
 
     private AtomicReference<State> state = new AtomicReference<>();
     private final IdentityHashMap<ProducerBase<?>, Boolean> producers;
@@ -171,17 +174,38 @@ public class PulsarClientImpl implements PulsarClient {
         try {
             InetAddress IAddress = InetAddress.getLocalHost();
             //this.nodeName = IAddress.getHostName();
-	    this.serfBindIp = IAddress.getHostAddress();
-	    this.serfRpcIp = IAddress.getHostAddress();
-	    this.serfBindPort = 8000;
-	    this.serfRpcPort =  7374;
-	    final Runtime rt = Runtime.getRuntime();
-	    String command = 
+            this.nodeName = "n2";
+	        this.serfBindIp = IAddress.getHostAddress();
+	        this.serfRpcIp = IAddress.getHostAddress();
+	        this.serfBindPort = 8000;
+	        this.serfRpcPort =  7374;
+            /*
+	        final Runtime rt = Runtime.getRuntime();
+	        String command = String.format("/usr/local/bin/serf agent -rpc-addr=%s:%s -bind=%s:%s -node=%s", this.serfRpcIp, this.serfRpcPort, this.serfBindIp, this.serfBindPort, this.nodeName);
+            log.info("Command: {}", command);
+            ProcessBuilder pb = new ProcessBuilder("exec", "/usr/local/bin/serf", "agent", "-rpc-addr=0.0.0.0:7374", "-bind=0.0.0.0:8000", "-node=n2", "&");
+            //pb.redirectErrorStream(true);
+            //pb.redirectOutputStream(pb.Redirect.appendTo(log));
+            //Process proc = rt.exec(command);
+            Map<String, String> env = pb.environment();
+            env.put("PATH", "/home/tyler/bin:/home/tyler/.local/bin:/home/tyler/bin:/home/tyler/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin");
+            Process proc = pb.start();
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+            //String s = null;
+            //log.info("Output of Serf Command");
+            //while((s = stdInput.readLine()) != null) {
+                //log.info(s);
+            //}
+           */ 
+
+                        
         }
         catch (Exception e) {
+            log.warn("Exception in Constructor: {}", e);
+            nodeName = "n2";
         }
         
-        //this.nodeName = "n2";
         state.set(State.Open);
         joinSerfCluster();
     }
