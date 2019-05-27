@@ -1380,8 +1380,20 @@ public class ServerCnx extends PulsarHandler {
             return;
         }
 
+        
         // Proceed with normal close, the producer
         Producer producer = producerFuture.getNow(null);
+
+        // CETUS - remove producer from latency stats map
+        try {
+            log.info("Removing producer from latency map: {}", producer.getProducerId());
+            String bundle = service.pulsar().getNamespaceService().getBundle(TopicName.get(producer.getTopic().getName())).toString();
+            service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle);
+        }
+        catch (Exception e) {
+            log.warn("Could not remove producer {} from latency map: {}", producer.getProducerId(), e);
+        }
+
         log.info("[{}][{}] Closing producer on cnx {}", producer.getTopic(), producer.getProducerName(), remoteAddress);
 
         producer.close().thenAccept(v -> {
@@ -1390,6 +1402,7 @@ public class ServerCnx extends PulsarHandler {
             ctx.writeAndFlush(Commands.newSuccess(requestId));
             producers.remove(producerId, producerFuture);
         });
+
     }
 
     @Override
@@ -1425,7 +1438,14 @@ public class ServerCnx extends PulsarHandler {
 
         // Proceed with normal consumer close
         Consumer consumer = consumerFuture.getNow(null);
+
+        // CETUS - remove consumer from latency stats map
         try {
+            log.info("Removing consumer from latency map: {}", consumer.getConsumerId());
+            String bundle = service.pulsar().getNamespaceService().getBundle(TopicName.get(consumer.getSubscription().getTopic().getName())).toString();
+            service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle);
+
+
             consumer.close();
             consumers.remove(consumerId, consumerFuture);
             ctx.writeAndFlush(Commands.newSuccess(requestId));
@@ -1434,6 +1454,9 @@ public class ServerCnx extends PulsarHandler {
             log.warn("[{]] Error closing consumer: ", remoteAddress, consumer, e);
             ctx.writeAndFlush(
                     Commands.newError(requestId, BrokerServiceException.getClientErrorCode(e), e.getMessage()));
+        }
+        catch (Exception e) {
+            log.warn("[{}] Could not remove consumer from latency map, problem closing consumer: ", remoteAddress, consumer, e);
         }
     }
 
