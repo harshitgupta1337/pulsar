@@ -153,6 +153,13 @@ public class CmdProduce {
                     numMessagesSent++;
                 }
             }
+
+	try {
+	Thread.sleep(10000);
+	} catch (Exception e) {
+		LOG.error("Failed to sleep inside run()");
+	}
+
             client.close();
         } catch (Exception e) {
             LOG.error("Error while producing messages");

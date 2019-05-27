@@ -166,6 +166,8 @@ public class PulsarClientTool {
         PulsarClientTool clientTool = new PulsarClientTool(properties);
         int exit_code = clientTool.run(Arrays.copyOfRange(args, 1, args.length));
 
+	Thread.sleep (10000);
+
         System.exit(exit_code);
 
     }
