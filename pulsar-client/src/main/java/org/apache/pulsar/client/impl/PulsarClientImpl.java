@@ -172,11 +172,15 @@ public class PulsarClientImpl implements PulsarClient {
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
         try {
-            InetAddress IAddress = InetAddress.getLocalHost();
+            //InetAddress IAddress = InetAddress.getLocalHost();
             //this.nodeName = IAddress.getHostName();
-            this.nodeName = "n2";
-	        this.serfBindIp = IAddress.getHostAddress();
-	        this.serfRpcIp = IAddress.getHostAddress();
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            
+            this.nodeName = br.readLine();
+            log.info("Node Name: {}", this.nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+	        this.serfBindIp = this.serfRpcIp = br.readLine();
 	        this.serfBindPort = 8000;
 	        this.serfRpcPort =  7374;
             /*
