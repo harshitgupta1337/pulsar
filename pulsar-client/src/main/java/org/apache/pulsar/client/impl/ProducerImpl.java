@@ -210,7 +210,6 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             this);
         grabCnx();
         //joinSerfCluster();
-        startCoordinateProviderService();
     }
 
     void joinSerfCluster() {
@@ -223,10 +222,17 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             log.info("Got client request id: {} Serf Bind IP: {} Serf Port: {}", requestId,client.getSerfBindIp(), client.getSerfBindPort());
                        //msg = Commands.newSerfJoin(requestId, client.getSerfBindIp(), client.getSerfBindPort());
             //ByteBuf newMsg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
-            //log.info("Message: {}", newMsg.readCharSequence(newMsg.capacity(), Charset.forName("utf-8")).toString());
-            //cnx.sendSerfInfo(msg, requestId);
             //cnx().ctx().writeAndFlush(newMsg);
-            ByteBuf newMsg = Commands.newSerfJoin(cnx.createSerfJoin(this.client, requestId));
+	    
+
+		log.info("Cnx: {}", cnx);
+            	ByteBuf newMsg = Commands.newSerfJoin(cnx.createSerfJoin(this.client, requestId));
+
+
+	    //log.info("Message: {}", newMsg.readCharSequence(newMsg.capacity(), Charset.forName("utf-8")).toString());
+                       
+	    //cnx.sendSerfInfo(newMsg);
+
             cnx.ctx().writeAndFlush(newMsg);
             log.info("Sent serf message");
         }
@@ -237,9 +243,11 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void startCoordinateProviderService() {
-        int interval = 100;
-        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-
+        int interval = 10;
+	log.info("Running Coordinate Service");
+        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+	joinSerfCluster();
+	
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
 
@@ -247,6 +255,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.coordinate = serfClient.getCoordinate();
         ClientCnx cnx = cnx();
         long requestId = client.newRequestId();
+	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
         cnx.sendNetworkCoordinates(msg, requestId); 
     }
@@ -1065,6 +1074,14 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
                 });
 
                 //joinSerfCluster();
+        	startCoordinateProviderService();
+		
+		try {
+			Thread.sleep(100);
+		} catch (Exception e) {
+			log.warn("Cannot sleep at the end of connectionOpened");
+		}
+		
     }
 
     @Override
