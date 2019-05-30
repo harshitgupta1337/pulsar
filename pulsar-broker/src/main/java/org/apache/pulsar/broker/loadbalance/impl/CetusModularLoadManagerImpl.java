@@ -511,7 +511,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     else {
                        String[] brokerIp = broker.split(":");
                        String serfString = String.format("%s:%s", brokerIp[0], pulsar.getSerfPort());
-                       pulsar.getSerfClient().joinNode(broker);
+                       log.info("Joining Serf Node: {}", serfString);
+                       pulsar.getSerfClient().joinNode(brokerIp[0]);
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                     }
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
