@@ -510,7 +510,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     }
                     else {
                        String[] brokerIp = broker.split(":");
-                       String serfString = String.format("%s:%s", brokerIp[0], pulsar.getSerfPort());
+                       String serfString = String.format("%s:%s", brokerIp[0], pulsar.getSerfBindPort());
                        log.info("Joining Serf Node: {}", serfString);
                        pulsar.getSerfClient().joinNode(brokerIp[0]);
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
@@ -1079,6 +1079,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                 // Update previous data.
                 lastData.update(localData);
+		log.info("Writing broker data to Zookeeper");
             }
         } catch (Exception e) {
             log.warn("Error writing broker data on ZooKeeper: {}", e);

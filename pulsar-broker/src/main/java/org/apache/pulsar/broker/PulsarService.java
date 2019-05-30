@@ -31,6 +31,8 @@ import com.google.common.collect.Sets;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.net.URI;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -183,58 +185,79 @@ public class PulsarService implements AutoCloseable {
     private final String SERF_RPC_IP = "0.0.0.0";
     private final int SERF_RPC_PORT = 7373;
     private SerfClient serfClient;
-    private final String nodeName;
+	    private  String nodeName;
+	    private static String serfRpcIp;
+	    private static int serfRpcPort;
+	    private static String serfBindIp;
+	    private static int serfBindPort;
 
-    //private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicToCoordinateDataMap;
-    private final CetusBrokerData cetusBrokerData; 
-    private final MessagingServiceShutdownHook shutdownService;
 
-    private MetricsGenerator metricsGenerator;
 
-    public enum State {
-        Init, Started, Closed
-    }
+	    //private ConcurrentHashMap<String, CetusNetworkCoordinateData> topicToCoordinateDataMap;
+	    private final CetusBrokerData cetusBrokerData; 
+	    private final MessagingServiceShutdownHook shutdownService;
 
-    private volatile State state;
+	    private MetricsGenerator metricsGenerator;
 
-    private final ReentrantLock mutex = new ReentrantLock();
-    private final Condition isClosedCondition = mutex.newCondition();
+	    public enum State {
+		Init, Started, Closed
+	    }
 
-    public PulsarService(ServiceConfiguration config) {
-        this(config, Optional.empty());
-    }
+	    private volatile State state;
 
-    public PulsarService(ServiceConfiguration config, Optional<WorkerService> functionWorkerService) {
-        // Validate correctness of configuration
-        PulsarConfigurationLoader.isComplete(config);
+	    private final ReentrantLock mutex = new ReentrantLock();
+	    private final Condition isClosedCondition = mutex.newCondition();
 
-        state = State.Init;
-        this.bindAddress = ServiceConfigurationUtils.getDefaultOrConfiguredAddress(config.getBindAddress());
-        this.advertisedAddress = advertisedAddress(config);
-        this.webServiceAddress = webAddress(config);
-        this.webServiceAddressTls = webAddressTls(config);
-        this.brokerServiceUrl = brokerUrl(config);
-        this.brokerServiceUrlTls = brokerUrlTls(config);
-        this.brokerVersion = PulsarBrokerVersionStringUtils.getNormalizedVersionString();
-        this.config = config;
-        this.shutdownService = new MessagingServiceShutdownHook(this);
-        this.loadManagerExecutor = Executors
-                .newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-load-manager"));
-        this.functionWorkerService = functionWorkerService;
-        // Cetus Netowrk Coordinate Data
-        //this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();
-        //this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
-        this.cetusBrokerData = new CetusBrokerData();
-        this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
-        //try{
-            //InetAddress IAddress = InetAddress.getLocalHost();
-        //}
-        //catch (Exception e) {
-        //}
-        //this.nodeName = IAddress.getHostName();
-        this.nodeName = "n1";
+	    public PulsarService(ServiceConfiguration config) {
+		this(config, Optional.empty());
+	    }
+
+	    public PulsarService(ServiceConfiguration config, Optional<WorkerService> functionWorkerService) {
+		// Validate correctness of configuration
+		PulsarConfigurationLoader.isComplete(config);
+
+		state = State.Init;
+		this.bindAddress = ServiceConfigurationUtils.getDefaultOrConfiguredAddress(config.getBindAddress());
+		this.advertisedAddress = advertisedAddress(config);
+		this.webServiceAddress = webAddress(config);
+		this.webServiceAddressTls = webAddressTls(config);
+		this.brokerServiceUrl = brokerUrl(config);
+		this.brokerServiceUrlTls = brokerUrlTls(config);
+		this.brokerVersion = PulsarBrokerVersionStringUtils.getNormalizedVersionString();
+		this.config = config;
+		this.shutdownService = new MessagingServiceShutdownHook(this);
+		this.loadManagerExecutor = Executors
+			.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-load-manager"));
+		this.functionWorkerService = functionWorkerService;
+		// Cetus Netowrk Coordinate Data
+		//this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();
+		//this.topicToCoordinateDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
+		this.cetusBrokerData = new CetusBrokerData();
+		this.cetusNetworkCoordinateCollectorService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-network-coordinate-collector-service"));
+		//try{
+		    //InetAddress IAddress = InetAddress.getLocalHost();
+		//}
+		//catch (Exception e) {
+		//}
+		//this.nodeName = IAddress.getHostName();
+		
+		//this.nodeName = "n1";
+		try {
+			BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+		    
+			this.nodeName = br.readLine();
+			LOG.info("Node Name: {}", this.nodeName);
+			br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+			this.serfBindIp = this.serfRpcIp = br.readLine();
+			this.serfBindPort = 8000;
+			this.serfRpcPort =  7374;
+		}
+		catch (Exception e) {
+			LOG.info("Cannot setup serf!");
+		this.nodeName="n1";
+	}
+
         this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
-
 
 
     }
@@ -1111,7 +1134,7 @@ public class PulsarService implements AutoCloseable {
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
             getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
-            LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
+            //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
             /*
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getTopicNetworkCoordinates().entrySet()) {
@@ -1161,7 +1184,24 @@ public class PulsarService implements AutoCloseable {
         return serfClient;
     }
 
-    public int getSerfPort() {
-        return SERF_RPC_PORT;
+
+    public String getSerfBindIp() {
+        //return SERF_BIND_IP;
+	return serfBindIp;
+    }
+
+    public long getSerfBindPort() {
+        //return SERF_BIND_PORT;
+	return serfBindPort;
+    }
+
+    public String getSerfRpcIp() {
+        //return SERF_RPC_IP;
+	return serfRpcIp;
+    } 
+
+    public long getSerfRpcPort() {
+        //return SERF_RPC_PORT;
+	return serfRpcPort;
     }
 }
