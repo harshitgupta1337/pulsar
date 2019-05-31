@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.pulsar.broker.PulsarServerException;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
+import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.ModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.ResourceUnit;
 import org.apache.pulsar.common.naming.ServiceUnitId;
@@ -38,9 +39,9 @@ import org.apache.pulsar.zookeeper.ZooKeeperCache.Deserializer;
  * Wrapper class allowing classes of instance ModularLoadManager to be compatible with the interface LoadManager.
  */
 public class ModularLoadManagerWrapper implements LoadManager {
-    private ModularLoadManager loadManager;
+    private CetusModularLoadManager loadManager;
 
-    public ModularLoadManagerWrapper(final ModularLoadManager loadManager) {
+    public ModularLoadManagerWrapper(final CetusModularLoadManager loadManager) {
         this.loadManager = loadManager;
     }
 

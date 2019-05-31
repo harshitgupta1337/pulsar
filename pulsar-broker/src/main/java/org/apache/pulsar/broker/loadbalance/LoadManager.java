@@ -137,8 +137,8 @@ public interface LoadManager {
                 final LoadManager casted = (LoadManager) loadManagerInstance;
                 casted.initialize(pulsar);
                 return casted;
-            } else if (loadManagerInstance instanceof ModularLoadManager) {
-                final LoadManager casted = new ModularLoadManagerWrapper((ModularLoadManager) loadManagerInstance);
+            } else if (loadManagerInstance instanceof CetusModularLoadManager) {
+                final LoadManager casted = new ModularLoadManagerWrapper((CetusModularLoadManager) loadManagerInstance);
                 casted.initialize(pulsar);
                 return casted;
             }
