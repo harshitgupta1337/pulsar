@@ -263,7 +263,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this.pulsar = pulsar;
         availableActiveBrokers = new ZooKeeperChildrenCache(pulsar.getLocalZkCache(),
                 LoadManager.LOADBALANCE_BROKERS_ROOT);
-	scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
+	    //scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
         availableActiveBrokers.registerListener(new ZooKeeperCacheListener<Set<String>>() {
             @Override
             public void onUpdate(String path, Set<String> data, Stat stat) {
@@ -502,7 +502,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             //final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
             //final ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap = cetusLoadData.getCetusBundleDataMap();
             for (String broker : activeBrokers) {
-		log.info("Updating Latency Data : {}", broker);
+		        //log.info("Updating Latency Data : {}", broker);
                 try {
                     String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
                     final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
@@ -1082,7 +1082,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                 // Update previous data.
                 lastData.update(localData);
-		log.info("Writing broker data to Zookeeper");
+		        log.info("Writing broker data to Zookeeper");
             }
         } catch (Exception e) {
             log.warn("Error writing broker data on ZooKeeper: {}", e);
