@@ -917,8 +917,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     key -> getBundleDataOrDefault(bundle));
             brokerCandidateCache.clear();
 
-            loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-            preallocatedBundleToBroker.put(bundle, broker.get());
+            //loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
+            //preallocatedBundleToBroker.put(bundle, broker.get());
 
             final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
