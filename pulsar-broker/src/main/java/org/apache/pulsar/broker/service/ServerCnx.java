@@ -547,7 +547,7 @@ public class ServerCnx extends PulsarHandler {
     protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) { 
 
         
-            log.info("Received CommandGetNetworkCoordinateResponse call");
+            //log.info("Received CommandGetNetworkCoordinateResponse call");
 
         long requestId = commandGetNetworkCoordinateResponse.getRequestId();
         if(commandGetNetworkCoordinateResponse.hasErrorCode())  {
@@ -577,11 +577,11 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    log.info("Adjustment: {}", adjustment);
+                    //log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                        log.info("Existing topic, name: {}",topic);
-                        log.info("Existing bundle, name: {}", bundle);
+                        //log.info("Existing topic, name: {}",topic);
+                        //log.info("Existing bundle, name: {}", bundle);
                     }
                     else if(bundle.equals("")) { 
                         // Do nothing
@@ -615,7 +615,7 @@ public class ServerCnx extends PulsarHandler {
                     double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getError();
                     double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getHeight();
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
-                    log.info("Adjustment: {}", adjustment);
+                    //log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(topic)) {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                     }
@@ -653,12 +653,12 @@ public class ServerCnx extends PulsarHandler {
            double error = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getError();
            double height = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getHeight();
            double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getAdjustment();
-           log.info("Adjustment: {}", adjustment);
+           //log.info("Adjustment: {}", adjustment);
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
                 if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {    
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("Existing topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
-                    log.info("Existing bundle, name: {}", bundle);
+                    //log.info("Existing topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
+                    //log.info("Existing bundle, name: {}", bundle);
                 }
                 else if(bundle.equals("")) {
                     // Do nothing
@@ -674,8 +674,8 @@ public class ServerCnx extends PulsarHandler {
            else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
                 if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("Existing topic, name: {} consumerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
-                    log.info("Existing bundle, name: {}", bundle);
+                    //log.info("Existing topic, name: {} consumerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
+                    //log.info("Existing bundle, name: {}", bundle);
 
                 }
                 else if(bundle.equals("")) { 

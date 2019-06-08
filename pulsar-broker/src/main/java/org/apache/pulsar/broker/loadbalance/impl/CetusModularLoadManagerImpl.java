@@ -519,9 +519,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                     }
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
-                        log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        //log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
                         cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), entry.getValue());
-                        log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
+                        //log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
                     }
                 }
                 catch (NoNodeException ne){
@@ -1082,7 +1082,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                 // Update previous data.
                 lastData.update(localData);
-		        log.info("Writing broker data to Zookeeper");
+		        //log.info("Writing broker data to Zookeeper");
             }
         } catch (Exception e) {
             log.warn("Error writing broker data on ZooKeeper: {}", e);

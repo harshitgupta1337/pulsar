@@ -95,9 +95,9 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
 
             cmdInputStream.recycle();
 
-            //if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.info("[{}] Received cmd {}", ctx.channel().remoteAddress(), cmd.getType());
-            //}
+            }
 
             messageReceived();
 
