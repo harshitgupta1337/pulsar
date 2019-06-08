@@ -40,6 +40,7 @@ import org.apache.pulsar.broker.service.BrokerServiceException.TopicTerminatedEx
 import org.apache.pulsar.broker.service.Topic.PublishContext;
 import org.apache.pulsar.broker.service.nonpersistent.NonPersistentTopic;
 import org.apache.pulsar.broker.service.persistent.PersistentTopic;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.common.api.Commands;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageMetadata;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
@@ -82,6 +83,8 @@ public class Producer {
 
     private final SchemaVersion schemaVersion;
 
+    private NetworkCoordinate coordinate;
+
     public Producer(Topic topic, ServerCnx cnx, long producerId, String producerName, String appId,
         boolean isEncrypted, Map<String, String> metadata, SchemaVersion schemaVersion) {
         this.topic = topic;
@@ -111,6 +114,7 @@ public class Producer {
 
         this.isEncrypted = isEncrypted;
         this.schemaVersion = schemaVersion;
+        this.coordinate = new NetworkCoordinate();
     }
 
     @Override
@@ -495,6 +499,14 @@ public class Producer {
 
     public SchemaVersion getSchemaVersion() {
         return schemaVersion;
+    }
+
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
+    }
+
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+        this.coordinate = coordinate;
     }
 
     private static final Logger log = LoggerFactory.getLogger(Producer.class);

@@ -88,6 +88,8 @@ import org.apache.pulsar.common.util.collections.ConcurrentOpenHashSet;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.utils.StatsOutputStream;
 import org.apache.zookeeper.KeeperException;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -995,6 +997,21 @@ public class NonPersistentTopic implements Topic {
     public Position getLastMessageId() {
         throw new UnsupportedOperationException("getLastMessageId is not supported on non-persistent topic");
     }
+
+    /*
+    // CETUS
+    @Override
+    public void updateCoordinates() {
+        producers.forEach(producer -> {
+            brokerService.pulsar().getNetworkCoordinateData().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
+            
+        });
+
+        subscriptions.forEach((subName, sub) -> sub.getConsumers().forEach(consumer -> {
+            brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
+        }));
+    }
+    */
 
     public void markBatchMessagePublished() {
         this.hasBatchMessagePublished = true;

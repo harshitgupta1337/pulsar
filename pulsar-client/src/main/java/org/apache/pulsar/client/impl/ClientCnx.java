@@ -37,6 +37,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.channels.ClosedChannelException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -70,11 +71,21 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandProducerSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandReachedEndOfTopic;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSendError;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSendReceipt;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.MessageIdData;
 import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
+import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.util.collections.ConcurrentLongHashMap;
+
+//CETUS INCLUDES
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//**************************************************************
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -439,6 +450,146 @@ public class ClientCnx extends PulsarHandler {
         }
     }
 
+    //CETUS: Handles the network coordinate request on the consumer.
+
+    @Override
+    protected void handleGetNetworkCoordinate(CommandGetNetworkCoordinate getNetworkCoordinate) {
+        // TODO
+        if (log.isDebugEnabled()) {
+            log.debug("Received Get Network Coordinate call from {}", remoteAddress);
+        }
+
+        final long requestId = getNetworkCoordinate.getRequestId();
+        final long nodeId = getNetworkCoordinate.getNodeId();
+        final String nodeType = getNetworkCoordinate.getNodeType();
+        ByteBuf msg = null;
+        if(nodeId != -1) {
+            if(nodeType.equals("consumer")) {
+                ConsumerImpl<?> consumer =  consumers.get(nodeId);
+
+                if (consumer == null) {
+                    log.error(
+                            "Failed to get network coordinate response - Consumer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, consumerId = {}]",
+                            remoteAddress, requestId, nodeId);
+                    msg = Commands.newGetNetworkCoordinateResponse(ServerError.ConsumerNotFound,
+                            "Consumer " + nodeId + " not found", requestId);
+                } else {
+                    if (log.isDebugEnabled()) {
+                    log.debug("CommandGetNetworkCoordinate[requestId = {}, consumer = {}]", requestId, consumer);
+                    }
+                msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(consumer, requestId));
+                }
+            }
+            else if(nodeType.equals("producer")) {
+                ProducerImpl<?> producer = producers.get(nodeId);
+
+                if (producer == null) {
+                    log.error(
+                            "Failed to get network coordinate response - Producer not found for CommandGetNetworkCoordinate[remoteAddress = {}, requestId = {}, ProducerId = {}]",
+                            remoteAddress, requestId, nodeId);
+                    msg = Commands.newGetNetworkCoordinateResponse(ServerError.ProducerNotFound,
+                            "Producer " + nodeId + " not found", requestId);
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("CommandGetNetworkCoordinate[requestId = {}, producer = {}]", requestId, producer);
+                    }
+                    msg = Commands.newGetNetworkCoordinateResponse(createGetNetworkCoordinateResponse(producer, requestId));
+                }
+
+            }
+        }
+        else 
+        {
+            msg = Commands.newGetNetworkCoordinateResponse(createGetAllNetworkCoordinateResponse(requestId));  
+        }
+
+        ctx.writeAndFlush(msg);
+    }
+
+     CommandGetNetworkCoordinateResponse.Builder createGetAllNetworkCoordinateResponse(long requestId)
+    {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse.newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+
+
+        producers.forEach((id, producer) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer))); 
+
+        consumers.forEach((id, consumer) -> commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(consumer))); 
+
+	return commandGetNetworkCoordinateResponseBuilder;
+    }
+     //CETUS: Get network coordinate response builder for Protobuf
+     CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ConsumerImpl<?> consumer, long requestId) {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(consumer));
+       
+    return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
+     //CETUS: Get network coordinate response builder for Protobuf
+    CommandGetNetworkCoordinateResponse.Builder createGetNetworkCoordinateResponse(ProducerImpl<?> producer, long requestId) {
+        CommandGetNetworkCoordinateResponse.Builder commandGetNetworkCoordinateResponseBuilder = CommandGetNetworkCoordinateResponse
+                .newBuilder();
+        commandGetNetworkCoordinateResponseBuilder.setRequestId(requestId);
+        commandGetNetworkCoordinateResponseBuilder.addCoordinateInfo(createCoordinateInfo(producer));
+    return commandGetNetworkCoordinateResponseBuilder;     
+    }
+
+    CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	    coordinateInfoBuilder.setNodeType("producer");
+	    coordinateInfoBuilder.setNodeId(producer.producerId);
+        //TopicName topicName = new TopicName(producer.getTopic());
+        coordinateInfoBuilder.setTopic(producer.getTopic());
+        NetworkCoordinate coordinate = producer.getNetworkCoordinate();
+        coordinateInfoBuilder.setValid(coordinate.isValid());
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
+	    return coordinateInfoBuilder;
+    }
+
+    CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
+        CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
+	    coordinateInfoBuilder.setNodeType("consumer");
+	    coordinateInfoBuilder.setNodeId(consumer.consumerId);
+        //TopicName topicName = new TopicName(consumer.getTopic());
+        coordinateInfoBuilder.setTopic(consumer.getTopic());
+        NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
+        coordinateInfoBuilder.setValid(coordinate.isValid());
+        coordinateInfoBuilder.setHeight(coordinate.getHeight());
+        coordinateInfoBuilder.setError(coordinate.getError());
+        coordinateInfoBuilder.setAdjustment(coordinate.getAdjustment());
+        double[] coordinateVector = coordinate.getCoordinateVector();
+        for (int i = 0; i < coordinateVector.length; i++) {
+            coordinateInfoBuilder.addCoordinates(createCoordinateVector(coordinateVector[i]));
+        }
+	return coordinateInfoBuilder;
+    }
+
+    CoordinateVector.Builder createCoordinateVector(double coordinate) {
+        CoordinateVector.Builder coordinateVectorBuilder = CoordinateVector.newBuilder();
+        coordinateVectorBuilder.setCoordinate(coordinate);
+        return coordinateVectorBuilder;
+    }
+
+    CommandSerfJoin.Builder createSerfJoin(PulsarClientImpl client, long requestId) {
+        log.info("Got into serf join builder");
+        CommandSerfJoin.Builder commandSerfJoinBuilder = CommandSerfJoin.newBuilder();
+        commandSerfJoinBuilder.setAddress(client.getSerfBindIp());
+        commandSerfJoinBuilder.setRequestId(requestId);
+        commandSerfJoinBuilder.setPort(client.getSerfBindPort());
+        log.info("Created Serf Join Message!");
+        return commandSerfJoinBuilder;
+    }
+
+    
     // caller of this method needs to be protected under pendingLookupRequestSemaphore
     private void addPendingLookupRequests(long requestId, CompletableFuture<LookupDataResult> future) {
         pendingLookupRequests.put(requestId, future);
@@ -704,6 +855,28 @@ public class ClientCnx extends PulsarHandler {
         return future;
     }
 
+    public CompletableFuture<Optional<NetworkCoordinate>> sendNetworkCoordinates(ByteBuf request, long requestId) {
+        CompletableFuture<Optional<NetworkCoordinate>> future = new CompletableFuture<>();
+        
+        ctx.writeAndFlush(request).addListener(writeFuture -> {
+            if(!writeFuture.isSuccess()) {
+                log.warn("{} Failed to send Network Coordinates to broker: {}", ctx.channel(),
+                        writeFuture.cause().getMessage());
+                future.completeExceptionally(writeFuture.cause());
+
+            }
+        });
+
+        return future;
+    }
+
+    public void sendSerfInfo(ByteBuf request) {
+        
+        ctx.writeAndFlush(request);
+        log.info("Sent serf info");
+
+    }
+
     /**
      * check serverError and take appropriate action
      * <ul>
@@ -780,6 +953,14 @@ public class ClientCnx extends PulsarHandler {
 
     void removeConsumer(final long consumerId) {
         consumers.remove(consumerId);
+    }
+
+    public ConsumerImpl<?> getConsumer(final long consumerId) {
+        return consumers.get(consumerId);
+    }
+
+    public ProducerImpl<?> getProducer(final long producerId) {
+        return producers.get(producerId);
     }
 
     void setTargetBroker(InetSocketAddress targetBrokerAddress) {

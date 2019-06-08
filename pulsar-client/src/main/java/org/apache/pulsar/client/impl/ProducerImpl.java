@@ -24,7 +24,15 @@ import static com.scurrilous.circe.checksum.Crc32cIntChecksum.resumeChecksum;
 import static java.lang.String.format;
 import static org.apache.pulsar.common.api.Commands.hasChecksum;
 import static org.apache.pulsar.common.api.Commands.readChecksum;
-
+import java.nio.charset.Charset;
+// CETUS
+import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import org.apache.pulsar.common.serf.SerfClient;
+//***********************************************************************
 import com.google.common.collect.Queues;
 
 import io.netty.buffer.ByteBuf;
@@ -72,13 +80,15 @@ import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.common.util.DateFormatter;
 import org.apache.pulsar.common.util.FutureUtil;
 import org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import java.net.InetAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, ConnectionHandler.Connection {
 
     // Producer id, used to identify a producer within a single connection
-    private final long producerId;
+    final long producerId;
 
     // Variable is used through the atomic updater
     @SuppressWarnings("unused")
@@ -116,6 +126,10 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     private final ConnectionHandler connectionHandler;
 
+    private NetworkCoordinate coordinate;
+    private ScheduledExecutorService coordinateProviderService;
+    private SerfClient serfClient;
+
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater
             .newUpdater(ProducerImpl.class, "msgIdGenerator");
@@ -130,6 +144,12 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.pendingMessages = Queues.newArrayBlockingQueue(conf.getMaxPendingMessages());
         this.pendingCallbacks = Queues.newArrayBlockingQueue(conf.getMaxPendingMessages());
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
+        // CETUS
+        this.coordinate = new NetworkCoordinate();
+      
+        this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
+        this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
+        //*********************************************************
         this.compressor = CompressionCodecProvider
                 .getCompressionCodec(convertCompressionType(conf.getCompressionType()));
 
@@ -189,6 +209,55 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             new Backoff(100, TimeUnit.MILLISECONDS, 60, TimeUnit.SECONDS, Math.max(100, conf.getSendTimeoutMs() - 100), TimeUnit.MILLISECONDS),
             this);
         grabCnx();
+        //joinSerfCluster();
+    }
+
+    void joinSerfCluster() {
+        //ByteBuf msg;
+        try {
+            //Thread.sleep(10000);
+            ClientCnx cnx = cnx();
+            log.info("Got cnx");
+            long requestId = client.newRequestId();
+            log.info("Got client request id: {} Serf Bind IP: {} Serf Port: {}", requestId,client.getSerfBindIp(), client.getSerfBindPort());
+                       //msg = Commands.newSerfJoin(requestId, client.getSerfBindIp(), client.getSerfBindPort());
+            //ByteBuf newMsg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
+            //cnx().ctx().writeAndFlush(newMsg);
+	    
+
+		log.info("Cnx: {}", cnx);
+            	ByteBuf newMsg = Commands.newSerfJoin(cnx.createSerfJoin(this.client, requestId));
+
+
+	    //log.info("Message: {}", newMsg.readCharSequence(newMsg.capacity(), Charset.forName("utf-8")).toString());
+                       
+	    //cnx.sendSerfInfo(newMsg);
+
+            cnx.ctx().writeAndFlush(newMsg);
+            log.info("Sent serf message");
+        }
+        catch (Exception e) {
+            log.warn("Unable to send request for serf join!: {}", e);
+        }
+
+    }
+
+    void startCoordinateProviderService() {
+        int interval = 10;
+	log.info("Running Coordinate Service");
+        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+	joinSerfCluster();
+	
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+    }
+
+    public void sendCoordinate() {
+        this.coordinate = serfClient.getCoordinate();
+        ClientCnx cnx = cnx();
+        long requestId = client.newRequestId();
+	
+        ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
+        cnx.sendNetworkCoordinates(msg, requestId); 
     }
 
     public ConnectionHandler getConnectionHandler() {
@@ -1003,6 +1072,16 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
                     return null;
                 });
+
+                //joinSerfCluster();
+        	startCoordinateProviderService();
+		
+		try {
+			Thread.sleep(100);
+		} catch (Exception e) {
+			log.warn("Cannot sleep at the end of connectionOpened");
+		}
+		
     }
 
     @Override
@@ -1405,6 +1484,20 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     void grabCnx() {
         this.connectionHandler.grabCnx();
+    }
+
+    @Override
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
+    }
+
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) { 
+        this.coordinate = coordinate;
+    }
+
+    @Override
+    public long getProducerId() { 
+        return producerId;
     }
 
     private static final Logger log = LoggerFactory.getLogger(ProducerImpl.class);

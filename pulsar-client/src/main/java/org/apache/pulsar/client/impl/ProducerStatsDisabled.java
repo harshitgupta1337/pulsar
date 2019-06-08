@@ -18,6 +18,8 @@
  */
 package org.apache.pulsar.client.impl;
 
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+
 public class ProducerStatsDisabled implements ProducerStatsRecorder {
     private static final long serialVersionUID = 1L;
 
@@ -126,5 +128,10 @@ public class ProducerStatsDisabled implements ProducerStatsRecorder {
     @Override
     public double getSendLatencyMillisMax() {
         return 0;
+    }
+
+    public NetworkCoordinate getNetworkCoordinate()
+    {
+        return null;
     }
 }

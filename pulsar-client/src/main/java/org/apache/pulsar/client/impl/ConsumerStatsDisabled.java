@@ -23,6 +23,8 @@ import java.util.Optional;
 import org.apache.pulsar.client.api.ConsumerStats;
 import org.apache.pulsar.client.api.Message;
 
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+
 import io.netty.util.Timeout;
 
 public class ConsumerStatsDisabled implements ConsumerStatsRecorder {
@@ -123,5 +125,12 @@ public class ConsumerStatsDisabled implements ConsumerStatsRecorder {
     @Override
     public void updateCumulativeStats(ConsumerStats stats) {
         // do nothing
+    }
+
+    public NetworkCoordinate getNetworkCoordinate()
+    {
+        //CETUS
+        //Temp but maybe shoudn't belong here
+        return null;
     }
 }

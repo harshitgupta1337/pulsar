@@ -27,6 +27,10 @@ import java.util.concurrent.atomic.LongAdder;
 import org.apache.pulsar.client.api.ConsumerStats;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+
+//CETUS
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//****************************************
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +63,8 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
 
     private volatile double receivedMsgsRate;
     private volatile double receivedBytesRate;
+
+
 
     private static final DecimalFormat THROUGHPUT_FORMAT = new DecimalFormat("0.00");
 
@@ -261,6 +267,7 @@ public class ConsumerStatsRecorderImpl implements ConsumerStatsRecorder {
     public double getRateBytesReceived() {
         return receivedBytesRate;
     }
+
 
     private static final Logger log = LoggerFactory.getLogger(ConsumerStatsRecorderImpl.class);
 }

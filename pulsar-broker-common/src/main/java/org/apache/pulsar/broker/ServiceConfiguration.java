@@ -423,7 +423,9 @@ public class ServiceConfiguration implements PulsarConfiguration {
     @FieldContext(dynamic = true)
     private boolean loadBalancerAutoUnloadSplitBundlesEnabled = true;
     // maximum topics in a bundle, otherwise bundle split will be triggered
-    private int loadBalancerNamespaceBundleMaxTopics = 1000;
+    //private int loadBalancerNamespaceBundleMaxTopics = 1000;
+    // CETUS
+    private int loadBalancerNamespaceBundleMaxTopics = 1;
     // maximum sessions (producers + consumers) in a bundle, otherwise bundle split will be triggered
     private int loadBalancerNamespaceBundleMaxSessions = 1000;
     // maximum msgRate (in + out) in a bundle, otherwise bundle split will be triggered

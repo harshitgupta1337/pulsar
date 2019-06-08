@@ -59,6 +59,13 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSuccess;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandUnsubscribe;
 import org.apache.pulsar.common.util.protobuf.ByteBufCodedInputStream;
+
+// CETUS
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+//*****************************************/
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +96,7 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
             cmdInputStream.recycle();
 
             if (log.isDebugEnabled()) {
-                log.debug("[{}] Received cmd {}", ctx.channel().remoteAddress(), cmd.getType());
+                log.info("[{}] Received cmd {}", ctx.channel().remoteAddress(), cmd.getType());
             }
 
             messageReceived();
@@ -303,6 +310,27 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
                 handleGetSchemaResponse(cmd.getGetSchemaResponse());
                 cmd.getGetSchemaResponse().recycle();
                 break;
+
+
+            // CETUS Get Producer/Consumer Coordinate
+            case GET_NETWORK_COORDINATE:
+                checkArgument(cmd.hasGetNetworkCoordinate());
+                handleGetNetworkCoordinate(cmd.getGetNetworkCoordinate());
+                cmd.getGetNetworkCoordinate().recycle();
+                break;
+
+            case GET_NETWORK_COORDINATE_RESPONSE:
+                checkArgument(cmd.hasGetNetworkCoordinateResponse());
+                handleGetNetworkCoordinateResponse(cmd.getGetNetworkCoordinateResponse());
+                cmd.getGetNetworkCoordinateResponse().recycle();
+                break;
+            
+            case SERF_JOIN:
+                checkArgument(cmd.hasSerfJoin());
+                handleSerfJoin(cmd.getSerfJoin());
+                cmd.getSerfJoin().recycle();
+                break;
+
             }
         } finally {
             if (cmdBuilder != null) {
@@ -451,6 +479,19 @@ public abstract class PulsarDecoder extends ChannelInboundHandlerAdapter {
     }
 
     protected void handleGetSchemaResponse(CommandGetSchemaResponse commandGetSchemaResponse) {
+        throw new UnsupportedOperationException();
+    }
+
+    // CETUS: Add network coordinate handlers
+    protected void handleGetNetworkCoordinate(CommandGetNetworkCoordinate commandGetNetworkCoordinate){
+        throw new UnsupportedOperationException();
+    }
+
+    protected void handleGetNetworkCoordinateResponse(CommandGetNetworkCoordinateResponse commandGetNetworkCoordinateResponse) {
+        throw new UnsupportedOperationException();
+    }
+
+    protected void handleSerfJoin(CommandSerfJoin commandSerfJoin) {
         throw new UnsupportedOperationException();
     }
 

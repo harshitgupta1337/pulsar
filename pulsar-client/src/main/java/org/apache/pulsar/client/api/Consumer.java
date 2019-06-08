@@ -22,6 +22,7 @@ import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 /**
  * An interface that abstracts behavior of Pulsar's consumer.
  */
@@ -294,4 +295,15 @@ public interface Consumer<T> extends Closeable {
      * @return consumer name.
      */
     String getConsumerName();
+
+    /**
+     * Get the Id of a consumer.
+     * @return consumer id.
+     */
+     long getConsumerId();
+
+     NetworkCoordinate getNetworkCoordinate();
+     
+     void setNetworkCoordinate(NetworkCoordinate coordinate);
 }
+

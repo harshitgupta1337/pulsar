@@ -103,6 +103,9 @@ public interface Topic {
 
     void checkInactiveSubscriptions();
 
+    //Cetus
+    //void updateCoordinates();
+
     void checkMessageExpiry();
 
     void checkMessageDeduplicationInfo();

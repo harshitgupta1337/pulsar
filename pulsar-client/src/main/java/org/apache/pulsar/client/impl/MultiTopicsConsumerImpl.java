@@ -54,6 +54,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.CommandAck.AckType;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.util.FutureUtil;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +68,9 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
 
     // Map <topic, numPartitions>, store partition number for each topic
     protected final ConcurrentHashMap<String, Integer> topics;
+
+    // CETUS Network Coordinate
+    private NetworkCoordinate coordinate;
 
     // Queue of partition consumers on which we have stopped calling receiveAsync() because the
     // shared incoming queue was full
@@ -97,6 +101,7 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
         this.pausedConsumers = new ConcurrentLinkedQueue<>();
         this.sharedQueueResumeThreshold = maxReceiverQueueSize / 2;
         this.allTopicPartitionsNumber = new AtomicInteger(0);
+        this.coordinate = new NetworkCoordinate();
 
         if (conf.getAckTimeoutMillis() != 0) {
             this.unAckedMessageTracker = new UnAckedTopicMessageTracker(client, this, conf.getAckTimeoutMillis());
@@ -853,5 +858,20 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
         return consumers.values().stream().collect(Collectors.toList());
     }
 
+    @Override
+    public NetworkCoordinate getNetworkCoordinate() {
+        return coordinate;
+    }
+
+    @Override
+    public void setNetworkCoordinate(NetworkCoordinate coordinate) {
+        this.coordinate = coordinate;
+    }
+
+    @Override
+    public long getConsumerId() {
+        // mock impl. is this problem? CETUS
+        return 0;
+    }
     private static final Logger log = LoggerFactory.getLogger(MultiTopicsConsumerImpl.class);
 }

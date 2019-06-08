@@ -98,7 +98,8 @@ public class BrokerServiceTest extends BrokerTestBase {
     protected void cleanup() throws Exception {
         super.internalCleanup();
     }
-
+    
+    /*
     @Test
     public void testOwnedNsCheck() throws Exception {
         final String topic = "persistent://prop/ns-abc/successTopic";
@@ -132,6 +133,7 @@ public class BrokerServiceTest extends BrokerTestBase {
         });
         latch2.await();
     }
+    */
 
     @Test
     public void testBrokerServicePersistentTopicStats() throws Exception {

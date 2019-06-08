@@ -42,7 +42,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Map;
 
+import java.io.*;
+
+import io.netty.buffer.ByteBuf;
+
+import org.apache.pulsar.common.api.Commands;
 import org.apache.pulsar.client.api.ClientConfiguration;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.ConsumerBuilder;
@@ -67,6 +75,10 @@ import org.apache.pulsar.client.impl.schema.AutoProduceBytesSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericSchema;
 import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetTopicsOfNamespace.Mode;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateInfo;
+import org.apache.pulsar.common.api.proto.PulsarApi.CoordinateVector;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicDomain;
 import org.apache.pulsar.common.naming.TopicName;
@@ -92,6 +104,18 @@ public class PulsarClientImpl implements PulsarClient {
     enum State {
         Open, Closing, Closed
     }
+
+    private static final String SERF_RPC_IP = "0.0.0.0";
+    private static final int SERF_RPC_PORT = 7374;
+    private static String serfRpcIp;
+    private static int serfRpcPort;
+
+    private static final String SERF_BIND_IP = "0.0.0.0";
+    private static final int SERF_BIND_PORT = 8000;
+    private static String serfBindIp;
+    private static int serfBindPort;
+
+    private static String nodeName;
 
     private AtomicReference<State> state = new AtomicReference<>();
     private final IdentityHashMap<ProducerBase<?>, Boolean> producers;
@@ -136,6 +160,7 @@ public class PulsarClientImpl implements PulsarClient {
         this.eventLoopGroup = eventLoopGroup;
         this.conf = conf;
         conf.getAuthentication().start();
+         
         this.cnxPool = cnxPool;
         externalExecutorProvider = new ExecutorProvider(conf.getNumListenerThreads(), getThreadFactory("pulsar-external-listener"));
         if (conf.getServiceUrl().startsWith("http")) {
@@ -146,11 +171,54 @@ public class PulsarClientImpl implements PulsarClient {
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
+        try {
+            //InetAddress IAddress = InetAddress.getLocalHost();
+            //this.nodeName = IAddress.getHostName();
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            
+            this.nodeName = br.readLine();
+            log.info("Node Name: {}", this.nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+	        this.serfBindIp = this.serfRpcIp = br.readLine();
+	        this.serfBindPort = 8000;
+	        this.serfRpcPort =  7374;
+            /*
+	        final Runtime rt = Runtime.getRuntime();
+	        String command = String.format("/usr/local/bin/serf agent -rpc-addr=%s:%s -bind=%s:%s -node=%s", this.serfRpcIp, this.serfRpcPort, this.serfBindIp, this.serfBindPort, this.nodeName);
+            log.info("Command: {}", command);
+            ProcessBuilder pb = new ProcessBuilder("exec", "/usr/local/bin/serf", "agent", "-rpc-addr=0.0.0.0:7374", "-bind=0.0.0.0:8000", "-node=n2", "&");
+            //pb.redirectErrorStream(true);
+            //pb.redirectOutputStream(pb.Redirect.appendTo(log));
+            //Process proc = rt.exec(command);
+            Map<String, String> env = pb.environment();
+            env.put("PATH", "/home/tyler/bin:/home/tyler/.local/bin:/home/tyler/bin:/home/tyler/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin");
+            Process proc = pb.start();
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
+            //String s = null;
+            //log.info("Output of Serf Command");
+            //while((s = stdInput.readLine()) != null) {
+                //log.info(s);
+            //}
+           */ 
+
+                        
+        }
+        catch (Exception e) {
+            log.warn("Exception in Constructor: {}", e);
+            nodeName = "n2";
+        }
+        
         state.set(State.Open);
+        joinSerfCluster();
     }
 
     public ClientConfigurationData getConfiguration() {
         return conf;
+    }
+
+    protected void joinSerfCluster() {
     }
 
     @Override
@@ -826,17 +894,42 @@ public class PulsarClientImpl implements PulsarClient {
         }
     }
 
-    @VisibleForTesting
-    int producersCount() {
+    @Override
+    public int producersCount() {
         synchronized (producers) {
             return producers.size();
         }
     }
 
-    @VisibleForTesting
-    int consumersCount() {
+    @Override
+    public int consumersCount() {
         synchronized (consumers) {
             return consumers.size();
         }
     }
+
+    public String getSerfBindIp() {
+        //return SERF_BIND_IP;
+	return serfBindIp;
+    }
+
+    public long getSerfBindPort() {
+        //return SERF_BIND_PORT;
+	return serfBindPort;
+    }
+
+    public String getSerfRpcIp() {
+        //return SERF_RPC_IP;
+	return serfRpcIp;
+    } 
+
+    public long getSerfRpcPort() {
+        //return SERF_RPC_PORT;
+	return serfRpcPort;
+    }
+
+    public String getNodeName() {
+        return nodeName;
+    }
+
 }

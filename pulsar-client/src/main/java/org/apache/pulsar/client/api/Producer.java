@@ -21,6 +21,7 @@ package org.apache.pulsar.client.api;
 import java.io.Closeable;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 /**
  * Producer object.
  *
@@ -215,4 +216,10 @@ public interface Producer<T> extends Closeable {
      * @return Whether the producer is connected to the broker
      */
     boolean isConnected();
+
+    public NetworkCoordinate getNetworkCoordinate();
+
+    public void setNetworkCoordinate(NetworkCoordinate coordinate);
+
+    public long getProducerId();
 }

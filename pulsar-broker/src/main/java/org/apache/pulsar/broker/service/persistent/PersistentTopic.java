@@ -117,6 +117,10 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// Cetus
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
+
 import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Lists;
@@ -1725,6 +1729,21 @@ public class PersistentTopic implements Topic, AddEntryCallback {
     public Position getLastMessageId() {
         return ledger.getLastConfirmedEntry();
     }
+
+    /*
+    // CETUS
+    @Override
+    public void updateCoordinates() {
+        producers.forEach(producer -> {
+            brokerService.pulsar().getNetworkCoordinateData().putProducerCoordinate(producer.getProducerId(), producer.getNetworkCoordinate());
+            
+        });
+
+        subscriptions.forEach((subName, sub) -> sub.getConsumers().forEach(consumer -> {
+            brokerService.pulsar().getNetworkCoordinateData().putConsumerCoordinate(consumer.getConsumerId(), consumer.getNetworkCoordinate());
+        }));
+    }
+    */
 
     public synchronized void triggerCompaction()
             throws PulsarServerException, AlreadyRunningException {

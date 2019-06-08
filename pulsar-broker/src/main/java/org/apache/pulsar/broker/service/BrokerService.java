@@ -124,6 +124,11 @@ import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.zookeeper.ZooKeeperCacheListener;
 import org.apache.pulsar.zookeeper.ZooKeeperDataCache;
 import org.apache.zookeeper.CreateMode;
+// CETUS INCLUDES
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.ZooDefs;
+//*******************************************************************
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
@@ -138,7 +143,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final int port;
     private final int tlsPort;
 
-    private final ConcurrentOpenHashMap<String, CompletableFuture<Optional<Topic>>> topics;
+        private final ConcurrentOpenHashMap<String, CompletableFuture<Optional<Topic>>> topics;
 
     private final ConcurrentOpenHashMap<String, PulsarClient> replicationClients;
 
@@ -167,6 +172,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     private final ScheduledExecutorService inactivityMonitor;
     private final ScheduledExecutorService messageExpiryMonitor;
     private final ScheduledExecutorService compactionMonitor;
+
+
 
     private DistributedIdGenerator producerNameGenerator;
 
@@ -199,8 +206,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.keepAliveIntervalSeconds = pulsar.getConfiguration().getKeepAliveIntervalSeconds();
         this.configRegisteredListeners = new ConcurrentOpenHashMap<>();
         this.pendingTopicLoadingQueue = Queues.newConcurrentLinkedQueue();
-
-        this.multiLayerTopicsMap = new ConcurrentOpenHashMap<>();
+                this.multiLayerTopicsMap = new ConcurrentOpenHashMap<>();
         this.pulsarStats = new PulsarStats(pulsar);
         this.offlineTopicStatCache = new ConcurrentOpenHashMap<>();
 
@@ -232,7 +238,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.compactionMonitor =
             Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-compaction-monitor"));
 
-        this.backlogQuotaManager = new BacklogQuotaManager(pulsar);
+
+                this.backlogQuotaManager = new BacklogQuotaManager(pulsar);
         this.backlogQuotaChecker = Executors
                 .newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-backlog-quota-checker"));
         this.authenticationService = new AuthenticationService(pulsar.getConfiguration());
@@ -363,6 +370,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                                                   interval, interval, TimeUnit.SECONDS);
         }
     }
+    
+    
 
     void startBacklogQuotaChecker() {
         if (pulsar().getConfiguration().isBacklogQuotaCheckEnabled()) {
@@ -843,6 +852,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         }
     }
 
+
     public void getDimensionMetrics(Consumer<ByteBuf> consumer) {
         pulsarStats.getDimensionMetrics(consumer);
     }
@@ -882,6 +892,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     public void checkInactiveSubscriptions() {
         forEachTopic(Topic::checkInactiveSubscriptions);
     }
+
+    
 
     /**
      * Iterates over all loaded topics in the broker
@@ -1528,4 +1540,6 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             return Optional.empty();
         }
     }
+
+    
 }

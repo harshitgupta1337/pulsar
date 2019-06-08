@@ -74,6 +74,19 @@
 
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>pulsar-common</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>pulsar-client-original</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>pulsar-discovery-service</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
@@ -124,6 +137,12 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.msgpack</groupId>
+      <artifactId>msgpack</artifactId>
+      <version>0.6.11</version>
+    </dependency> 
 
     <!-- functions related dependencies (begin) -->
 
@@ -268,6 +287,15 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+
+    <!--dependency>
+      <groupId>no.tv2.serf</groupId>
+      <artifactId>client</artifactId>
+      <version>1.0.1</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/../java-serf-client/target/serf-client-1.0.1.jar</systemPath>
+    </dependency-->
+
 
   </dependencies>
 
