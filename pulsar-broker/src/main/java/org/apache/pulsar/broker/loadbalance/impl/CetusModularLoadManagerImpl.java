@@ -526,7 +526,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 }
                 catch (NoNodeException ne){
                     log.debug("Couldn't get broker data, removing from map: {}", ne);
-                    //cetusBrokerDataMap.remove(broker);
+                    cetusLoadData.getCetusBrokerDataMap().remove(broker);
                     log.warn("[{}] broker load-report znode not present", broker, ne);
                 } 
                 catch (Exception e) {
@@ -715,6 +715,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
             final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
             recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            
 
             log.info("Starting load shedding");
             final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
@@ -728,7 +729,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                         }
 
-                        log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
+                        log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
                         try {
                             pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
                             loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
