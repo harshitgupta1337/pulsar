@@ -729,12 +729,18 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                         }
 
-                        log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
-                        try {
-                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                            loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                        } catch (PulsarServerException | PulsarAdminException e) {
-                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                        if(!loadData.getRecentlyUnloadedBundles().containsKey(bundle))
+                        {
+                            
+                       
+
+                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
+                            try {
+                                pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                                loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                            } catch (PulsarServerException | PulsarAdminException e) {
+                                log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                            }
                         }
                     });
                 });

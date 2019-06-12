@@ -57,6 +57,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
     private final Multimap<String, String> selectedBundleCache = ArrayListMultimap.create();
 
     public Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService) {
+        selectedBundleCache.clear();
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getBundleNetworkCoordinates().entrySet()) {
                 for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
