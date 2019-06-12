@@ -64,7 +64,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                     log.info("[Cetus Load Shedder] Distance to broker: {}. Distance to Referenced Broker {}:  {} Topic Prod/Cons Coordinate: {} Broker Coordinate: {}", topicEntry.getValue().distanceToBroker(), brokerEntry.getKey(), CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()), topicEntry.getValue().getProducerConsumerAvgCoordinate().getCoordinateVector(), brokerEntry.getValue().getBrokerNwCoordinate().getCoordinateVector()); 
                     if(CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < topicEntry.getValue().distanceToBroker()) {
                         try {
-                            selectedBundleCache.put(entry.getKey(), namespaceService.getBundle(TopicName.get(topicEntry.getKey())).toString());
+                            selectedBundleCache.put(entry.getKey(), topicEntry.getKey());
                         }
                         catch (Exception e) {
                             log.warn("Cannot find bundle!: {}", e);
