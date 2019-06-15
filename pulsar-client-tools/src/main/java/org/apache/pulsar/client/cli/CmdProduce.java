@@ -65,6 +65,8 @@ public class CmdProduce {
             + "value 0 means to produce messages as fast as possible.")
     private double publishRate = 0;
 
+    boolean noMessages = false;
+
     ClientBuilder clientBuilder;
 
     public CmdProduce() {
@@ -171,4 +173,78 @@ public class CmdProduce {
 
         return returnCode;
     }
+
+    public int runForever() throws PulsarClientException {
+        if (mainOptions.size() != 1)
+            throw (new ParameterException("Please provide one and only one topic name."));
+        if (this.numTimesProduce <= 0)
+            throw (new ParameterException("Number of times need to be positive number."));
+        if (messages.size() == 0 && messageFileNames.size() == 0)
+        {
+            this.noMessages = true;
+        }
+            //throw (new ParameterException("Please supply message content with either --messages or --files"));
+        if(this.noMessages == true)
+        {
+            LOG.info("Running forever with no messages");
+            try {
+                String topic = this.mainOptions.get(0);
+                PulsarClient client = clientBuilder.build();
+                Producer<byte[]> producer = client.newProducer().topic(topic).create();
+            }
+            catch (Exception e) {
+                
+            }
+            while(true);
+        }
+        int totalMessages = (messages.size() + messageFileNames.size()) * numTimesProduce;
+        if (totalMessages > MAX_MESSAGES) {
+            String msg = "Attempting to send " + totalMessages + " messages. Please do not send more than "
+                    + MAX_MESSAGES + " messages";
+            throw new ParameterException(msg);
+        }
+
+        String topic = this.mainOptions.get(0);
+        int numMessagesSent = 0;
+        int returnCode = 0;
+
+        try {
+            PulsarClient client = clientBuilder.build();
+            Producer<byte[]> producer = client.newProducer().topic(topic).create();
+
+            List<byte[]> messageBodies = generateMessageBodies(this.messages, this.messageFileNames);
+            RateLimiter limiter = (this.publishRate > 0) ? RateLimiter.create(this.publishRate) : null;
+            while(true) {
+                for (int i = 0; i < this.numTimesProduce; i++) {
+                    for (byte[] content : messageBodies) {
+                        if (limiter != null) {
+                            limiter.acquire();
+                        }
+
+                        producer.send(content);
+                        numMessagesSent++;
+                    }
+                }
+                try {
+	                Thread.sleep(1000);
+	            } 
+                catch (Exception e) {
+		           LOG.error("Failed to sleep inside run()");
+	            }
+            }
+
+
+
+            //client.close();
+        } catch (Exception e) {
+            LOG.error("Error while producing messages");
+            LOG.error(e.getMessage(), e);
+            returnCode = -1;
+        } finally {
+            LOG.info("{} messages successfully produced", numMessagesSent);
+        }
+
+        return returnCode;
+    }
+ 
 }

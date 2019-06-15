@@ -252,7 +252,9 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     public void sendCoordinate() {
+     if(client.getConfiguration().isUseSerfCoordinates()) {
         this.coordinate = serfClient.getCoordinate();
+     }
         ClientCnx cnx = cnx();
         long requestId = client.newRequestId();
 	
@@ -653,6 +655,12 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         }
 
         stats.cancelStatsTimeout();
+	
+	log.info("Stopping coordinate send");
+
+	coordinateProviderService.shutdownNow();
+
+	
 
         ClientCnx cnx = cnx();
         if (cnx == null || currentState != State.Ready) {

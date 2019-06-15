@@ -152,4 +152,49 @@ public class CmdConsume {
 
         return returnCode;
     }
+
+    public int runForever() throws PulsarClientException, IOException {
+        if (mainOptions.size() != 1)
+            throw (new ParameterException("Please provide one and only one topic name."));
+        if (this.subscriptionName == null || this.subscriptionName.isEmpty())
+            throw (new ParameterException("Subscription name is not provided."));
+        if (this.numMessagesToConsume < 0)
+            throw (new ParameterException("Number of messages should be zero or positive."));
+
+        String topic = this.mainOptions.get(0);
+        int numMessagesConsumed = 0;
+        int returnCode = 0;
+
+        try {
+            PulsarClient client = clientBuilder.build();
+            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscriptionName(this.subscriptionName).subscriptionType(subscriptionType).subscribe();
+
+            RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
+            while (true) {
+                if (limiter != null) {
+                    limiter.acquire();
+                }
+
+                Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
+                if (msg == null) {
+                    LOG.debug("No message to consume after waiting for 5 seconds.");
+                } else {
+                    numMessagesConsumed += 1;
+                    System.out.println(MESSAGE_BOUNDARY);
+                    String output = this.interpretMessage(msg, displayHex);
+                    System.out.println(output);
+                    consumer.acknowledge(msg);
+                }
+            }
+            //client.close();
+        } catch (Exception e) {
+            LOG.error("Error while consuming messages");
+            LOG.error(e.getMessage(), e);
+            returnCode = -1;
+        } finally {
+            LOG.info("{} messages successfully consumed", numMessagesConsumed);
+        }
+
+        return returnCode;
+    }
 }

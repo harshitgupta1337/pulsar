@@ -51,6 +51,13 @@ public class PulsarClientTool {
     @Parameter(names = { "-h", "--help", }, help = true, description = "Show this help.")
     boolean help;
 
+    @Parameter(names = { "-rf", "--run-forever" }, description = "set this flag to run forever" )
+    boolean runEternally;
+
+    @Parameter(names = { "--inject-coordinates" }, description = "set this flag to inject coordinates" )
+    boolean injectCoordinates;
+
+
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;
@@ -68,6 +75,8 @@ public class PulsarClientTool {
         }
         this.authPluginClassName = properties.getProperty("authPlugin");
         this.authParams = properties.getProperty("authParams");
+        this.runEternally = Boolean.parseBoolean(properties.getProperty("runEternally", "false"));
+        this.injectCoordinates = Boolean.parseBoolean(properties.getProperty("injectCoordinates", "false"));
         this.tlsAllowInsecureConnection = Boolean
                 .parseBoolean(properties.getProperty("tlsAllowInsecureConnection", "false"));
         this.tlsEnableHostnameVerification = Boolean
@@ -92,6 +101,7 @@ public class PulsarClientTool {
         clientBuilder.allowTlsInsecureConnection(this.tlsAllowInsecureConnection);
         clientBuilder.tlsTrustCertsFilePath(this.tlsTrustCertsFilePath);
         clientBuilder.serviceUrl(serviceURL);
+        clientBuilder.setUseSerfCoordinates(!injectCoordinates);
         this.produceCommand.updateConfig(clientBuilder);
         this.consumeCommand.updateConfig(clientBuilder);
     }
@@ -125,9 +135,19 @@ public class PulsarClientTool {
 
             String chosenCommand = commandParser.getParsedCommand();
             if ("produce".equals(chosenCommand)) {
-                return produceCommand.run();
+                if(runEternally == true) {
+                    return produceCommand.runForever();
+                }
+                else { 
+                    return produceCommand.run();
+                }
             } else if ("consume".equals(chosenCommand)) {
-                return consumeCommand.run();
+                if(runEternally == true) {
+                    return consumeCommand.runForever();
+                }
+                else {
+                    return consumeCommand.run();
+                }
             } else {
                 commandParser.usage();
                 return -1;
@@ -166,7 +186,7 @@ public class PulsarClientTool {
         PulsarClientTool clientTool = new PulsarClientTool(properties);
         int exit_code = clientTool.run(Arrays.copyOfRange(args, 1, args.length));
 
-	Thread.sleep (10000);
+	    //Thread.sleep (10000);
 
         System.exit(exit_code);
 

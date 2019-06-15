@@ -58,7 +58,10 @@ public class ClientConfigurationData implements Serializable, Cloneable {
     private int maxLookupRequest = 50000;
     private int maxNumberOfRejectedRequestPerConnection = 50;
     private int keepAliveIntervalSeconds = 30;
-    
+   
+    // Cetus Inject Coordinate
+    private boolean useSerfCoordinates = true;
+ 
     public ClientConfigurationData clone() {
         try {
             return (ClientConfigurationData) super.clone();

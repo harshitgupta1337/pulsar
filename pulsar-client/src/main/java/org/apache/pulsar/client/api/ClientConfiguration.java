@@ -357,6 +357,15 @@ public class ClientConfiguration implements Serializable {
         confData.setTlsHostnameVerificationEnable(tlsHostnameVerificationEnable);
     }
 
+    // Cetus - new configuration to enable coordinate injection
+    //public boolean getUseSerfCoordinates() {
+        //confData.getUseSerfCoordinates();
+    //}
+    // Cetus - new configuration to enable coordinate injection
+    public void setUseSerfCoordinates(boolean useSerfCoordinates) {
+        confData.setUseSerfCoordinates(useSerfCoordinates);
+    }
+
     public ClientConfiguration setServiceUrl(String serviceUrl) {
         confData.setServiceUrl(serviceUrl);
         return this;
