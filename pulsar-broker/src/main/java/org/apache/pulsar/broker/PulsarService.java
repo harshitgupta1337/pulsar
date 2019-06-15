@@ -476,8 +476,10 @@ public class PulsarService implements AutoCloseable {
                 @Override
                 public synchronized void brokerIsTheLeaderNow() {
                     if (getConfiguration().isLoadBalancerEnabled()) {
-                        long loadSheddingInterval = TimeUnit.MINUTES
-                                .toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
+                        //long loadSheddingInterval = TimeUnit.MINUTES
+                                //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
+                        // CETUS - update load shedding to happen more often
+                        long loadSheddingInterval = 1000;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 

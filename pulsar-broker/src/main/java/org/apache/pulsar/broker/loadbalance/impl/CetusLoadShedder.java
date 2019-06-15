@@ -57,13 +57,14 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
     private final Multimap<String, String> selectedBundleCache = ArrayListMultimap.create();
 
     public Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService) {
+        selectedBundleCache.clear();
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getBundleNetworkCoordinates().entrySet()) {
                 for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
                     log.info("[Cetus Load Shedder] Distance to broker: {}. Distance to Referenced Broker {}:  {} Topic Prod/Cons Coordinate: {} Broker Coordinate: {}", topicEntry.getValue().distanceToBroker(), brokerEntry.getKey(), CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()), topicEntry.getValue().getProducerConsumerAvgCoordinate().getCoordinateVector(), brokerEntry.getValue().getBrokerNwCoordinate().getCoordinateVector()); 
                     if(CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < topicEntry.getValue().distanceToBroker()) {
                         try {
-                            selectedBundleCache.put(entry.getKey(), namespaceService.getBundle(TopicName.get(topicEntry.getKey())).toString());
+                            selectedBundleCache.put(entry.getKey(), topicEntry.getKey());
                         }
                         catch (Exception e) {
                             log.warn("Cannot find bundle!: {}", e);

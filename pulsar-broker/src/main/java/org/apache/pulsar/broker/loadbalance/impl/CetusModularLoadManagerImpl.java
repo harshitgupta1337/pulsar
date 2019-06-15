@@ -526,7 +526,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 }
                 catch (NoNodeException ne){
                     log.debug("Couldn't get broker data, removing from map: {}", ne);
-                    //cetusBrokerDataMap.remove(broker);
+                    cetusLoadData.getCetusBrokerDataMap().remove(broker);
                     log.warn("[{}] broker load-report znode not present", broker, ne);
                 } 
                 catch (Exception e) {
@@ -715,6 +715,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
             final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
             recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            
 
             log.info("Starting load shedding");
             final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
@@ -728,12 +729,18 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                         }
 
-                        log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
-                        try {
-                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                            loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                        } catch (PulsarServerException | PulsarAdminException e) {
-                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                        if(!loadData.getRecentlyUnloadedBundles().containsKey(bundle))
+                        {
+                            
+                       
+
+                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
+                            try {
+                                pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                                loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                            } catch (PulsarServerException | PulsarAdminException e) {
+                                log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                            }
                         }
                     });
                 });
@@ -905,6 +912,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         // CETUS broker assignment selection - narrow down to specific singlular broker chosen
         // by our algorithm.
         public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
+        log.info("Selecting broker for assignment");
        synchronized(brokerCandidateCache) {
             final String bundle = serviceUnit.toString();
             if(preallocatedBundleToBroker.containsKey(bundle)) {
@@ -916,13 +924,14 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     key -> getBundleDataOrDefault(bundle));
             brokerCandidateCache.clear();
 
-            loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-            preallocatedBundleToBroker.put(bundle, broker.get());
+            //loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
+            //preallocatedBundleToBroker.put(bundle, broker.get());
 
             final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
             brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
                 .add(bundleRange);
+            log.info("Broker selected: {}", broker);
             return broker;
              
         } 
