@@ -983,6 +983,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                 closeFutures.add(topicFuture
                         .thenCompose(t -> t.isPresent() ? t.get().close() : CompletableFuture.completedFuture(null)));
             }
+            log.info("Removing bundle: {}", serviceUnit.toString());
+            pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(serviceUnit.toString());
         });
         CompletableFuture<Void> aggregator = FutureUtil.waitForAll(closeFutures);
         aggregator.thenAccept(res -> result.complete(closeFutures.size())).exceptionally(ex -> {
