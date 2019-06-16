@@ -514,7 +514,7 @@ public class NamespaceService {
     }
 
     public void unloadNamespaceBundle(NamespaceBundle bundle) throws Exception {
-        unloadNamespaceBundle(bundle, 5, TimeUnit.MINUTES);
+        unloadNamespaceBundle(bundle, 1, TimeUnit.SECONDS);
     }
 
     public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit) throws Exception {
