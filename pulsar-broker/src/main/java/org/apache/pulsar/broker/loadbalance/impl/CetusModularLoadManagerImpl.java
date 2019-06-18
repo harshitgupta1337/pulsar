@@ -714,7 +714,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             final long timeout = System.currentTimeMillis()
                     - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
             final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
-            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            //recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
             
 
             log.info("Starting load shedding");
@@ -737,7 +737,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
                             try {
                                 pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                                loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                                //loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
                             } catch (PulsarServerException | PulsarAdminException e) {
                                 log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
                             }

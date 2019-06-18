@@ -104,6 +104,9 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     private final BatchMessageContainer batchMessageContainer;
     private CompletableFuture<MessageId> lastSendFuture = CompletableFuture.completedFuture(null);
 
+    // Cetus - Track Broker
+    private String currentBroker;
+
     // Globally unique producer name
     private String producerName;
 

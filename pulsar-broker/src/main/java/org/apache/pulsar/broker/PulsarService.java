@@ -1096,6 +1096,9 @@ public class PulsarService implements AutoCloseable {
 
     public void updateCoordinates() {
         cetusBrokerData.setBrokerNwCoordinate(serfClient.getCoordinate());
+        for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
+            entry.getValue().setBrokerCoordinate(serfClient.getCoordinate());
+        }
         writeCoordinateDataOnZookeeper();
     }
     
