@@ -991,6 +991,8 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             result.completeExceptionally(ex);
             return null;
         });
+        log.info("Removing bundle: {}", serviceUnit.toString());
+        pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(serviceUnit.toString());
         return result;
     }
 
