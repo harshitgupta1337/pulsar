@@ -148,6 +148,8 @@ public class OwnedBundle {
 
         double unloadBundleTime = TimeUnit.NANOSECONDS.toMillis((System.nanoTime() - unloadBundleStartTime));
         LOG.info("Unloading {} namespace-bundle with {} topics completed in {} ms", this.bundle, unloadedTopics, unloadBundleTime);
+        pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle.toString());
+        
     }
 
     /**
