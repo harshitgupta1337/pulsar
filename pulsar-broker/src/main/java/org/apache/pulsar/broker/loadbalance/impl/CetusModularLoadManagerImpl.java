@@ -502,7 +502,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             //final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
             //final ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap = cetusLoadData.getCetusBundleDataMap();
             for (String broker : activeBrokers) {
-		        //log.info("Updating Latency Data : {}", broker);
+		        log.info("Updating Latency Data : {}", broker);
                 try {
                     String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
                     final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
@@ -518,11 +518,19 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                        pulsar.getSerfClient().joinNode(brokerIp[0]);
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                     }
+                    /*
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
-                        //log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        if(cetusLoadData.getCetusBrokerDataMap().getBundleNetworkCoordinates().containsKey(entry.getKey()) {
                         cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), entry.getValue());
                         //log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
                     }
+                }
+                */
+                    for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBrokerDataMap().get(broker).getBundleNetworkCoordinates().entrySet()) {
+                        log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                    }
+
                 }
                 catch (NoNodeException ne){
                     log.debug("Couldn't get broker data, removing from map: {}", ne);
