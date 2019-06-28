@@ -21,6 +21,12 @@
 
 ![logo](site/img/pulsar.png)
 
+## CETUS
+
+### Setup Machine
+
+Follow Instructions at the Link Here: [Setup Cluster](https://taurus.cc.gatech.edu/setting-up-pulsar-on-vm)
+
 Pulsar is a distributed pub-sub messaging platform with a very
 flexible messaging model and an intuitive client API.
 
