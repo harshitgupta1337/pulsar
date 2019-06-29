@@ -79,3 +79,4 @@ docker.debug-info
 
 # Vim
 *.sw*
+conf/*
