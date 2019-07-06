@@ -117,35 +117,35 @@ public class CmdConsumeTopicGen {
         }
     }
 
-    private void consume(String topic) throws PulsarClientException, IOException {
+    private void consume(String topic) {
      
-        int numMessagesConsumed = 0;
-        PulsarClient client = clientBuilder.build();
-        Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscribe();
+        try{
+            int numMessagesConsumed = 0;
+            PulsarClient client = clientBuilder.build();
+            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscribe();
 
-            RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
-            while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume)            {
-                if (limiter != null) {
-                    limiter.acquire();
-                }
+                RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
+                while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume)            {
+                    if (limiter != null) {
+                        limiter.acquire();
+                    }
 
-                Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
-                if (msg == null) {
-                    LOG.debug("No message to consume after waiting for 5 seconds.");
-                } else {
-                    numMessagesConsumed += 1;
-                    System.out.println(MESSAGE_BOUNDARY);
-                    String output = this.interpretMessage(msg, displayHex);
-                    System.out.println(output);
-                    consumer.acknowledge(msg);
+                    Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
+                    if (msg == null) {
+                        LOG.debug("No message to consume after waiting for 5 seconds.");
+                    } else {
+                        numMessagesConsumed += 1;
+                        System.out.println(MESSAGE_BOUNDARY);
+                        String output = this.interpretMessage(msg, displayHex);
+                        System.out.println(output);
+                        consumer.acknowledge(msg);
+                    }
                 }
-            }
-            client.close();
-            //}
-            //catch (Exception e)
-            //{
-            //        LOG.debug("Exception in consume");
-           // }
+                client.close();
+        }
+        catch (Exception e) {
+            LOG.debug("Exception in consume");
+        }
     }
 
     /**
@@ -169,7 +169,7 @@ public class CmdConsumeTopicGen {
 
         for (String topic : topics) {
             try {
-                service.schedule(consume(topic), 0, TimeUnit.MILLISECONDS);
+                service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
                 LOG.error("Error while consuming messages");
                 LOG.error(e.getMessage(), e);

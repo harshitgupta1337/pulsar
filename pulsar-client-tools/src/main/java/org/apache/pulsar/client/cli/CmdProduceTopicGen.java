@@ -130,32 +130,31 @@ public class CmdProduceTopicGen {
         return messageBodies;
     }
     
-    private void produce(String topic) throws PulsarClientException {
+    private void produce(String topic) {
         int numMessagesSent = 0;
 
-        PulsarClient client = clientBuilder.build();
-        Producer<byte[]> producer = client.newProducer().topic(topic).create();
+        try {
+            PulsarClient client = clientBuilder.build();
+            Producer<byte[]> producer = client.newProducer().topic(topic).create();
 
-        List<byte[]> messageBodies = generateMessageBodies(this.messages, this.messageFileNames);
-        RateLimiter limiter = (this.publishRate > 0) ? RateLimiter.create(this.publishRate) : null;
-        for (int i = 0; i < this.numTimesProduce; i++) {
-            for (byte[] content : messageBodies) {
-               if (limiter != null) {
-                   limiter.acquire();
-               }
+            List<byte[]> messageBodies = generateMessageBodies(this.messages, this.messageFileNames);
+            RateLimiter limiter = (this.publishRate > 0) ? RateLimiter.create(this.publishRate) : null;
+            for (int i = 0; i < this.numTimesProduce; i++) {
+                for (byte[] content : messageBodies) {
+                   if (limiter != null) {
+                       limiter.acquire();
+                   }
 
-               producer.send(content);
-               numMessagesSent++;
+                   producer.send(content);
+                   numMessagesSent++;
+                }
             }
-        }
-
-	    try {
-	        Thread.sleep(10000);
-	    } 
+            client.close();
+        } 
         catch (Exception e) {
-		   LOG.error("Failed to sleep inside run()");
+		   LOG.error("Error In Produce");
 	    }
-        client.close();
+       
     }
 
     /**
