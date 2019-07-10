@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.pulsar.common.serf.SerfClient;
+import org.apache.pulsar.common.naming.TopicName;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
@@ -152,6 +153,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
       
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
+        this.currentBroker = null;
         //*********************************************************
         this.compressor = CompressionCodecProvider
                 .getCompressionCodec(convertCompressionType(conf.getCompressionType()));
@@ -1086,6 +1088,16 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
                 //joinSerfCluster();
         	startCoordinateProviderService();
+            try {
+                String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
+                if(broker != this.currentBroker) {
+                    log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+                    this.currentBroker = broker;
+                }
+            }
+            catch (Exception e) {
+                log.warn("Error getting broker");
+            }
 		
 		try {
 			Thread.sleep(100);
