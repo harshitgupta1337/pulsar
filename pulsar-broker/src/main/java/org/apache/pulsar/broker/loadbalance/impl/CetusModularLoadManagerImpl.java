@@ -502,7 +502,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             //final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
             //final ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap = cetusLoadData.getCetusBundleDataMap();
             for (String broker : activeBrokers) {
-		        log.info("Updating Latency Data : {}", broker);
+		        //log.info("Updating Latency Data : {}", broker);
                 try {
                     String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
                     final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
@@ -528,7 +528,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 }
                 */
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBrokerDataMap().get(broker).getBundleNetworkCoordinates().entrySet()) {
-                        log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        //log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
                     }
 
                 }
