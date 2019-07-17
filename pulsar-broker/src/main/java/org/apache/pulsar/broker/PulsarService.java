@@ -1138,9 +1138,10 @@ public class PulsarService implements AutoCloseable {
         try {
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
+            //LOG.info("Bundles: {}", cetusBrokerData.getBundleNetworkCoordinates());
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
 
-                LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
+                //LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
             }
             getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
             //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());

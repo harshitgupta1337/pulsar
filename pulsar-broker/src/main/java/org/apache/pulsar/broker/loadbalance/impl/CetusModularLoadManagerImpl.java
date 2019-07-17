@@ -518,15 +518,16 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                        pulsar.getSerfClient().joinNode(brokerIp[0]);
                        cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                     }
-                    /*
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
-                        log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
-                        if(cetusLoadData.getCetusBrokerDataMap().getBundleNetworkCoordinates().containsKey(entry.getKey()) {
+                        //log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        if(cetusLoadData.getCetusBundleDataMap().containsKey(entry.getKey())) {
                         cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), entry.getValue());
                         //log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
-                    }
+                        }
+                        else {
+                            cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), new CetusNetworkCoordinateData());
+                        }
                 }
-                */
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBrokerDataMap().get(broker).getBundleNetworkCoordinates().entrySet()) {
                         //log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
                     }
@@ -541,6 +542,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
                 }
 
+            }
+            // Remove obsolete brokers.
+            for (final String broker : cetusLoadData.getCetusBrokerDataMap().keySet()) {
+                if (!activeBrokers.contains(broker)) {
+                    cetusLoadData.getCetusBrokerDataMap().remove(broker);
+                }
             }
         }
 

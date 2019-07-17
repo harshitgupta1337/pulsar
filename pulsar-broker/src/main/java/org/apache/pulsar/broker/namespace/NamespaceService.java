@@ -18,6 +18,8 @@
  */
 package org.apache.pulsar.broker.namespace;
 
+import java.util.ArrayList;
+
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 import io.netty.channel.EventLoopGroup;
@@ -137,6 +139,8 @@ public class NamespaceService {
 
     private final ConcurrentOpenHashMap<ClusterData, PulsarClientImpl> namespaceClients;
 
+    private ArrayList<String> bundlesCurrentlyUnloading;
+
     /**
      * Default constructor.
      *
@@ -151,6 +155,7 @@ public class NamespaceService {
         this.bundleFactory = new NamespaceBundleFactory(pulsar, Hashing.crc32());
         this.ownershipCache = new OwnershipCache(pulsar, bundleFactory);
         this.namespaceClients = new ConcurrentOpenHashMap<>();
+        this.bundlesCurrentlyUnloading = new ArrayList<String>();
     }
 
     public CompletableFuture<Optional<LookupResult>> getBrokerServiceUrlAsync(TopicName topic,
@@ -170,6 +175,11 @@ public class NamespaceService {
 
     public int getBundleCount(NamespaceName namespace) throws Exception {
         return bundleFactory.getBundles(namespace).size();
+    }
+    
+    // CETUs
+    public ArrayList<String> getBundlesCurrentlyUnloading() {
+        return bundlesCurrentlyUnloading;
     }
 
     private NamespaceBundle getFullBundle(NamespaceName fqnn) throws Exception {
@@ -415,6 +425,8 @@ public class NamespaceService {
                         pulsar.loadNamespaceTopics(bundle);
 
                         lookupFuture.complete(Optional.of(new LookupResult(ownerInfo)));
+
+                        bundlesCurrentlyUnloading.remove(bundle.toString());
                     }
                 }).exceptionally(exception -> {
                     LOG.warn("Failed to acquire ownership for namespace bundle {}: ", bundle, exception.getMessage(),
@@ -520,7 +532,12 @@ public class NamespaceService {
     }
 
     public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit) throws Exception {
+        bundlesCurrentlyUnloading.add(bundle.toString());
+        LOG.info("Currently Unloading: {}" , bundle.toString());
         checkNotNull(ownershipCache.getOwnedBundle(bundle)).handleUnloadRequest(pulsar, timeout, timeoutUnit);
+        pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle.toString());
+        //LOG.info("Unloaded {}", bundle.toString());
+        //bundlesCurrentlyUnloading.remove(bundle.toString());
     }
 
     public Map<String, NamespaceOwnershipStatus> getOwnedNameSpacesStatus() throws Exception {
