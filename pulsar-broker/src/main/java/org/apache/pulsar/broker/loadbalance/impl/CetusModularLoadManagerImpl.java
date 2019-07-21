@@ -25,6 +25,7 @@ import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.ArrayListMultimap;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
 
@@ -72,6 +73,7 @@ import org.apache.pulsar.common.policies.data.FailureDomain;
 import org.apache.pulsar.common.policies.data.Policies;
 import org.apache.pulsar.common.policies.data.ResourceQuota;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
+import org.apache.pulsar.broker.stats.prometheus.TopicMigrationStats;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
@@ -204,6 +206,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     private final BrokerTopicLoadingPredicate brokerTopicLoadingPredicate;
 
     private Map<String, String> brokerToFailureDomainMap;
+
+    // Cetus - Log Topic Migration Stats
+    private Map<String, TopicMigrationStats> topicMigrationStats;
+    private Multimap<String, Long> bundleUnloadTimes;
+    private Map<String, Long> bundleUnloadStartTime;
+    private ScheduledExecutorService bundleStatsPrintService;
     
 
 
@@ -234,6 +242,10 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         // CETUS
         //this.brokerToProducerConsumerMap = Maps.newHashMap();
         this.cetusLoadData = new CetusLoadData();
+        this.topicMigrationStats = new HashMap<>();
+        this.bundleUnloadTimes = ArrayListMultimap.create();
+        this.bundleUnloadStartTime = new HashMap<>();
+        this.bundleStatsPrintService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("broker-print"));
         //
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
             @Override
@@ -345,6 +357,14 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this();
         initialize(pulsar);
     }
+
+    void startBundleStatsPrint() {
+        bundleStatsPrintService.scheduleAtFixedRate(safeRun(() -> printBundleStats()), 100, 1000,TimeUnit.MILLISECONDS);
+    }
+
+    void printBundleStats() {
+        log.info("Bundle Stats: {}", bundleUnloadTimes.toString());
+    } 
 
     // Attempt to create a ZooKeeper path if it does not exist.
     private static void createZPathIfNotExists(final ZooKeeper zkClient, final String path) throws Exception {
@@ -751,6 +771,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                             log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
                             try {
+                                long startTime = System.nanoTime();
+                                bundleUnloadStartTime.put(bundle, startTime);
                                 pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
                                 //loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
                             } catch (PulsarServerException | PulsarAdminException e) {
@@ -947,6 +969,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
                 .add(bundleRange);
             log.info("Broker selected: {}", broker);
+            long endTime = System.nanoTime();
+            long startTime = bundleUnloadStartTime.get(bundle);
+            bundleUnloadTimes.put(bundle, (endTime - startTime));
             return broker;
              
         } 
