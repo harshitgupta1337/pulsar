@@ -345,6 +345,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 .registerListener((path, data, stat) -> scheduler.execute(() -> refreshBrokerToFailureDomainMap()));
         pulsar.getConfigurationCache().failureDomainCache()
                 .registerListener((path, data, stat) -> scheduler.execute(() -> refreshBrokerToFailureDomainMap()));
+        startBundleStatsPrint();
     }
 
     /**
@@ -356,14 +357,19 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     public CetusModularLoadManagerImpl(final PulsarService pulsar) {
         this();
         initialize(pulsar);
+        
+       //}
     }
 
     void startBundleStatsPrint() {
+        log.info("Starting bundle stats service");
         bundleStatsPrintService.scheduleAtFixedRate(safeRun(() -> printBundleStats()), 100, 1000,TimeUnit.MILLISECONDS);
     }
 
     void printBundleStats() {
-        log.info("Bundle Stats: {}", bundleUnloadTimes.toString());
+        //if (pulsar.getLeaderElectionService().isLeader()) {
+            log.info("Bundle Stats: {}", bundleUnloadTimes.toString());
+        //}
     } 
 
     // Attempt to create a ZooKeeper path if it does not exist.
@@ -970,8 +976,10 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 .add(bundleRange);
             log.info("Broker selected: {}", broker);
             long endTime = System.nanoTime();
-            long startTime = bundleUnloadStartTime.get(bundle);
-            bundleUnloadTimes.put(bundle, (endTime - startTime));
+            if(bundleUnloadStartTime.containsKey(bundle)) {
+                long startTime = bundleUnloadStartTime.get(bundle);
+                bundleUnloadTimes.put(bundle, (endTime - startTime));
+            }
             return broker;
              
         } 
