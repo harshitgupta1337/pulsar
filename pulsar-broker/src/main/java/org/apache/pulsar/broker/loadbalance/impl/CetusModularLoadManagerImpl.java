@@ -26,6 +26,7 @@ import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.gson.Gson;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
 
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -42,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.FileHandler;
+import java.util.logging.SimpleFormatter;
+import java.io.FileWriter;
 
 import org.apache.bookkeeper.util.ZkUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -97,6 +102,8 @@ import org.slf4j.LoggerFactory;
 
 public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
     private static final Logger log = LoggerFactory.getLogger(CetusModularLoadManagerImpl.class);
+
+    private static final java.util.logging.Logger bundleStatsLog = java.util.logging.Logger.getLogger(CetusModularLoadManagerImpl.class.getName());
 
     // Path to ZNode whose children contain BundleData jsons for each bundle (new API version of ResourceQuota).
     public static final String BUNDLE_DATA_ZPATH = "/loadbalance/bundle-data";
@@ -357,18 +364,59 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     public CetusModularLoadManagerImpl(final PulsarService pulsar) {
         this();
         initialize(pulsar);
-        
-       //}
     }
 
     void startBundleStatsPrint() {
         log.info("Starting bundle stats service");
-        bundleStatsPrintService.scheduleAtFixedRate(safeRun(() -> printBundleStats()), 100, 1000,TimeUnit.MILLISECONDS);
+        try {
+            FileHandler fh = new FileHandler("/home/tyler/pulsar/bundlestatslog.log");  
+            bundleStatsLog.addHandler(fh);
+            SimpleFormatter formatter = new SimpleFormatter();  
+            fh.setFormatter(formatter);  
+            bundleStatsPrintService.scheduleAtFixedRate(safeRun(() -> printBundleStats()), 100, 1000,TimeUnit.MILLISECONDS);
+        }
+        catch (Exception e) {
+            log.warn("Cannot setup bundle stats log");
+        }
     }
 
     void printBundleStats() {
         //if (pulsar.getLeaderElectionService().isLeader()) {
-            log.info("Bundle Stats: {}", bundleUnloadTimes.toString());
+        try {
+             FileWriter unloadTimesFile = new FileWriter("/home/tyler/pulsar/bundle_unload_times.json");
+             FileWriter unloadTopicTimesAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_avg.json");
+             FileWriter unloadTotalAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_total_avg.json");
+              //bundleStatsLog.info("Bundle Stats: " +bundleUnloadTimes.toString());
+            Gson gson = new Gson();
+            String json = gson.toJson(bundleUnloadTimes.asMap());
+            log.info("Bundle Json: {}", json);
+            unloadTimesFile.write(json);
+            Map<String, Double> averages = new HashMap<>();
+            List<Double> averagesList = new ArrayList<>();
+            for(String key : bundleUnloadTimes.keySet()) {
+                Collection<Long> values = bundleUnloadTimes.get(key);
+                Double average = values.stream().mapToLong(val -> val).average().orElse(0.0);
+                averages.put(key, average);
+                averagesList.add(average);
+            }
+            //bundleStatsLog.info("Bundle Stats Avg: " +averages);
+            json = gson.toJson(averages);
+            unloadTopicTimesAvgFile.write(json);
+            Double totalAverage = averagesList.stream().mapToDouble(val -> val).average().orElse(0.0);
+            json = gson.toJson(totalAverage);
+            unloadTotalAvgFile.write(json);
+            unloadTimesFile.flush();
+            unloadTopicTimesAvgFile.flush();
+            unloadTotalAvgFile.flush();
+            bundleStatsLog.info("Bundle Stats Total Avg: " +totalAverage);
+            
+
+        }
+        catch (Exception e) {
+        }
+       
+        
+        
         //}
     } 
 

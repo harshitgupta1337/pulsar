@@ -1090,7 +1090,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         	startCoordinateProviderService();
             try {
                 String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
-                if(broker != this.currentBroker) {
+                if(broker.equals(this.currentBroker)) {
                     log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
                     this.currentBroker = broker;
                 }
