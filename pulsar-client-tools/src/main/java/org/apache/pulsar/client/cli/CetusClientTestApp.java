@@ -66,8 +66,8 @@ public class CetusClientTestApp {
     String tlsTrustCertsFilePath = null;
 
     JCommander commandParser;
-    CmdProduce produceCommand;
-    CmdConsume consumeCommand;
+    CmdProduceTopicGen produceCommand;
+    CmdConsumeTopicGen consumeCommand;
 
     public CetusClientTestApp(Properties properties) throws MalformedURLException {
         this.serviceURL = StringUtils.isNotBlank(properties.getProperty("brokerServiceUrl"))
@@ -87,8 +87,8 @@ public class CetusClientTestApp {
                 .parseBoolean(properties.getProperty("tlsEnableHostnameVerification", "false"));
         this.tlsTrustCertsFilePath = properties.getProperty("tlsTrustCertsFilePath");
 
-        produceCommand = new CmdProduce();
-        consumeCommand = new CmdConsume();
+        produceCommand = new CmdProduceTopicGen();
+        consumeCommand = new CmdConsumeTopicGen();
 
         this.commandParser = new JCommander();
         commandParser.setProgramName("pulsar-client");
@@ -174,7 +174,7 @@ public class CetusClientTestApp {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.out.println("Usage: pulsar-client CONF_FILE_PATH [options] [command] [command options]");
+            System.out.println("Usage: cetus-client CONF_FILE_PATH [options] [command] [command options]");
             System.exit(-1);
         }
         String configFile = args[0];
@@ -192,7 +192,7 @@ public class CetusClientTestApp {
             }
         }
 
-        PulsarClientTool clientTool = new PulsarClientTool(properties);
+        CetusClientTestApp clientTool = new CetusClientTestApp(properties);
         int exit_code = clientTool.run(Arrays.copyOfRange(args, 1, args.length));
 
 	    //Thread.sleep (10000);

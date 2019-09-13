@@ -240,18 +240,22 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
             cnx.ctx().writeAndFlush(newMsg);
             log.info("Sent serf message");
+            client.setIsJoinedToSerfCluster(true);
         }
         catch (Exception e) {
             log.warn("Unable to send request for serf join!: {}", e);
+            client.setIsJoinedToSerfCluster(false);
         }
 
     }
 
     void startCoordinateProviderService() {
-        int interval = 10;
-	log.info("Running Coordinate Service");
+        int interval = 1000;
+	    log.info("Running Coordinate Service");
         //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-	joinSerfCluster();
+        if(!client.getIsJoinedToSerfCluster()) {
+	        joinSerfCluster();
+        }
 	
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
@@ -261,6 +265,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.coordinate = serfClient.getCoordinate();
      }
         ClientCnx cnx = cnx();
+        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
@@ -524,6 +529,17 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         } else {
             checksumType = ChecksumType.None;
         }
+            try {
+                String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
+                log.info("Broker: {}" ,broker);
+                if(broker != this.currentBroker) {
+                    log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+                    this.currentBroker = broker;
+                }
+            }
+            catch (Exception e) {
+                log.warn("Error getting broker");
+            }
         return Commands.newSend(producerId, sequenceId, numMessages, checksumType, msgMetadata, compressedPayload);
     }
 
@@ -1088,22 +1104,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
                 //joinSerfCluster();
         	startCoordinateProviderService();
-            try {
-                String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
-                if(broker != this.currentBroker) {
-                    log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
-                    this.currentBroker = broker;
-                }
-            }
-            catch (Exception e) {
-                log.warn("Error getting broker");
-            }
+            
 		
-		try {
-			Thread.sleep(100);
-		} catch (Exception e) {
-			log.warn("Cannot sleep at the end of connectionOpened");
-		}
 		
     }
 
