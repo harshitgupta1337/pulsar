@@ -61,6 +61,7 @@ public class CetusClientTestApp {
     int numTopics;
 
 
+
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;

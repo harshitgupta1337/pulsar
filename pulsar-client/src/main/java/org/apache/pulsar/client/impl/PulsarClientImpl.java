@@ -913,7 +913,7 @@ public class PulsarClientImpl implements PulsarClient {
 
     public String getSerfBindIp() {
         //return SERF_BIND_IP;
-	return serfBindIp;
+	    return serfBindIp;
     }
 
     public long getSerfBindPort() {
@@ -936,7 +936,8 @@ public class PulsarClientImpl implements PulsarClient {
     }
 
     public boolean getIsJoinedToSerfCluster() {
-        return isJoinedToSerfCluster;
+        //return serfClient.checkMemberList(this.nodeName);
+            return isJoinedToSerfCluster;
     }
 
     public void setIsJoinedToSerfCluster(boolean isJoined) {

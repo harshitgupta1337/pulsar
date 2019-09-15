@@ -479,7 +479,7 @@ public class PulsarService implements AutoCloseable {
                         //long loadSheddingInterval = TimeUnit.MINUTES
                                 //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
                         // CETUS - update load shedding to happen more often
-                        long loadSheddingInterval = 10000;
+                        long loadSheddingInterval = 1000;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 

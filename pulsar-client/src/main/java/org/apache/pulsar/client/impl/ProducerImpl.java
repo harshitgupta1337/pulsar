@@ -33,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import org.apache.pulsar.common.serf.SerfClient;
 import org.apache.pulsar.common.naming.TopicName;
+import java.util.ArrayList;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
@@ -133,6 +134,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     private NetworkCoordinate coordinate;
     private ScheduledExecutorService coordinateProviderService;
     private SerfClient serfClient;
+    private long closedTime;
+    private ArrayList<Long> clientDownTimes;
 
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater
@@ -154,6 +157,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
         this.currentBroker = null;
+        this.closedTime = 0;
+        this.clientDownTimes = new ArrayList<Long>();
         //*********************************************************
         this.compressor = CompressionCodecProvider
                 .getCompressionCodec(convertCompressionType(conf.getCompressionType()));
@@ -253,7 +258,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         int interval = 1000;
 	    log.info("Running Coordinate Service");
         //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        if(!client.getIsJoinedToSerfCluster()) {
+        if(!serfClient.checkMemberList(client.getNodeName())) {
 	        joinSerfCluster();
         }
 	
@@ -265,7 +270,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.coordinate = serfClient.getCoordinate();
      }
         ClientCnx cnx = cnx();
-        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
+        //log.info("Sending coordate to : {}", cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
@@ -531,8 +536,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         }
             try {
                 String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
-                log.info("Broker: {}" ,broker);
-                if(broker != this.currentBroker) {
+                //log.info("Broker: {}" ,broker);
+                if(!broker.equals(this.currentBroker)) {
                     log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
                     this.currentBroker = broker;
                 }
@@ -1104,7 +1109,19 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
                 //joinSerfCluster();
         	startCoordinateProviderService();
-            
+            try {
+                String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
+                if(!broker.equals(this.currentBroker)) {
+                    log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+                    this.currentBroker = broker;
+                    if(closedTime != 0) {
+                        clientDownTimes.add(System.currentTimeMillis() - closedTime);
+                    }
+                }
+            }
+            catch (Exception e) {
+                log.warn("Error getting broker");
+            }
 		
 		
     }
@@ -1493,6 +1510,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     void connectionClosed(ClientCnx cnx) {
         this.connectionHandler.connectionClosed(cnx);
+        closedTime = System.currentTimeMillis();
     }
 
     ClientCnx getClientCnx() {
