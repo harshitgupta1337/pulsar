@@ -257,10 +257,10 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     void startCoordinateProviderService() {
         int interval = 1000;
 	    log.info("Running Coordinate Service");
-        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        if(!serfClient.checkMemberList(client.getNodeName())) {
+        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+        //if(!serfClient.checkMemberList(client.getNodeName())) {
 	        joinSerfCluster();
-        }
+        //}
 	
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
