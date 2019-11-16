@@ -37,7 +37,7 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 
 @Parameters(commandDescription = "Produce or consume messages on a specified topic")
-public class PulsarClientTool {
+public class CetusClientTestApp {
 
     @Parameter(names = { "--url" }, description = "Broker URL to which to connect.")
     String serviceURL = null;
@@ -57,16 +57,20 @@ public class PulsarClientTool {
     @Parameter(names = { "--inject-coordinates" }, description = "set this flag to inject coordinates" )
     boolean injectCoordinates;
 
+    @Parameter(names = { "-nt", "--num-topics" }, description = "Number of topics to create")
+    int numTopics;
+
+
 
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;
 
     JCommander commandParser;
-    CmdProduce produceCommand;
-    CmdConsume consumeCommand;
+    CmdProduceTopicGen produceCommand;
+    CmdConsumeTopicGen consumeCommand;
 
-    public PulsarClientTool(Properties properties) throws MalformedURLException {
+    public CetusClientTestApp(Properties properties) throws MalformedURLException {
         this.serviceURL = StringUtils.isNotBlank(properties.getProperty("brokerServiceUrl"))
                 ? properties.getProperty("brokerServiceUrl") : properties.getProperty("webServiceUrl");
         // fallback to previous-version serviceUrl property to maintain backward-compatibility
@@ -75,6 +79,7 @@ public class PulsarClientTool {
         }
         this.authPluginClassName = properties.getProperty("authPlugin");
         this.authParams = properties.getProperty("authParams");
+        this.numTopics = Integer.parseInt(properties.getProperty("numTopics", "1"));
         this.runEternally = Boolean.parseBoolean(properties.getProperty("runEternally", "false"));
         this.injectCoordinates = Boolean.parseBoolean(properties.getProperty("injectCoordinates", "false"));
         this.tlsAllowInsecureConnection = Boolean
@@ -83,8 +88,8 @@ public class PulsarClientTool {
                 .parseBoolean(properties.getProperty("tlsEnableHostnameVerification", "false"));
         this.tlsTrustCertsFilePath = properties.getProperty("tlsTrustCertsFilePath");
 
-        produceCommand = new CmdProduce();
-        consumeCommand = new CmdConsume();
+        produceCommand = new CmdProduceTopicGen();
+        consumeCommand = new CmdConsumeTopicGen();
 
         this.commandParser = new JCommander();
         commandParser.setProgramName("pulsar-client");
@@ -133,6 +138,11 @@ public class PulsarClientTool {
                 return -1;
             }
 
+            if(numTopics > 1)
+            {
+                
+            }
+
             String chosenCommand = commandParser.getParsedCommand();
             if ("produce".equals(chosenCommand)) {
                 if(runEternally == true) {
@@ -165,7 +175,7 @@ public class PulsarClientTool {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
-            System.out.println("Usage: pulsar-client CONF_FILE_PATH [options] [command] [command options]");
+            System.out.println("Usage: cetus-client CONF_FILE_PATH [options] [command] [command options]");
             System.exit(-1);
         }
         String configFile = args[0];
@@ -183,7 +193,7 @@ public class PulsarClientTool {
             }
         }
 
-        PulsarClientTool clientTool = new PulsarClientTool(properties);
+        CetusClientTestApp clientTool = new CetusClientTestApp(properties);
         int exit_code = clientTool.run(Arrays.copyOfRange(args, 1, args.length));
 
 	    //Thread.sleep (10000);

@@ -34,6 +34,8 @@ class TopicStats {
     double rateOut;
     double throughputIn;
     double throughputOut;
+    // Cetus topic migration microbenchmark
+    double topicMigrationTime;
 
     long storageSize;
     public long msgBacklog;
@@ -45,6 +47,8 @@ class TopicStats {
 
     Map<String, AggregatedReplicationStats> replicationStats = new HashMap<>();
     Map<String, AggregatedSubscriptionStats> subscriptionStats = new HashMap<>();
+
+    Map<String, TopicMigrationStats> topicMigrationStats = new HashMap<>();
 
     public void reset() {
         subscriptionsCount = 0;

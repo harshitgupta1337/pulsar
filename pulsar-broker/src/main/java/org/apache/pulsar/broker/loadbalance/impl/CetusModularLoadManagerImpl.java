@@ -25,6 +25,8 @@ import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.gson.Gson;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
 
@@ -34,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.FileHandler;
+import java.util.logging.SimpleFormatter;
+import java.io.FileWriter;
 
 import org.apache.bookkeeper.util.ZkUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -72,6 +78,7 @@ import org.apache.pulsar.common.policies.data.FailureDomain;
 import org.apache.pulsar.common.policies.data.Policies;
 import org.apache.pulsar.common.policies.data.ResourceQuota;
 import org.apache.pulsar.common.util.ObjectMapperFactory;
+import org.apache.pulsar.broker.stats.prometheus.TopicMigrationStats;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
@@ -95,6 +102,8 @@ import org.slf4j.LoggerFactory;
 
 public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
     private static final Logger log = LoggerFactory.getLogger(CetusModularLoadManagerImpl.class);
+
+    private static final java.util.logging.Logger bundleStatsLog = java.util.logging.Logger.getLogger(CetusModularLoadManagerImpl.class.getName());
 
     // Path to ZNode whose children contain BundleData jsons for each bundle (new API version of ResourceQuota).
     public static final String BUNDLE_DATA_ZPATH = "/loadbalance/bundle-data";
@@ -204,6 +213,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     private final BrokerTopicLoadingPredicate brokerTopicLoadingPredicate;
 
     private Map<String, String> brokerToFailureDomainMap;
+
+    // Cetus - Log Topic Migration Stats
+    private Map<String, TopicMigrationStats> topicMigrationStats;
+    private Multimap<String, Long> bundleUnloadTimes;
+    private Map<String, Long> bundleUnloadStartTime;
+    private ScheduledExecutorService bundleStatsPrintService;
     
 
 
@@ -234,6 +249,10 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         // CETUS
         //this.brokerToProducerConsumerMap = Maps.newHashMap();
         this.cetusLoadData = new CetusLoadData();
+        this.topicMigrationStats = new HashMap<>();
+        this.bundleUnloadTimes = ArrayListMultimap.create();
+        this.bundleUnloadStartTime = new HashMap<>();
+        this.bundleStatsPrintService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("broker-print"));
         //
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
             @Override
@@ -333,6 +352,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 .registerListener((path, data, stat) -> scheduler.execute(() -> refreshBrokerToFailureDomainMap()));
         pulsar.getConfigurationCache().failureDomainCache()
                 .registerListener((path, data, stat) -> scheduler.execute(() -> refreshBrokerToFailureDomainMap()));
+        startBundleStatsPrint();
     }
 
     /**
@@ -345,6 +365,60 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this();
         initialize(pulsar);
     }
+
+    void startBundleStatsPrint() {
+        log.info("Starting bundle stats service");
+        try {
+            FileHandler fh = new FileHandler("/home/tyler/pulsar/bundlestatslog.log");  
+            bundleStatsLog.addHandler(fh);
+            SimpleFormatter formatter = new SimpleFormatter();  
+            fh.setFormatter(formatter);  
+            bundleStatsPrintService.scheduleAtFixedRate(safeRun(() -> printBundleStats()), 100, 1000,TimeUnit.MILLISECONDS);
+        }
+        catch (Exception e) {
+            log.warn("Cannot setup bundle stats log");
+        }
+    }
+
+    void printBundleStats() {
+        //if (pulsar.getLeaderElectionService().isLeader()) {
+        try {
+             FileWriter unloadTimesFile = new FileWriter("/home/tyler/pulsar/bundle_unload_times.json");
+             FileWriter unloadTopicTimesAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_avg.json");
+             FileWriter unloadTotalAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_total_avg.json");
+              //bundleStatsLog.info("Bundle Stats: " +bundleUnloadTimes.toString());
+            Gson gson = new Gson();
+            String json = gson.toJson(bundleUnloadTimes.asMap());
+            log.info("Bundle Json: {}", json);
+            unloadTimesFile.write(json);
+            Map<String, Double> averages = new HashMap<>();
+            List<Double> averagesList = new ArrayList<>();
+            for(String key : bundleUnloadTimes.keySet()) {
+                Collection<Long> values = bundleUnloadTimes.get(key);
+                Double average = values.stream().mapToLong(val -> val).average().orElse(0.0);
+                averages.put(key, average);
+                averagesList.add(average);
+            }
+            //bundleStatsLog.info("Bundle Stats Avg: " +averages);
+            json = gson.toJson(averages);
+            unloadTopicTimesAvgFile.write(json);
+            Double totalAverage = averagesList.stream().mapToDouble(val -> val).average().orElse(0.0);
+            json = gson.toJson(totalAverage);
+            unloadTotalAvgFile.write(json);
+            unloadTimesFile.flush();
+            unloadTopicTimesAvgFile.flush();
+            unloadTotalAvgFile.flush();
+            bundleStatsLog.info("Bundle Stats Total Avg: " +totalAverage);
+            
+
+        }
+        catch (Exception e) {
+        }
+       
+        
+        
+        //}
+    } 
 
     // Attempt to create a ZooKeeper path if it does not exist.
     private static void createZPathIfNotExists(final ZooKeeper zkClient, final String path) throws Exception {
@@ -520,19 +594,34 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     }
                     for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
                         //log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
+                        if(cetusLoadData.getCetusBundleDataMap().containsKey(entry.getKey())) {
                         cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), entry.getValue());
                         //log.info("Cache Bundle Map Size: {}", cetusLoadData.getCetusBundleDataMap().size());
+                        }
+                        else {
+                            cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), new CetusNetworkCoordinateData());
+                        }
+                }
+                    for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBrokerDataMap().get(broker).getBundleNetworkCoordinates().entrySet()) {
+                        //log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
                     }
+
                 }
                 catch (NoNodeException ne){
                     log.debug("Couldn't get broker data, removing from map: {}", ne);
-                    //cetusBrokerDataMap.remove(broker);
+                    cetusLoadData.getCetusBrokerDataMap().remove(broker);
                     log.warn("[{}] broker load-report znode not present", broker, ne);
                 } 
                 catch (Exception e) {
                     log.warn("Error reading broker data from cache for broker - [{}], [{}]", broker, e.getMessage());
                 }
 
+            }
+            // Remove obsolete brokers.
+            for (final String broker : cetusLoadData.getCetusBrokerDataMap().keySet()) {
+                if (!activeBrokers.contains(broker)) {
+                    cetusLoadData.getCetusBrokerDataMap().remove(broker);
+                }
             }
         }
 
@@ -714,7 +803,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             final long timeout = System.currentTimeMillis()
                     - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
             final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
-            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            //recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            
 
             log.info("Starting load shedding");
             final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
@@ -728,12 +818,20 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                         }
 
-                        log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
-                        try {
-                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                            loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                        } catch (PulsarServerException | PulsarAdminException e) {
-                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                        if(!loadData.getRecentlyUnloadedBundles().containsKey(bundle))
+                        {
+                            
+                       
+
+                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
+                            try {
+                                long startTime = System.nanoTime();
+                                bundleUnloadStartTime.put(bundle, startTime);
+                                pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                                //loadData.getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                            } catch (PulsarServerException | PulsarAdminException e) {
+                                log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                            }
                         }
                     });
                 });
@@ -905,6 +1003,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         // CETUS broker assignment selection - narrow down to specific singlular broker chosen
         // by our algorithm.
         public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
+        log.info("Selecting broker for assignment");
        synchronized(brokerCandidateCache) {
             final String bundle = serviceUnit.toString();
             if(preallocatedBundleToBroker.containsKey(bundle)) {
@@ -916,13 +1015,19 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     key -> getBundleDataOrDefault(bundle));
             brokerCandidateCache.clear();
 
-            loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-            preallocatedBundleToBroker.put(bundle, broker.get());
+            //loadData.getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
+            //preallocatedBundleToBroker.put(bundle, broker.get());
 
             final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
             brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
                 .add(bundleRange);
+            log.info("Broker selected: {}", broker);
+            long endTime = System.nanoTime();
+            if(bundleUnloadStartTime.containsKey(bundle)) {
+                long startTime = bundleUnloadStartTime.get(bundle);
+                bundleUnloadTimes.put(bundle, (endTime - startTime));
+            }
             return broker;
              
         } 

@@ -18,6 +18,8 @@
  */
 package org.apache.pulsar.client.cli;
 
+import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,12 +41,19 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.google.common.util.concurrent.RateLimiter;
 
+import java.util.concurrent.Executors;
+
+import com.google.common.collect.Lists;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 /**
  * pulsar-client consume command implementation.
  *
  */
 @Parameters(commandDescription = "Consume messages from a specified topic")
-public class CmdConsume {
+public class CmdConsumeTopicGen {
 
     private static final Logger LOG = LoggerFactory.getLogger(PulsarClientTool.class);
     private static final String MESSAGE_BOUNDARY = "----- got message -----";
@@ -69,9 +78,14 @@ public class CmdConsume {
             + "value 0 means to consume messages as fast as possible.")
     private double consumeRate = 0;
 
+    @Parameter(names = { "-nt", "--num-topics" }, description = "How many topics and consumers to create/subscribe to ")
+    private int numTopics;
+
     ClientBuilder clientBuilder;
 
-    public CmdConsume() {
+    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("consumers"));
+
+    public CmdConsumeTopicGen() {
         // Do nothing
     }
 
@@ -103,59 +117,72 @@ public class CmdConsume {
         }
     }
 
+    private void consume(String topic) {
+     
+        try{
+            int numMessagesConsumed = 0;
+            PulsarClient client = clientBuilder.build();
+            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscribe();
+
+                RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
+                while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume)            {
+                    if (limiter != null) {
+                        limiter.acquire();
+                    }
+
+                    Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
+                    if (msg == null) {
+                        LOG.debug("No message to consume after waiting for 5 seconds.");
+                    } else {
+                        numMessagesConsumed += 1;
+                        System.out.println(MESSAGE_BOUNDARY);
+                        String output = this.interpretMessage(msg, displayHex);
+                        System.out.println(output);
+                        consumer.acknowledge(msg);
+                    }
+                }
+                client.close();
+        }
+        catch (Exception e) {
+            LOG.debug("Exception in consume");
+        }
+    }
+
     /**
      * Run the consume command.
      *
      * @return 0 for success, < 0 otherwise
      */
     public int run() throws PulsarClientException, IOException {
-        if (mainOptions.size() != 1)
-            throw (new ParameterException("Please provide one and only one topic name."));
         if (this.subscriptionName == null || this.subscriptionName.isEmpty())
             throw (new ParameterException("Subscription name is not provided."));
         if (this.numMessagesToConsume < 0)
             throw (new ParameterException("Number of messages should be zero or positive."));
 
-        String topic = this.mainOptions.get(0);
         int numMessagesConsumed = 0;
         int returnCode = 0;
+        
+        String[] topics = new String[this.numTopics];
+        for(int i = 0; i < numTopics; i++) {
+            topics[i] = String.format("non-persistent://public/default/my-topic_%d", i);
+        }
 
-        try {
-            PulsarClient client = clientBuilder.build();
-            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscriptionName(this.subscriptionName).subscriptionType(subscriptionType).subscribe();
-
-            RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
-            while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume) {
-                if (limiter != null) {
-                    limiter.acquire();
-                }
-
-                Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
-                if (msg == null) {
-                    LOG.debug("No message to consume after waiting for 5 seconds.");
-                } else {
-                    numMessagesConsumed += 1;
-                    System.out.println(MESSAGE_BOUNDARY);
-                    String output = this.interpretMessage(msg, displayHex);
-                    System.out.println(output);
-                    consumer.acknowledge(msg);
-                }
+        for (String topic : topics) {
+            try {
+                service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                LOG.error("Error while consuming messages");
+                LOG.error(e.getMessage(), e);
+                returnCode = -1;
+            } finally {
+                LOG.info("{} messages successfully consumed", numMessagesConsumed);
             }
-            client.close();
-        } catch (Exception e) {
-            LOG.error("Error while consuming messages");
-            LOG.error(e.getMessage(), e);
-            returnCode = -1;
-        } finally {
-            LOG.info("{} messages successfully consumed", numMessagesConsumed);
         }
 
         return returnCode;
     }
 
     public int runForever() throws PulsarClientException, IOException {
-        if (mainOptions.size() != 1)
-            throw (new ParameterException("Please provide one and only one topic name."));
         if (this.subscriptionName == null || this.subscriptionName.isEmpty())
             throw (new ParameterException("Subscription name is not provided."));
         if (this.numMessagesToConsume < 0)

@@ -309,4 +309,14 @@ public interface ClientBuilder extends Cloneable {
      * @param unit time unit for {@code statsInterval}
      */
     ClientBuilder keepAliveInterval(int keepAliveIntervalSeconds, TimeUnit unit);
+
+    /**
+     * Set false to inject coordinates to use into the system <i>(default: true)</i>.
+     *
+     * @param useSerfCoordinates
+     * 
+     */
+
+    ClientBuilder setUseSerfCoordinates(boolean useSerfCoordinates);
+
 }

@@ -113,4 +113,20 @@ public class SerfClient {
             log.warn("Cannot join servers {} with Serf cluster: {}", servers, e);
         }
     } 
+
+    public boolean checkMemberList(String nodeName) {
+        try {
+            List<Member> members = client.members().getMembers();
+            for(Member member : members) {
+                if(member.getName().equals(nodeName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        catch (Exception e) {
+            log.warn("Error connecting to Serf Cluster: {}", e);
+            return false;
+        }
+    }
 }

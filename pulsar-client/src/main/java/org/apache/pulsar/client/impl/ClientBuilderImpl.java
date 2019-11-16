@@ -189,6 +189,12 @@ public class ClientBuilderImpl implements ClientBuilder {
         return this;
     }
 
+    @Override
+    public ClientBuilder setUseSerfCoordinates(boolean useSerfCoordinates) {
+        conf.setUseSerfCoordinates(useSerfCoordinates);
+        return this;
+    }
+
     public ClientConfigurationData getClientConfigurationData() {
         return conf;
     }

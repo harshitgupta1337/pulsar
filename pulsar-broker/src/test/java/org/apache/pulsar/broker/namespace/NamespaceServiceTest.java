@@ -52,6 +52,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
 import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerImpl;
+import org.apache.pulsar.broker.loadbalance.impl.CetusModularLoadManagerImpl;
 import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerWrapper;
 import org.apache.pulsar.broker.lookup.LookupResult;
 import org.apache.pulsar.broker.service.BrokerTestBase;
@@ -358,7 +359,7 @@ public class NamespaceServiceTest extends BrokerTestBase {
         LookupResult result1 = pulsar.getNamespaceService().createLookupResult(candidateBroker1).get();
 
         // update to new load mananger
-        pulsar.getLoadManager().set(new ModularLoadManagerWrapper(new ModularLoadManagerImpl()));
+        pulsar.getLoadManager().set(new ModularLoadManagerWrapper(new CetusModularLoadManagerImpl()));
         LookupResult result2 = pulsar.getNamespaceService().createLookupResult(candidateBroker2).get();
         Assert.assertEquals(result1.getLookupData().getBrokerUrl(), candidateBroker1);
         Assert.assertEquals(result2.getLookupData().getBrokerUrl(), candidateBroker2);

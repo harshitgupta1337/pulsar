@@ -33,6 +33,7 @@ import io.netty.util.concurrent.FastThreadLocal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +67,7 @@ import org.apache.pulsar.broker.service.Subscription;
 import org.apache.pulsar.broker.service.Topic;
 import org.apache.pulsar.broker.stats.ClusterReplicationMetrics;
 import org.apache.pulsar.broker.stats.NamespaceStats;
+import org.apache.pulsar.broker.stats.prometheus.TopicMigrationStats;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.InitialPosition;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSubscribe.SubType;
@@ -149,8 +151,11 @@ public class NonPersistentTopic implements Topic {
         public double aggMsgThroughputOut;
         public final ObjectObjectHashMap<String, PublisherStats> remotePublishersStats;
 
+        public final Map<String, TopicMigrationStats> topicMigrationStats;
+
         public TopicStats() {
             remotePublishersStats = new ObjectObjectHashMap<String, PublisherStats>();
+            topicMigrationStats = new HashMap<>();
             reset();
         }
 
@@ -161,6 +166,7 @@ public class NonPersistentTopic implements Topic {
             aggMsgRateOut = 0;
             aggMsgThroughputOut = 0;
             remotePublishersStats.clear();
+            topicMigrationStats.clear();
         }
     }
 

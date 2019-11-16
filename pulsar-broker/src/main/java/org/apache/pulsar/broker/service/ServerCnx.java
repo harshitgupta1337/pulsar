@@ -567,6 +567,10 @@ public class ServerCnx extends PulsarHandler {
                     catch (Exception e) {
                         log.warn("Cannot get bundle for topic: {}", e);
                     }
+                    if(service.pulsar().getNamespaceService().getBundlesCurrentlyUnloading().contains(bundle))
+                    {
+                        return;
+                    }
 
                     boolean valid = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getValid();
                     double[] coordinates = new double[8];
@@ -606,6 +610,11 @@ public class ServerCnx extends PulsarHandler {
                         log.warn("Cannot find bundle for topic: {} : {}",topic , e);
                     }
 
+                    if(service.pulsar().getNamespaceService().getBundlesCurrentlyUnloading().contains(bundle))
+                    {
+                        return;
+                    }
+
                     boolean valid = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getValid();
                     double[] coordinates = new double[8];
                     for(int j = 0; j < commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getCoordinatesCount(); j++) 
@@ -643,6 +652,11 @@ public class ServerCnx extends PulsarHandler {
            catch (Exception e) {
             log.warn("Cannot find bundle for topic: {} : {}", topic, e);
            }
+
+            if(service.pulsar().getNamespaceService().getBundlesCurrentlyUnloading().contains(bundle))
+            {
+                  return;
+            }
  
            boolean valid = commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getValid();
            double[] coordinates = new double[8];

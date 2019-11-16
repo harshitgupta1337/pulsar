@@ -968,6 +968,10 @@ public class ClientCnx extends PulsarHandler {
                 targetBrokerAddress.getPort());
     }
 
+    String getRemoteHostName() {
+        return this.remoteHostName;
+    }
+
      void setRemoteHostName(String remoteHostName) {
         this.remoteHostName = remoteHostName;
     }

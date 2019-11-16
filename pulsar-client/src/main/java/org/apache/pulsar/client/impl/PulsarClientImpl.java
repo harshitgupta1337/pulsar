@@ -115,6 +115,8 @@ public class PulsarClientImpl implements PulsarClient {
     private static String serfBindIp;
     private static int serfBindPort;
 
+    private boolean isJoinedToSerfCluster;
+
     private static String nodeName;
 
     private AtomicReference<State> state = new AtomicReference<>();
@@ -183,6 +185,7 @@ public class PulsarClientImpl implements PulsarClient {
 	        this.serfBindIp = this.serfRpcIp = br.readLine();
 	        this.serfBindPort = 8000;
 	        this.serfRpcPort =  7374;
+            this.isJoinedToSerfCluster = false;
             /*
 	        final Runtime rt = Runtime.getRuntime();
 	        String command = String.format("/usr/local/bin/serf agent -rpc-addr=%s:%s -bind=%s:%s -node=%s", this.serfRpcIp, this.serfRpcPort, this.serfBindIp, this.serfBindPort, this.nodeName);
@@ -910,7 +913,7 @@ public class PulsarClientImpl implements PulsarClient {
 
     public String getSerfBindIp() {
         //return SERF_BIND_IP;
-	return serfBindIp;
+	    return serfBindIp;
     }
 
     public long getSerfBindPort() {
@@ -930,6 +933,15 @@ public class PulsarClientImpl implements PulsarClient {
 
     public String getNodeName() {
         return nodeName;
+    }
+
+    public boolean getIsJoinedToSerfCluster() {
+        //return serfClient.checkMemberList(this.nodeName);
+            return isJoinedToSerfCluster;
+    }
+
+    public void setIsJoinedToSerfCluster(boolean isJoined) {
+        this.isJoinedToSerfCluster = isJoined;
     }
 
 }

@@ -252,7 +252,6 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         topicNameWithoutPartition = topicName.getPartitionedTopicName();
 
         grabCnx();
-        startCoordinateProviderService();
     }
 
     void joinSerfCluster() { 
@@ -269,7 +268,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
     void startCoordinateProviderService() {
         int interval = 100;
-        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), 1000, TimeUnit.MILLISECONDS);
+        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), 1000, TimeUnit.MILLISECONDS);
+	joinSerfCluster();
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
     }
 
@@ -653,6 +653,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             }
             return null;
         });
+
+	startCoordinateProviderService();
     }
 
     /**
@@ -731,6 +733,11 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         }
 
         stats.getStatTimeout().ifPresent(Timeout::cancel);
+
+	//CETUS Shut down coordinate service
+	log.info("Stopping coordinate send service");
+
+	coordinateProviderService.shutdownNow();
 
         setState(State.Closing);
 

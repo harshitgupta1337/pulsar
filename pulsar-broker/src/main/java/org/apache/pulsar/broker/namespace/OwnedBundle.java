@@ -94,6 +94,7 @@ public class OwnedBundle {
     public void handleUnloadRequest(PulsarService pulsar, long timeout, TimeUnit timeoutUnit) throws Exception {
 
         long unloadBundleStartTime = System.nanoTime();
+        LOG.info("Unloading bundle in owned bundle");
         // Need a per namespace RenetrantReadWriteLock
         // Here to do a writeLock to set the flag and proceed to check and close connections
         while (!this.nsLock.writeLock().tryLock(1, TimeUnit.SECONDS)) {
@@ -147,6 +148,8 @@ public class OwnedBundle {
 
         double unloadBundleTime = TimeUnit.NANOSECONDS.toMillis((System.nanoTime() - unloadBundleStartTime));
         LOG.info("Unloading {} namespace-bundle with {} topics completed in {} ms", this.bundle, unloadedTopics, unloadBundleTime);
+        pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle.toString());
+        
     }
 
     /**

@@ -53,10 +53,10 @@ public class CoordinateUtil {
         double[] coordinateVectorB = coordinateB.getCoordinateVector();
         for(int i = 0; i < coordinateVectorA.length; i++) {
             double diff = coordinateVectorA[i] - coordinateVectorB[i];
-            sumsq = diff*diff;
+            sumsq += diff*diff;
         }
         
-        double rtt = Math.sqrt(sumsq) + coordinateA.getHeight() + coordinateB.getHeight();
+        double rtt = Math.sqrt(sumsq); //+ coordinateA.getHeight() + coordinateB.getHeight();
 
         double adjusted = rtt + coordinateA.getAdjustment() + coordinateB.getAdjustment();
 

@@ -476,8 +476,10 @@ public class PulsarService implements AutoCloseable {
                 @Override
                 public synchronized void brokerIsTheLeaderNow() {
                     if (getConfiguration().isLoadBalancerEnabled()) {
-                        long loadSheddingInterval = TimeUnit.MINUTES
-                                .toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
+                        //long loadSheddingInterval = TimeUnit.MINUTES
+                                //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
+                        // CETUS - update load shedding to happen more often
+                        long loadSheddingInterval = 1000;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 
@@ -1094,6 +1096,9 @@ public class PulsarService implements AutoCloseable {
 
     public void updateCoordinates() {
         cetusBrokerData.setBrokerNwCoordinate(serfClient.getCoordinate());
+        for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
+            entry.getValue().setBrokerCoordinate(serfClient.getCoordinate());
+        }
         writeCoordinateDataOnZookeeper();
     }
     
@@ -1133,6 +1138,11 @@ public class PulsarService implements AutoCloseable {
         try {
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
+            //LOG.info("Bundles: {}", cetusBrokerData.getBundleNetworkCoordinates());
+            for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
+
+                //LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
+            }
             getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
             //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
