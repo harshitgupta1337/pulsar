@@ -282,7 +282,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this.pulsar = pulsar;
         availableActiveBrokers = new ZooKeeperChildrenCache(pulsar.getLocalZkCache(),
                 LoadManager.LOADBALANCE_BROKERS_ROOT);
-	    //scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
+	    scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
         availableActiveBrokers.registerListener(new ZooKeeperCacheListener<Set<String>>() {
             @Override
             public void onUpdate(String path, Set<String> data, Stat stat) {
@@ -383,9 +383,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     void printBundleStats() {
         //if (pulsar.getLeaderElectionService().isLeader()) {
         try {
-             FileWriter unloadTimesFile = new FileWriter("/home/tyler/pulsar/bundle_unload_times.json");
-             FileWriter unloadTopicTimesAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_avg.json");
-             FileWriter unloadTotalAvgFile = new FileWriter("/home/tyler/pulsar/bundle_unload_total_avg.json");
+             FileWriter unloadTimesFile = new FileWriter("/home/cetususer/pulsar/bundle_unload_times.json");
+             FileWriter unloadTopicTimesAvgFile = new FileWriter("/home/cetususer/pulsar/bundle_unload_avg.json");
+             FileWriter unloadTotalAvgFile = new FileWriter("/home/tyler/cetususer/bundle_unload_total_avg.json");
               //bundleStatsLog.info("Bundle Stats: " +bundleUnloadTimes.toString());
             Gson gson = new Gson();
             String json = gson.toJson(bundleUnloadTimes.asMap());
@@ -818,8 +818,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                         }
 
-                        if(!loadData.getRecentlyUnloadedBundles().containsKey(bundle))
-                        {
+                        //if(!loadData.getRecentlyUnloadedBundles().containsKey(bundle))
+                        //{
                             
                        
 
@@ -832,7 +832,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             } catch (PulsarServerException | PulsarAdminException e) {
                                 log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
                             }
-                        }
+                        //}
                     });
                 });
 
