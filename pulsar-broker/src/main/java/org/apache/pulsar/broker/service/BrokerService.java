@@ -128,6 +128,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooDefs;
+import org.apache.pulsar.broker.loadbalance.impl.LoadManagerShared;
+import org.apache.pulsar.broker.loadbalance.impl.LoadManagerShared.BrokerTopicLoadingPredicate;
 //*******************************************************************
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
@@ -783,6 +785,24 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             if (namespaceBundle != null) {
                 synchronized (multiLayerTopicsMap) {
                     String serviceUnit = namespaceBundle.toString();
+		    if(multiLayerTopicsMap.containsKey(topicName.getNamespace())) {
+		        if(multiLayerTopicsMap.get(topicName.getNamespace()).containsKey(serviceUnit)) {
+			    if(multiLayerTopicsMap.get(topicName.getNamespace()).get(serviceUnit).size() > 1) {
+				final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(serviceUnit);
+				final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(serviceUnit);
+				log.info("Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
+				NamespaceBundleFactory namespaceBundleFactory = pulsar.getNamespaceService().getNamespaceBundleFactory();
+				if(!namespaceBundleFactory.canSplitBundle(namespaceBundle))
+				{
+					return;
+				}
+				pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange, true);
+				pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
+				log.info("Successfully split bundle");
+			}
+				
+			}
+		    }
                     multiLayerTopicsMap //
                             .computeIfAbsent(topicName.getNamespace(), k -> new ConcurrentOpenHashMap<>()) //
                             .computeIfAbsent(serviceUnit, k -> new ConcurrentOpenHashMap<>()) //

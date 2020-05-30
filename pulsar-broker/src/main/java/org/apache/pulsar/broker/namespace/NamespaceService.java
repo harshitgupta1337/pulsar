@@ -638,12 +638,12 @@ public class NamespaceService {
             checkNotNull(splittedBundles.getRight());
             checkArgument(splittedBundles.getRight().size() == 2, "bundle has to be split in two bundles");
             NamespaceName nsname = bundle.getNamespaceObject();
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("[{}] splitAndOwnBundleOnce: {}, counter: {},  2 bundles: {}, {}",
+            //if (LOG.isDebugEnabled()) {
+                LOG.info("[{}] splitAndOwnBundleOnce: {}, counter: {},  2 bundles: {}, {}",
                     nsname.toString(), bundle.getBundleRange(), counter.get(),
                     splittedBundles != null ? splittedBundles.getRight().get(0).getBundleRange() : "null splittedBundles",
                     splittedBundles != null ? splittedBundles.getRight().get(1).getBundleRange() : "null splittedBundles");
-            }
+            //}
             try {
                 // take ownership of newly split bundles
                 for (NamespaceBundle sBundle : splittedBundles.getRight()) {

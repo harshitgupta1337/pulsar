@@ -283,6 +283,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         availableActiveBrokers = new ZooKeeperChildrenCache(pulsar.getLocalZkCache(),
                 LoadManager.LOADBALANCE_BROKERS_ROOT);
 	    scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
+	    scheduler.scheduleAtFixedRate(safeRun(() -> writeBundleDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
         availableActiveBrokers.registerListener(new ZooKeeperCacheListener<Set<String>>() {
             @Override
             public void onUpdate(String path, Set<String> data, Stat stat) {
@@ -568,7 +569,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             updateBundleData();
             updateLatencyData();
             // broker has latest load-report: check if any bundle requires split
-            checkNamespaceBundleSplit();
+            //checkNamespaceBundleSplit();
         }
 
         private void updateLatencyData() {
@@ -1177,8 +1178,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     public void writeBrokerDataOnZooKeeper() {
         try {
             updateLocalBrokerData();
-            if (needBrokerDataUpdate()) {
+            //if (needBrokerDataUpdate()) {
                 localData.setLastUpdate(System.currentTimeMillis());
+		log.info("Writing bundles to ZooKeeper: {}" ,localData.getBundles());
                 zkClient.setData(brokerZnodePath, localData.getJsonBytes(), -1);
 
                 // Clear deltas.
@@ -1188,7 +1190,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 // Update previous data.
                 lastData.update(localData);
 		        //log.info("Writing broker data to Zookeeper");
-            }
+            //}
         } catch (Exception e) {
             log.warn("Error writing broker data on ZooKeeper: {}", e);
         }
