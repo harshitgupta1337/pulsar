@@ -27,6 +27,10 @@ import static org.apache.pulsar.common.api.Commands.readChecksum;
 import java.nio.charset.Charset;
 // CETUS
 import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import java.lang.reflect.Type;
+import java.io.FileWriter;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -136,6 +140,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     private SerfClient serfClient;
     private long closedTime;
     private ArrayList<Long> clientDownTimes;
+    private ScheduledExecutorService clientDownTimeLoggerService;
 
     @SuppressWarnings("rawtypes")
     private static final AtomicLongFieldUpdater<ProducerImpl> msgIdGeneratorUpdater = AtomicLongFieldUpdater
@@ -159,6 +164,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.currentBroker = null;
         this.closedTime = 0;
         this.clientDownTimes = new ArrayList<Long>();
+	this.clientDownTimeLoggerService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-client-downtime-writer"));
         //*********************************************************
         this.compressor = CompressionCodecProvider
                 .getCompressionCodec(convertCompressionType(conf.getCompressionType()));
@@ -257,12 +263,39 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     void startCoordinateProviderService() {
         int interval = 1000;
 	    log.info("Running Coordinate Service");
-        coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        //if(!serfClient.checkMemberList(client.getNodeName())) {
+        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+        if(!client.getIsJoinedToSerfCluster()) {
 	        joinSerfCluster();
-        //}
+        }
 	
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+	clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
+    }
+
+    public void writeDownTimes() {
+	
+        //if (pulsar.getLeaderElectionService().isLeader()) {
+        try {
+	     
+             FileWriter unloadTimesFile = new FileWriter("/home/cetususer/pulsar/cetus_client_down_times.json." + producerName);
+              //bundleStatsLog.info("Bundle Stats: " +bundleUnloadTimes.toString());
+            Gson gson = new Gson();
+	    log.info("Client Down Times: {}" ,clientDownTimes.toString());
+	    Type listType = new TypeToken<ArrayList<Long>>(){}.getType(); 
+            String json = gson.toJson(clientDownTimes, listType);
+            log.info("Bundle Json: {}", json);
+            unloadTimesFile.write(json);
+	    unloadTimesFile.flush();
+            
+
+        }
+        catch (Exception e) {
+		log.info("Cannot write to file: {}", e);
+        }
+       
+        
+        
+        //} 
     }
 
     public void sendCoordinate() {
@@ -534,6 +567,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         } else {
             checksumType = ChecksumType.None;
         }
+	    /*
             try {
                 String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
                 //log.info("Broker: {}" ,broker);
@@ -545,6 +579,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             catch (Exception e) {
                 log.warn("Error getting broker");
             }
+	    */
         return Commands.newSend(producerId, sequenceId, numMessages, checksumType, msgMetadata, compressedPayload);
     }
 
@@ -686,7 +721,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
 	coordinateProviderService.shutdownNow();
 
-	
+	closedTime = System.currentTimeMillis();	
 
         ClientCnx cnx = cnx();
         if (cnx == null || currentState != State.Ready) {
@@ -1034,9 +1069,44 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
                         }
                         resetBackoff();
 
-                        log.info("[{}] [{}] Created producer on cnx {}", topic, producerName, cnx.ctx().channel());
+			log.info("[{}] [{}] Created producer on cnx {}", topic, producerName, cnx.ctx().channel());
                         connectionId = cnx.ctx().channel().toString();
                         connectedSince = DateFormatter.now();
+
+			// TODO Trying 
+			try {
+				String broker = cnx.ctx().channel().remoteAddress().toString();
+				if(!broker.equals(this.currentBroker)) {
+					log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+					this.currentBroker = broker;
+					log.info("Closed Time: {}", this.closedTime);
+					if(this.closedTime != 0) {
+						log.info("Adding client down time!: " ,(System.currentTimeMillis() - closedTime));
+						clientDownTimes.add(System.currentTimeMillis() - closedTime);
+					}
+				}	
+			}
+			catch (Exception e) {
+			}
+			/*
+			try {
+				String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get(1, TimeUnit.SECONDS).getRight().toString();
+				if(!broker.equals(this.currentBroker)) {
+					log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+					this.currentBroker = broker;
+					log.info("Closed Time: {}", this.closedTime);
+					if(this.closedTime != 0) {
+						log.info("Adding client down time!: " ,(System.currentTimeMillis() - closedTime));
+						clientDownTimes.add(System.currentTimeMillis() - closedTime);
+					}
+				}
+			}
+			catch (Exception e) {
+				log.warn("Error getting broker");
+			}
+			*/
+
+
 
                         if (this.producerName == null) {
                             this.producerName = producerName;
@@ -1108,7 +1178,11 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
                 });
 
                 //joinSerfCluster();
+		//grabCnx();
         	startCoordinateProviderService();
+		// TODO 
+
+		/*
             try {
                 log.info("Getting current broker");
                 String broker = client.getLookup().getBroker(TopicName.get(this.topic)).get().getRight().toString();
@@ -1116,14 +1190,16 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
                 if(!broker.equals(this.currentBroker)) {
                     log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
                     this.currentBroker = broker;
-                    if(closedTime != 0) {
+		    log.info("Closed Time: {}", this.closedTime);
+                    if(this.closedTime != 0) {
+			log.info("Adding client down time!: " ,(System.currentTimeMillis() - closedTime));
                         clientDownTimes.add(System.currentTimeMillis() - closedTime);
                     }
                 }
             }
             catch (Exception e) {
                 log.warn("Error getting broker");
-            }
+            }*/
 		
 		
     }
@@ -1511,8 +1587,9 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void connectionClosed(ClientCnx cnx) {
+	this.closedTime = System.currentTimeMillis();
+	log.info("Closed Time: {}", this.closedTime);
         this.connectionHandler.connectionClosed(cnx);
-        closedTime = System.currentTimeMillis();
     }
 
     ClientCnx getClientCnx() {
