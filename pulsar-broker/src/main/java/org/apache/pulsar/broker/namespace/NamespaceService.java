@@ -222,7 +222,7 @@ public class NamespaceService {
                     final String redirectUrl = isRequestHttps ? lookupData.getHttpUrlTls() : lookupData.getHttpUrl();
                     return Optional.of(new URL(redirectUrl));
                 } catch (Exception e) {
-                    // just log the exception, nothing else to do
+                    // just LOG the exception, nothing else to do
                     LOG.warn("internalGetWebServiceUrl [{}]", e.getMessage(), e);
                 }
             }
@@ -505,7 +505,7 @@ public class NamespaceService {
     }
 
     /**
-     * Helper function to encapsulate the logic to invoke between old and new load manager
+     * Helper function to encapsulate the LOGic to invoke between old and new load manager
      *
      * @return
      * @throws Exception
@@ -654,9 +654,12 @@ public class NamespaceService {
                         if (rc == Code.OK.intValue()) {
                             // invalidate cache as zookeeper has new split
                             // namespace bundle
+                            LOG.info("Updating bundle cache(invalidate)");
                             bundleFactory.invalidateBundleCache(bundle.getNamespaceObject());
 
+                            LOG.info("Looking to complete update future");
                             updateFuture.complete(splittedBundles.getRight());
+                            LOG.info("Update future completed");
                         } else if (rc == Code.BADVERSION.intValue()) {
                             KeeperException keeperException = KeeperException.create(KeeperException.Code.get(rc));
                             String msg = format("failed to update namespace policies [%s], NamespaceBundle: %s " +
@@ -685,6 +688,7 @@ public class NamespaceService {
             updateFuture.completeExceptionally(new ServiceUnitNotReadyException(msg));
         }
 
+        LOG.info("updateNamespaceBundle success! Waiting for update future to return.");
         // If success updateNamespaceBundles, then do invalidateBundleCache and unload.
         // Else retry splitAndOwnBundleOnceAndRetry.
         updateFuture.whenCompleteAsync((r, t)-> {
@@ -693,6 +697,7 @@ public class NamespaceService {
                 if ((t instanceof ServerMetadataException) && (counter.decrementAndGet() >= 0)) {
                     pulsar.getOrderedExecutor()
                             .execute(() -> splitAndOwnBundleOnceAndRetry(bundle, unload, counter, unloadFuture));
+                            LOG.info("Retrying split and own bundle once: {}", counter.get());
                 } else {
                     // Retry enough, or meet other exception
                     String msg2 = format(" %s not success update nsBundles, counter %d, reason %s",
@@ -705,14 +710,18 @@ public class NamespaceService {
 
             // success updateNamespaceBundles
             try {
+                LOG.info("disabling old bundle cache");
                 // disable old bundle in memory
                 getOwnershipCache().updateBundleState(bundle, false);
 
+                LOG.info("trying to update the topic to stats maps");
                 // update bundled_topic cache for load-report-generation
                 pulsar.getBrokerService().refreshTopicToStatsMaps(bundle);
+                LOG.info("Setting load report update flag");
                 loadManager.get().setLoadReportForceUpdateFlag();
 
                 if (unload) {
+                    LOG.info("Unloading split bundles");
                     // unload new split bundles
                     r.forEach(splitBundle -> {
                         try {
@@ -723,7 +732,7 @@ public class NamespaceService {
                         }
                     });
                 }
-
+                LOG.info("Unload is complete");
                 unloadFuture.complete(null);
             } catch (Exception e) {
                 String msg1 = format(
@@ -734,6 +743,7 @@ public class NamespaceService {
             }
             return;
         }, pulsar.getOrderedExecutor());
+        LOG.info("End of function");
     }
 
     /**
