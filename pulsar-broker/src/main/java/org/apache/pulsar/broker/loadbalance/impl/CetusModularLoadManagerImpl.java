@@ -795,6 +795,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         // CETUS - Unload Bundles
         @Override
         public synchronized void doLoadShedding() {
+            if (true) return;
             if (getAvailableBrokers().size() <= 1) {
                 log.info("Only 1 broker available: no load shedding will be performed");
                 return;

@@ -258,7 +258,7 @@ public class CmdProduceTopicGen {
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++)
         {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d%d%d%d", i, i, i, i);
+            topics[i] = String.format("non-persistent://public/pulsar-cluster-1/cetus/my-topic_%d%d%d%d", i, i, i, i);
             LOG.info("Topic: {}", topics[i]);
         }
 
@@ -275,6 +275,11 @@ public class CmdProduceTopicGen {
                 returnCode = -1;
             } finally {
                 LOG.info("{} messages successfully produced", numMessagesSent);
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
         while(true);

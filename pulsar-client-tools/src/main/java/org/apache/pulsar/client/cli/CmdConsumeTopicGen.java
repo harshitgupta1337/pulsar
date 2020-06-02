@@ -164,7 +164,7 @@ public class CmdConsumeTopicGen {
         
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++) {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d", i);
+            topics[i] = String.format("non-persistent://public/cetus/my-topic_%d", i);
         }
 
         for (String topic : topics) {
