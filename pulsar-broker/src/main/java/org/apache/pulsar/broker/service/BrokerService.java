@@ -81,6 +81,7 @@ import org.apache.pulsar.broker.admin.AdminResource;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
 import org.apache.pulsar.broker.authorization.AuthorizationService;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
+import org.apache.pulsar.broker.loadbalance.ServiceUnit;
 import org.apache.pulsar.broker.service.BrokerServiceException.NamingException;
 import org.apache.pulsar.broker.service.BrokerServiceException.NotAllowedException;
 import org.apache.pulsar.broker.service.BrokerServiceException.PersistenceException;
@@ -95,6 +96,7 @@ import org.apache.pulsar.broker.web.PulsarWebResource;
 import org.apache.pulsar.broker.zookeeper.aspectj.ClientCnxnAspect;
 import org.apache.pulsar.broker.zookeeper.aspectj.ClientCnxnAspect.EventListner;
 import org.apache.pulsar.broker.zookeeper.aspectj.ClientCnxnAspect.EventType;
+import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -836,7 +838,12 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                         log.info("Added Namespace: {}, bundle: {}, topic: {}", topicName.getNamespace(), serviceUnit, topicName.toString());
                     }
                 }
-                if (toSplit) {
+                /*if (toSplit) {
+                 * MAYBE TRY ASYNC EXECUTING
+                 * ALSO SPECIFY KEY FOR THE EXECUTOR so that all splits are done in order
+                 * pulsar.getOrderedExecutor()
+                            .execute(() -> splitAndOwnBundleOnceAndRetry(bundle, unload, counter, unloadFuture));
+                 * 
                     final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(serviceUnit);
                     final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(serviceUnit);
                     log.info("NEED TO SPLIT Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
@@ -851,6 +858,10 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                     log.info("Attempting to invalidate bundle cache");
                     pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
                     log.info("Successfully split bundle");
+                }*/
+                if (toSplit) {
+                    pulsar.getOrderedExecutor()
+                        .executeOrdered(this, () -> splitBundle(serviceUnit, namespaceBundle));
                 }
             }
             invalidateOfflineTopicStatCache(topicName);
@@ -862,6 +873,32 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         log.info("added topic to stats map");
     }
 
+    public void splitBundle(String serviceUnit, NamespaceBundle namespaceBundle) {
+        final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(serviceUnit);
+        final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(serviceUnit);
+        log.info("NEED TO SPLIT Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
+        NamespaceBundleFactory namespaceBundleFactory = pulsar.getNamespaceService().getNamespaceBundleFactory();
+        if(!namespaceBundleFactory.canSplitBundle(namespaceBundle))
+        {
+            log.info("Cannot split bundle! Bundle: {}", serviceUnit);
+            return;
+        }
+        log.info("Attempting to split bundle");
+        try {
+            pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange, false);
+        } catch (PulsarServerException e) {
+            log.error("Caught Server exception when trying to split bundle "+e.getMessage());
+            e.printStackTrace();
+        } catch (PulsarAdminException e) {
+            log.error("Caught Admin exception when trying to split bundle "+e.getMessage());
+            e.printStackTrace();
+        }
+        log.info("Attempting to invalidate bundle cache");
+        pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
+        this.updateRates();
+        log.info("Successfully split bundle");
+    }
+    
     public void refreshTopicToStatsMaps(NamespaceBundle oldBundle) {
         checkNotNull(oldBundle);
         try {
