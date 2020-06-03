@@ -20,17 +20,13 @@ package org.apache.pulsar.client.cli;
 
 import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.Parameters;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.RateLimiter;
-import java.util.concurrent.TimeUnit;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.Producer;
@@ -39,12 +35,13 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.Parameters;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.RateLimiter;
 
-import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * pulsar-client produce command implementation.
@@ -78,6 +75,11 @@ public class CmdProduceTopicGen {
     @Parameter(names = { "-nt", "--num-topics" }, description = "How many topics and producers to create")
     private int numTopics = 1;
 
+    @Parameter(names = { "-ns", "--namespace" }, description = "Name of namespace (e.g. pulsar-cluster-1/cetus)")
+    private String namespace = "pulsar-cluster-1/cetus";
+    
+    @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
+    private String topicPrefix = "my-topic";
     
     boolean noMessages = false;
 
@@ -184,6 +186,12 @@ public class CmdProduceTopicGen {
 	    }
        
     }
+    
+    private String generateTopicName(int idx) {
+        String topicName = String.format("non-persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
+        return topicName;
+    }
+    
     /**
      * Run the producer.
      *
@@ -205,7 +213,7 @@ public class CmdProduceTopicGen {
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++)
         {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d", i);
+            topics[i] = String.format(generateTopicName(i));
         }
         //String topic = this.mainOptions.get(0);
         int numMessagesSent = 0;
@@ -258,7 +266,7 @@ public class CmdProduceTopicGen {
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++)
         {
-            topics[i] = String.format("non-persistent://public/pulsar-cluster-1/cetus/my-topic_%d%d%d%d", i, i, i, i);
+            topics[i] = String.format(generateTopicName(i));
             LOG.info("Topic: {}", topics[i]);
         }
 
@@ -296,7 +304,6 @@ public class CmdProduceTopicGen {
                         if (limiter != null) {
                             limiter.acquire();
                         }
-
                         producer.send(content);
                         numMessagesSent++;
                     }
@@ -308,9 +315,6 @@ public class CmdProduceTopicGen {
 		           LOG.error("Failed to sleep inside run()");
 	            }
             }
-
-
-
             //client.close();
         } catch (Exception e) {
             LOG.error("Error while producing messages");
@@ -323,5 +327,4 @@ public class CmdProduceTopicGen {
 
         //return returnCode;
     }
- 
 }
