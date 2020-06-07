@@ -56,7 +56,7 @@ public class CoordinateUtil {
             sumsq += diff*diff;
         }
         
-        double rtt = Math.sqrt(sumsq); //+ coordinateA.getHeight() + coordinateB.getHeight();
+        double rtt = Math.sqrt(sumsq) + coordinateA.getHeight() + coordinateB.getHeight();
 
         double adjusted = rtt + coordinateA.getAdjustment() + coordinateB.getAdjustment();
 
