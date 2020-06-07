@@ -80,6 +80,9 @@ public class CmdProduceTopicGen {
     
     @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
     private String topicPrefix = "my-topic";
+
+    @Parameter(names = { "-si", "--inter-producer-sleep-ms" }, description = "Milliseconds between creating 2 producers")
+    private int interProducerSleepMs = 1000;
     
     boolean noMessages = false;
 
@@ -285,7 +288,7 @@ public class CmdProduceTopicGen {
                 LOG.info("{} messages successfully produced", numMessagesSent);
             }
             try {
-                Thread.sleep(1000);
+                Thread.sleep(interProducerSleepMs);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
