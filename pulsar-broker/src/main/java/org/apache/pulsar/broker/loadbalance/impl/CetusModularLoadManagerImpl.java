@@ -282,8 +282,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this.pulsar = pulsar;
         availableActiveBrokers = new ZooKeeperChildrenCache(pulsar.getLocalZkCache(),
                 LoadManager.LOADBALANCE_BROKERS_ROOT);
-        scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
-        scheduler.scheduleAtFixedRate(safeRun(() -> writeBundleDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
+        //scheduler.scheduleAtFixedRate(safeRun(() -> writeBrokerDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
+        //scheduler.scheduleAtFixedRate(safeRun(() -> writeBundleDataOnZooKeeper()), 0, 1000, TimeUnit.MILLISECONDS);
         availableActiveBrokers.registerListener(new ZooKeeperCacheListener<Set<String>>() {
                 @Override
                 public void onUpdate(String path, Set<String> data, Stat stat) {
