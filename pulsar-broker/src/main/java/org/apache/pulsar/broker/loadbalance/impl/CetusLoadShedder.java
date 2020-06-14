@@ -38,6 +38,7 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
+import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
 import org.apache.pulsar.broker.namespace.NamespaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,17 +62,31 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
         log.info("SelectedBundleCache: {}", selectedBundleCache.toString());
         log.info("Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
-            log.info("Load Shedding Bundles: {}", entry.getValue().getBundleNetworkCoordinates());
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getBundleNetworkCoordinates().entrySet()) {
-                for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
-                    log.info("[Cetus Load Shedder] Distance to broker: {}. Distance to Referenced Broker {}:  {} Topic Prod/Cons Coordinate: {} Broker Coordinate: {}", topicEntry.getValue().distanceToBroker(), brokerEntry.getKey(), CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()), topicEntry.getValue().getProducerConsumerAvgCoordinate().getCoordinateVector(), brokerEntry.getValue().getBrokerNwCoordinate().getCoordinateVector()); 
-                    if((brokerEntry.getKey() != entry.getKey()) && (CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < topicEntry.getValue().distanceToBroker())) {
+                double distToCurrBroker = topicEntry.getValue().distanceToBroker();
+                if (distToCurrBroker*1000.0 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
+                    log.info("[Cetus Load Shedder] Latency bound violated for bundle {}. Dist to curr broker {} = {}", topicEntry.getKey(), entry.getKey(), distToCurrBroker);
+
+                    boolean betterBrokerFound = false;
+                    for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
+                        if (brokerEntry.getKey().equals(entry.getKey())) 
+                            continue;
+                        double distToOtherBroker = CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
+                        log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker);
+                        if (distToOtherBroker*1000.0 < CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
+                            betterBrokerFound = true;
+                            break;
+                        }
+                    }
+                    if (betterBrokerFound) {
                         try {
                             selectedBundleCache.put(entry.getKey(), topicEntry.getKey());
                         }
                         catch (Exception e) {
                             log.warn("Cannot find bundle!: {}", e);
-                        }
+                        } 
+                    } else {
+                        log.warn("[Cetus Load Shedder] Bundle {} is violated. But no other broker available. Sticking to bad broker", topicEntry.getKey());
                     }
                 }
             }

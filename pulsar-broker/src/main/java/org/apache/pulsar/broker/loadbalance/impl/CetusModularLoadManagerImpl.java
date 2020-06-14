@@ -1013,7 +1013,7 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
                 key -> getBundleDataOrDefault(bundle));
         brokerCandidateCache.clear();
 
-        getBrokersMeetLatency(bundle, 25); //ms
+        getBrokersMeetLatency(bundle, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS); //ms
 
         //LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
         //brokerTopicLoadingPredicate);
