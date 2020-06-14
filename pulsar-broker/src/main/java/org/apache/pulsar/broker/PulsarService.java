@@ -249,15 +249,16 @@ public class PulsarService implements AutoCloseable {
 			LOG.info("Node Name: {}", this.nodeName);
 			br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
 			this.serfBindIp = this.serfRpcIp = br.readLine();
-			this.serfBindPort = 8000;
-			this.serfRpcPort =  7374;
+			this.serfBindPort = 8085;
+			this.serfRpcPort =  7373;
 		}
 		catch (Exception e) {
 			LOG.info("Cannot setup serf!");
 		this.nodeName="n1";
 	}
 
-        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
+        this.serfClient = new SerfClient(this.serfRpcIp, this.serfRpcPort, nodeName);
+        //this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
 
 
     }

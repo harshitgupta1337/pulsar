@@ -585,7 +585,7 @@ public class ClientCnx extends PulsarHandler {
         commandSerfJoinBuilder.setAddress(client.getSerfBindIp());
         commandSerfJoinBuilder.setRequestId(requestId);
         commandSerfJoinBuilder.setPort(client.getSerfBindPort());
-        log.info("Created Serf Join Message!");
+        log.info("Created Serf Join Message to {}:{}  !", client.getSerfBindIp(), client.getSerfBindPort());
         return commandSerfJoinBuilder;
     }
 

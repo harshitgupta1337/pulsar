@@ -861,7 +861,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                 }*/
                 if (toSplit) {
                     pulsar.getOrderedExecutor()
-                        .executeOrdered(this, () -> splitBundle(serviceUnit, namespaceBundle));
+                        .executeOrdered(BrokerService.this, () -> splitBundle(serviceUnit, namespaceBundle));
                 }
             }
             invalidateOfflineTopicStatCache(topicName);

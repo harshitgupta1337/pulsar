@@ -822,9 +822,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             //if(!cetusLoadData.getLoadData().getRecentlyUnloadedBundles().containsKey(bundle))
                             //{
 
-
-
-                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {}", bundle, broker);
+                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
                             try {
                             long startTime = System.nanoTime();
                             bundleUnloadStartTime.put(bundle, startTime);
@@ -1015,11 +1013,12 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
                 key -> getBundleDataOrDefault(bundle));
         brokerCandidateCache.clear();
 
-        getBrokersMeetLatency(bundle, 50); //ms
+        getBrokersMeetLatency(bundle, 25); //ms
 
         //LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
         //brokerTopicLoadingPredicate);
 
+        /* Removing extra checks for now
         // filter brokers which owns topic higher than threshold
         LoadManagerShared.filterBrokersWithLargeTopicCount(brokerCandidateCache, cetusLoadData.getLoadData(),
                 conf.getLoadBalancerBrokerMaxTopics());
@@ -1031,6 +1030,12 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
 
         LoadManagerShared.removeMostServicingBrokersForNamespace(serviceUnit.toString(), brokerCandidateCache,
                 brokerToNamespaceToBundleRange);
+        */
+        for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
+            if (brokerEntry.getKey().contains("d0"))
+                brokerCandidateCache.add(brokerEntry.getKey()); 
+        }
+
         log.info("{} brokers being considered for assignment of {}", brokerCandidateCache.size(), bundle);
 
         // Use the filter pipeline to finalize broker candidates.
@@ -1108,7 +1113,7 @@ private void getBrokersMeetLatency(final String bundle, int latencyReqMs) {
             if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
                 log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
 
-                if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < latencyReqMs) {
+                if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) * 1000 < latencyReqMs) {
                     //log.info("Bundle broker found: {}  Distance : {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
                     brokerCandidateCache.add(brokerEntry.getKey()); 
                 }
