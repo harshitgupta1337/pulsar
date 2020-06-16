@@ -198,8 +198,10 @@ public class NonPersistentTopic implements Topic {
     public void publishMessage(ByteBuf data, PublishContext callback) {
         callback.completed(null, 0L, 0L);
         ENTRIES_ADDED_COUNTER_UPDATER.incrementAndGet(this);
-
+       
+        log.info("Size of subscriptions = {}", subscriptions.size()); 
         subscriptions.forEach((name, subscription) -> {
+            log.info("Sending message to subscription {}", name);
             ByteBuf duplicateBuffer = data.retainedDuplicate();
             Entry entry = create(0L, 0L, duplicateBuffer);
             // entry internally retains data so, duplicateBuffer should be release here
@@ -363,6 +365,7 @@ public class NonPersistentTopic implements Topic {
 
         NonPersistentSubscription subscription = subscriptions.computeIfAbsent(subscriptionName,
                 name -> new NonPersistentSubscription(this, subscriptionName));
+        log.info("Size of subscriptions after adding new subscription = {}", subscriptions.size());
 
         try {
             Consumer consumer = new Consumer(subscription, subType, topic, consumerId, priorityLevel, consumerName, 0, cnx,
@@ -401,6 +404,7 @@ public class NonPersistentTopic implements Topic {
     }
 
     void removeSubscription(String subscriptionName) {
+        log.info("DELETING SUBSCRIPTION {}", subscriptionName);
         subscriptions.remove(subscriptionName);
     }
 

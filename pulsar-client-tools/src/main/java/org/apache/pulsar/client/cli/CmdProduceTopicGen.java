@@ -149,7 +149,8 @@ public class CmdProduceTopicGen {
                        limiter.acquire();
                    }
 
-                   producer.send(content);
+                   String ts = Long.toString(System.currentTimeMillis());
+                   producer.send(ts.getBytes());
                    numMessagesSent++;
                 }
             }
@@ -177,7 +178,10 @@ public class CmdProduceTopicGen {
                        limiter.acquire();
                    }
 
-                   producer.send(content);
+                   LOG.info("Producing message on topic {} ", topic);
+                   String ts = Long.toString(System.currentTimeMillis());
+                   producer.send(ts.getBytes());
+
                    numMessagesSent++;
                 }
             }
@@ -293,7 +297,13 @@ public class CmdProduceTopicGen {
                 e.printStackTrace();
             }
         }
-        while(true);
+        while(true) {
+            try {
+                Thread.sleep(1);
+            } catch (Exception e) {
+                LOG.error("Error while sleeping after all producer threads have been created");
+            }
+        }
         /*
         try {
             PulsarClient client = clientBuilder.build();

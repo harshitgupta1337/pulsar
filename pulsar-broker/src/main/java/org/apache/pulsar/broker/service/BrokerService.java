@@ -476,7 +476,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         return getTopic(topic, true /* createIfMissing */).thenApply(Optional::get);
     }
 
-    private CompletableFuture<Optional<Topic>> getTopic(final String topic, boolean createIfMissing) {
+    private synchronized CompletableFuture<Optional<Topic>> getTopic(final String topic, boolean createIfMissing) {
         try {
             log.info("TOPIC_COHM Inside getTopic for topic {}", topic);
             CompletableFuture<Optional<Topic>> topicFuture = topics.get(topic);
@@ -490,13 +490,14 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                 }
             }
             final boolean isPersistentTopic = TopicName.get(topic).getDomain().equals(TopicDomain.persistent);
-            log.info("TOPIC_COHM before returning from getTopic");
             boolean containsTopic = topics.containsKey(topic);
             if (containsTopic)
                 return topics.get(topic);
             
+            log.info("TOPIC_COHM before returning from getTopic");
             CompletableFuture<Optional<Topic>> topicFutureCreated = isPersistentTopic ? this.loadOrCreatePersistentTopic(topic, createIfMissing)
                     : createNonPersistentTopic(topic);
+            log.info("TOPIC_COHM Creating non persistent topic {}", topic);
             topics.put(topic, topicFutureCreated);
             return topicFutureCreated;
             
