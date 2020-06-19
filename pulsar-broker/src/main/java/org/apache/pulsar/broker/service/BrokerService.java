@@ -861,8 +861,11 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                     log.info("Successfully split bundle");
                 }*/
                 if (toSplit) {
-                    pulsar.getOrderedExecutor()
-                        .executeOrdered(BrokerService.this, () -> splitBundle(serviceUnit, namespaceBundle));
+                    pulsar.getExecutor()
+                        .execute(() -> splitBundle(serviceUnit, namespaceBundle));
+                    //pulsar.getOrderedExecutor()
+                        //.executeOrdered(serviceUnit, () -> splitBundle(serviceUnit, namespaceBundle));
+                        //.executeOrdered(BrokerService.this, () -> splitBundle(serviceUnit, namespaceBundle));
                 }
             }
             invalidateOfflineTopicStatCache(topicName);
@@ -874,7 +877,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         log.info("added topic to stats map");
     }
 
-    public void splitBundle(String serviceUnit, NamespaceBundle namespaceBundle) {
+    public synchronized void splitBundle(String serviceUnit, NamespaceBundle namespaceBundle) {
         final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(serviceUnit);
         final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(serviceUnit);
         log.info("NEED TO SPLIT Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
@@ -894,6 +897,10 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             log.error("Caught Admin exception when trying to split bundle "+e.getMessage());
             e.printStackTrace();
         }
+        
+        log.info("Removing old bundle from CetusBrokerData in PulsarService");
+        this.pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleRange);
+
         log.info("Attempting to invalidate bundle cache");
         pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
         this.updateRates();
@@ -954,6 +961,14 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     }
 
     public void updateRates() {
+        /*multiLayerTopicsMap.forEach((namespace, bundleMap) -> {
+            bundleMap.forEach((bundle, topicMap) -> {
+                topicMap.forEach((topicName, topic) -> {
+                    log.info("Topic : {}\tBundle : {}", topic, bundle);
+                });
+            });
+        });*/
+
         synchronized (pulsarStats) {
             pulsarStats.updateStats(multiLayerTopicsMap);
         }

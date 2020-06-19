@@ -199,9 +199,7 @@ public class NonPersistentTopic implements Topic {
         callback.completed(null, 0L, 0L);
         ENTRIES_ADDED_COUNTER_UPDATER.incrementAndGet(this);
        
-        log.info("Size of subscriptions = {}", subscriptions.size()); 
         subscriptions.forEach((name, subscription) -> {
-            log.info("Sending message to subscription {}", name);
             ByteBuf duplicateBuffer = data.retainedDuplicate();
             Entry entry = create(0L, 0L, duplicateBuffer);
             // entry internally retains data so, duplicateBuffer should be release here
