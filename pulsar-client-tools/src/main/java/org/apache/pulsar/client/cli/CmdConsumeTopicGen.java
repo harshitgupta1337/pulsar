@@ -130,6 +130,7 @@ public class CmdConsumeTopicGen {
             // TODO Using the topic name as subscription name for now
             Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscriptionName(topic).subscriptionType(subscriptionType).subscribe();
 
+                int lastMsgId = -1;
                 RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
                 while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume)            {
                     if (limiter != null) {
@@ -142,9 +143,24 @@ public class CmdConsumeTopicGen {
                     } else {
                         numMessagesConsumed += 1;
                         String output = this.interpretMessage(msg, displayHex);
+                        String[] splited = output.split("\\s+");
+
+                        int msgId = Integer.parseInt(splited[0]);
+                        if (lastMsgId == -1) {
+                            
+                        } else if (msgId != lastMsgId + 1) {
+                            if (msgId == lastMsgId)
+                                LOG.info("PUBSUB_MSGERROR Redundant message on topic {} with ID {}", topic, msgId);
+                            else if (msgId < lastMsgId)
+                                LOG.info("PUBSUB_MSGERROR Out-of-order delivery on topic {} with ID {}", topic, msgId);
+                            else
+                                LOG.info("PUBSUB_MSGDROP Dropped message on topic {} Expected ID {} Recvd ID {}", topic, (lastMsgId+1), msgId);
+                        }
+                        lastMsgId = msgId;
+
                         //System.out.println(output);
                         long currTime = System.currentTimeMillis();
-                        long sentTime = Long.parseLong(output);
+                        long sentTime = Long.parseLong(splited[1]);
                         LOG.info("PUBSUB_DELAY for topic {} = {}", topic, currTime-sentTime);
                         consumer.acknowledge(msg);
                     }

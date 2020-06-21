@@ -51,7 +51,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 public class CmdProduceTopicGen {
 
     private static final Logger LOG = LoggerFactory.getLogger(CetusClientTestApp.class);
-    private static final int MAX_MESSAGES = 1000;
+    private static final int MAX_MESSAGES = 1000000;
 
     @Parameter(description = "TopicName", required = true)
     private List<String> mainOptions;
@@ -178,9 +178,10 @@ public class CmdProduceTopicGen {
                        limiter.acquire();
                    }
 
-                   LOG.info("Producing message on topic {} ", topic);
+                   //LOG.info("Producing message on topic {} ", topic);
                    String ts = Long.toString(System.currentTimeMillis());
-                   producer.send(ts.getBytes());
+                   String msg = Integer.toString(numMessagesSent)+" "+ts;
+                   producer.send(msg.getBytes());
 
                    numMessagesSent++;
                 }
