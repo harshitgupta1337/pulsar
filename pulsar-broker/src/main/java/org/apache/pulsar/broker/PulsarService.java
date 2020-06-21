@@ -540,7 +540,7 @@ public class PulsarService implements AutoCloseable {
 
     // CETUS: Coordinate Collector Service start
     void startCoordinateCollectorService() {
-        int interval = 100;
+        int interval = 1500;
 
         cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
                                                            0, interval, TimeUnit.MILLISECONDS);
