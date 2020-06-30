@@ -134,7 +134,8 @@ public class OwnedBundle {
             }
             // delete ownership node on zk
             try {
-                pulsar.getNamespaceService().getOwnershipCache().removeOwnership(bundle).get(timeout, timeoutUnit);
+                pulsar.getNamespaceService().getOwnershipCache().removeOwnership(bundle);
+                //pulsar.getNamespaceService().getOwnershipCache().removeOwnership(bundle).get(timeout, timeoutUnit);
             } catch (Exception e) {
                 // Failed to remove ownership node: enable namespace-bundle again so, it can serve new topics
                 pulsar.getNamespaceService().getOwnershipCache().updateBundleState(this.bundle, true);

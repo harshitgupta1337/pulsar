@@ -802,12 +802,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
             // map.
             final long timeout = System.currentTimeMillis()
-                - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
+                - 5000; // 5 secs, typically the time taken by network coordinates to converge
+                // TODO - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
             final Map<String, Long> recentlyUnloadedBundles = cetusLoadData.getLoadData().getRecentlyUnloadedBundles();
-            //recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
+            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
-            log.info("Starting load shedding");
             final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
             log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
@@ -819,19 +819,21 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             return;
                             }
 
-                            //if(!cetusLoadData.getLoadData().getRecentlyUnloadedBundles().containsKey(bundle))
-                            //{
+                            // TODO We should also add logic to check if the current assigned broker is the same on
+                            // from which the last recent unloading took place
+                            if(!cetusLoadData.getLoadData().getRecentlyUnloadedBundles().containsKey(bundle))
+                            {
 
-                            log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
-                            try {
-                            long startTime = System.nanoTime();
-                            bundleUnloadStartTime.put(bundle, startTime);
-                            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                            //cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                            } catch (PulsarServerException | PulsarAdminException e) {
-                            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                                log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
+                                try {
+                                    long startTime = System.nanoTime();
+                                    bundleUnloadStartTime.put(bundle, startTime);
+                                    pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+                                    cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                                } catch (PulsarServerException | PulsarAdminException e) {
+                                    log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+                                }
                             }
-                            //}
                     });
             });
 
