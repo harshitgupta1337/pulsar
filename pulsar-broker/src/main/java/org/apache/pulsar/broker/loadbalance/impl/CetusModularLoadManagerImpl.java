@@ -818,26 +818,28 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
                             return;
                             }
-
                             // TODO We should also add logic to check if the current assigned broker is the same on
                             // from which the last recent unloading took place
                             if(!cetusLoadData.getLoadData().getRecentlyUnloadedBundles().containsKey(bundle))
                             {
 
-                                log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
-                                try {
-                                    long startTime = System.nanoTime();
-                                    bundleUnloadStartTime.put(bundle, startTime);
-                                    pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-                                    cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-                                } catch (PulsarServerException | PulsarAdminException e) {
-                                    log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
-                                }
+                            long startTime = System.nanoTime();
+                            bundleUnloadStartTime.put(bundle, startTime);
+                            pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
+                            cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
                             }
+                            });
                     });
-            });
-
         }
+
+    private void performUnloading(String broker, String bundle, String bundleRange, String namespaceName) {
+        log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
+        try {
+            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+        } catch (PulsarServerException | PulsarAdminException e) {
+            log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
+        }
+    }
 
     public boolean shouldAntiAffinityNamespaceUnload(String namespace, String bundle, String currentBroker) {
         try {
