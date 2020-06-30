@@ -658,13 +658,15 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
                     try {
                         String broker = cnx.ctx().channel().remoteAddress().toString();
+                        log.info("Topic {} : Broker = {}, CurrBroker = {}", topic, broker, this.currentBroker);
                         if(!broker.equals(this.currentBroker)) {
-                            log.info("Switched Brokers!: Broker {} to Broker {}", broker, this.currentBroker);
+                            long currentTs = System.currentTimeMillis();
+                            log.info("BROKER_CHANGE Ts {} Topic {} Consumer {} Broker {} ---> Broker {}", currentTs, topic, consumerId, this.currentBroker, broker);
                             this.currentBroker = broker;
                             log.info("Closed Time: {}", this.closedTime);
                             if(this.closedTime != 0) {
-                                log.info("Adding client down time!: " ,(System.currentTimeMillis() - closedTime));
-                                clientDownTimes.add(System.currentTimeMillis() - closedTime);
+                                log.info("Adding client down time!: " ,(currentTs - closedTime));
+                                clientDownTimes.add(currentTs - closedTime);
                             }
                         }
                     }
