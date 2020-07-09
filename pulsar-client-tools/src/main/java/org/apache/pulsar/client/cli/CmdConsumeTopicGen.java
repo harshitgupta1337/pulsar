@@ -87,6 +87,9 @@ public class CmdConsumeTopicGen {
     @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
     private String topicPrefix = "my-topic";
 
+    @Parameter(names = { "-si", "--inter-consumer-sleep-ms" }, description = "Milliseconds between creating 2 consumers")
+    private int interConsumerSleepMs = 1000;
+
     ClientBuilder clientBuilder;
 
 
@@ -207,7 +210,12 @@ public class CmdConsumeTopicGen {
                 LOG.error(e.getMessage(), e);
                 returnCode = -1;
             } finally {
-                LOG.info("{} messages successfully consumed", numMessagesConsumed);
+                LOG.info("Consumer created for topic {} ", topic);
+            }
+            try {
+                Thread.sleep(interConsumerSleepMs);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
