@@ -99,6 +99,7 @@ public class BinaryProtoLookupService implements LookupService {
 
     private CompletableFuture<Pair<InetSocketAddress, InetSocketAddress>> findBroker(InetSocketAddress socketAddress,
             boolean authoritative, TopicName topicName) {
+        log.info("Calling findBroker for topic {} on socketAddress {}", topicName, socketAddress);
         CompletableFuture<Pair<InetSocketAddress, InetSocketAddress>> addressFuture = new CompletableFuture<>();
 
         client.getCnxPool().getConnection(socketAddress).thenAccept(clientCnx -> {
@@ -116,11 +117,14 @@ public class BinaryProtoLookupService implements LookupService {
                     }
 
                     InetSocketAddress responseBrokerAddress = InetSocketAddress.createUnresolved(uri.getHost(), uri.getPort());
+                    log.info("findBroker result for topic {} is broker {}", topicName, responseBrokerAddress);
 
                     // (2) redirect to given address if response is: redirect
                     if (lookupDataResult.redirect) {
+                        log.info("findBroker result for topic {} is redirected to {}", topicName, responseBrokerAddress);
                         findBroker(responseBrokerAddress, lookupDataResult.authoritative, topicName)
                                 .thenAccept(addressPair -> {
+                                    //log.info("findBroker redirect result recvd for topic {} broker {}", topicName, addressPair);
                                     addressFuture.complete(addressPair);
                                 }).exceptionally((lookupException) -> {
                                     // lookup failed

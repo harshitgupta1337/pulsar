@@ -1082,7 +1082,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 					this.currentBroker = broker;
 					log.info("Closed Time: {}", this.closedTime);
 					if(this.closedTime != 0) {
-						log.info("Adding client down time!: " ,(currentTs - closedTime));
+						log.info("Adding client down time!: {}" ,(currentTs - closedTime));
 						clientDownTimes.add(System.currentTimeMillis() - closedTime);
 					}
 				}	
@@ -1588,8 +1588,8 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void connectionClosed(ClientCnx cnx) {
-	this.closedTime = System.currentTimeMillis();
-	log.info("Closed Time: {}", this.closedTime);
+        this.closedTime = System.currentTimeMillis();
+        log.info("Closed Time: {}", this.closedTime);
         this.connectionHandler.connectionClosed(cnx);
     }
 
