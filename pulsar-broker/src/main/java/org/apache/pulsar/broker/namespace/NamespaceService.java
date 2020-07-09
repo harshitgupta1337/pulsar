@@ -160,6 +160,7 @@ public class NamespaceService {
 
     public CompletableFuture<Optional<LookupResult>> getBrokerServiceUrlAsync(TopicName topic,
             boolean authoritative) {
+        //LOG.info("getBrokerServiceUrlAsync called for topic {}", topic);
         return getBundleAsync(topic)
                 .thenCompose(bundle -> findBrokerServiceUrl(bundle, authoritative, false /* read-only */));
     }
@@ -214,6 +215,8 @@ public class NamespaceService {
 
     private CompletableFuture<Optional<URL>> internalGetWebServiceUrl(NamespaceBundle bundle, boolean authoritative,
             boolean isRequestHttps, boolean readOnly) {
+
+        //LOG.info("internalGetWebServiceUrl called for bundle {}", bundle);
 
         return findBrokerServiceUrl(bundle, authoritative, readOnly).thenApply(lookupResult -> {
             if (lookupResult.isPresent()) {
@@ -315,11 +318,11 @@ public class NamespaceService {
      * @return
      * @throws PulsarServerException
      */
-    private CompletableFuture<Optional<LookupResult>> findBrokerServiceUrl(NamespaceBundle bundle, boolean authoritative,
+    private synchronized CompletableFuture<Optional<LookupResult>> findBrokerServiceUrl(NamespaceBundle bundle, boolean authoritative,
             boolean readOnly) {
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("findBrokerServiceUrl: {} - read-only: {}", bundle, readOnly);
-        }
+        //if (LOG.isDebugEnabled()) {
+            //LOG.info("findBrokerServiceUrl: {} - read-only: {} - authoritative: {}", bundle, readOnly, authoritative);
+        //}
 
         ConcurrentOpenHashMap<NamespaceBundle, CompletableFuture<Optional<LookupResult>>> targetMap;
         if (authoritative) {
@@ -330,29 +333,34 @@ public class NamespaceService {
 
         return targetMap.computeIfAbsent(bundle, (k) -> {
             CompletableFuture<Optional<LookupResult>> future = new CompletableFuture<>();
-
+            //LOG.info("computing if absent {}", bundle);
             // First check if we or someone else already owns the bundle
             ownershipCache.getOwnerAsync(bundle).thenAccept(nsData -> {
+                //LOG.info("Got nsData for bundle {}", bundle);
                 if (!nsData.isPresent()) {
                     // No one owns this bundle
-
+                    //LOG.info("nsData.isPresent() for bundle {}", bundle);
                     if (readOnly) {
                         // Do not attempt to acquire ownership
                         future.complete(Optional.empty());
                     } else {
                         // Now, no one owns the namespace yet. Hence, we will try to dynamically assign it
+                        //LOG.info("Namespace bundle {} before calling searchForCandidateBroker", bundle);
                         pulsar.getExecutor().execute(() -> {
+                            LOG.info("Namespace bundle {} calling searchForCandidateBroker", bundle);
                             searchForCandidateBroker(bundle, future, authoritative);
                         });
                     }
                 } else if (nsData.get().isDisabled()) {
+                    //LOG.info("nsData.get().isDisabled() for bundle {}", bundle);
                     future.completeExceptionally(
                         new IllegalStateException(String.format("Namespace bundle %s is being unloaded", bundle)));
                 } else {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("Namespace bundle {} already owned by {} ", bundle, nsData);
-                    }
-                    future.complete(Optional.of(new LookupResult(nsData.get())));
+                       //if (LOG.isDebugEnabled()) {
+                        LOG.info("Namespace bundle {} already owned by {} ", bundle, nsData);
+                        //}
+                        future.complete(Optional.of(new LookupResult(nsData.get())));
+                    //}
                 }
             }).exceptionally(exception -> {
                 LOG.warn("Failed to check owner for bundle {}: {}", bundle, exception.getMessage(), exception);
@@ -361,7 +369,9 @@ public class NamespaceService {
             });
 
             future.whenComplete((r, t) -> pulsar.getExecutor().execute(
-                () -> targetMap.remove(bundle)
+                () -> {
+                    targetMap.remove(bundle);
+                }
             ));
 
             return future;
@@ -518,10 +528,10 @@ public class NamespaceService {
         }
 
         String lookupAddress = leastLoadedBroker.get().getResourceId();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("{} : redirecting to the least loaded broker, lookup address={}", pulsar.getWebServiceAddress(),
-                    lookupAddress);
-        }
+        //if (LOG.isDebugEnabled()) {
+            //LOG.info ("{} : redirecting bundle {} to the least loaded broker, lookup address={}", pulsar.getWebServiceAddress(),
+            //        serviceUnit, lookupAddress);
+        //}
         return Optional.of(lookupAddress);
     }
 

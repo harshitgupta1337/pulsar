@@ -151,6 +151,8 @@ public class PulsarService implements AutoCloseable {
     public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
 
 
+    private final ScheduledExecutorService unloadExecutor = Executors.newScheduledThreadPool(16,
+            new DefaultThreadFactory("unload-exec"));
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(20,
             new DefaultThreadFactory("pulsar"));
     private final ScheduledExecutorService cacheExecutor = Executors.newScheduledThreadPool(10,
@@ -342,6 +344,10 @@ public class PulsarService implements AutoCloseable {
             if (executor != null) {
                 executor.shutdown();
             }
+    
+            if (unloadExecutor != null) {
+                unloadExecutor.shutdown();
+            }
 
             orderedExecutor.shutdown();
             cacheExecutor.shutdown();
@@ -480,7 +486,7 @@ public class PulsarService implements AutoCloseable {
                         //long loadSheddingInterval = TimeUnit.MINUTES
                                 //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
                         // CETUS - update load shedding to happen more often
-                        long loadSheddingInterval = 1000;
+                        long loadSheddingInterval = 2500;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 
@@ -793,6 +799,10 @@ public class PulsarService implements AutoCloseable {
 
     public ScheduledExecutorService getExecutor() {
         return executor;
+    }
+
+    public ScheduledExecutorService getUnloadExecutor() {
+        return unloadExecutor;
     }
 
     public ScheduledExecutorService getCacheExecutor() {

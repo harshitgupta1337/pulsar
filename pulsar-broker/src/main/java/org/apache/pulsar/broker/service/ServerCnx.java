@@ -680,8 +680,7 @@ public class ServerCnx extends PulsarHandler {
                 else {
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("New topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
-                    log.info("New bundle, name: {}", bundle);
+                    log.info("New topic: {} producerid: {} bundle : {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), bundle);
 
                 }
 	       }
@@ -698,8 +697,7 @@ public class ServerCnx extends PulsarHandler {
                 else {
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("New topic, name: {} producerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
-                    log.info("New bundle, name: {}", bundle);
+                    log.info("New topic: {} consumerid: {} adjustment: {} bundle {} ", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment, bundle);
                 }
            }
            else {

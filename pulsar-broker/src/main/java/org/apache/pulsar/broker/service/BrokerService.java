@@ -878,7 +878,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     public synchronized void splitBundle(String serviceUnit, NamespaceBundle namespaceBundle) {
         final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(serviceUnit);
         final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(serviceUnit);
-        log.debug("NEED TO SPLIT Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
+        log.info("NEED TO SPLIT Bundle: {} Namespace Name: {}, Bundle Range: {}", serviceUnit, namespaceName, bundleRange);
         NamespaceBundleFactory namespaceBundleFactory = pulsar.getNamespaceService().getNamespaceBundleFactory();
         if(!namespaceBundleFactory.canSplitBundle(namespaceBundle))
         {
@@ -886,23 +886,33 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
             return;
         }
         log.debug("Attempting to split bundle");
-        try {
-            pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange, false);
-        } catch (PulsarServerException e) {
-            log.error("Caught Server exception when trying to split bundle "+e.getMessage());
-            e.printStackTrace();
-        } catch (PulsarAdminException e) {
-            log.error("Caught Admin exception when trying to split bundle "+e.getMessage());
-            e.printStackTrace();
-        }
-        
-        log.debug("Removing old bundle from CetusBrokerData in PulsarService");
-        this.pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleRange);
 
-        log.debug("Attempting to invalidate bundle cache");
-        pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
-        this.updateRates();
-        log.debug("Successfully split bundle");
+        int numTries = 3;
+        while (numTries-- >= 0) {
+            boolean success = false;
+            try {
+                log.info("Trying to admin split bundle {}", serviceUnit);
+                pulsar.getAdminClient().namespaces().splitNamespaceBundle(namespaceName, bundleRange, false);
+                success = true;
+            } catch (PulsarServerException e) {
+                log.error("Caught Server exception when trying to split bundle "+e.getMessage());
+                e.printStackTrace();
+            } catch (PulsarAdminException e) {
+                log.error("Caught Admin exception when trying to split bundle "+e.getMessage());
+                e.printStackTrace();
+            }
+
+            if (success) {
+                log.debug("Removing old bundle from CetusBrokerData in PulsarService");
+                this.pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleRange);
+
+                log.debug("Attempting to invalidate bundle cache");
+                pulsar.getNamespaceService().getNamespaceBundleFactory().invalidateBundleCache(NamespaceName.get(namespaceName));
+                this.updateRates();
+                log.debug("Successfully split bundle");
+                break;
+            }
+        }
     }
     
     public void refreshTopicToStatsMaps(NamespaceBundle oldBundle) {
@@ -1146,11 +1156,11 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
                             clusterReplicationMetrics.remove(clusterReplicationMetrics.getKeyName(namespaceName, cluster));
                             });
                 }
+                log.info("TOPIC_COHM removing topic {} bundle {}", topic, bundleName);
             }
         } catch (Exception e) {
             log.warn("Got exception when retrieving bundle name during removeTopicFromCache", e);
         }
-        log.debug("TOPIC_COHM removing topic {}", topic);
         topics.remove(topic);
     }
 

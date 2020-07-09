@@ -593,6 +593,11 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     pulsar.getSerfClient().joinNode(brokerIp[0]);
                     cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
                 }
+                
+                // Clearing the cetusLoadData bundle data map
+                // So that it is overwritten by recvd data
+                // TODO cetusLoadData.getCetusBundleDataMap().clear();
+
                 for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLocalData.getBundleNetworkCoordinates().entrySet()) {
                     //log.info("Putting bundle: {} into Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
                     if(cetusLoadData.getCetusBundleDataMap().containsKey(entry.getKey())) {
@@ -825,7 +830,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                             long startTime = System.nanoTime();
                             bundleUnloadStartTime.put(bundle, startTime);
-                            pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
+                            //performUnloading(broker, bundle, bundleRange, namespaceName);
+                            pulsar.getUnloadExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
+                            //pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
                             cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
                             }
                             });
@@ -895,6 +902,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                         // Make sure the same bundle is not selected again.
                         cetusLoadData.getLoadData().getBundleData().remove(bundleName);
                         localData.getLastStats().remove(bundleName);
+                        pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleName);
                         // Clear namespace bundle-cache
                         this.pulsar.getNamespaceService().getNamespaceBundleFactory()
                             .invalidateBundleCache(NamespaceName.get(namespaceName));
@@ -1035,10 +1043,13 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
         LoadManagerShared.removeMostServicingBrokersForNamespace(serviceUnit.toString(), brokerCandidateCache,
                 brokerToNamespaceToBundleRange);
         */
+        
+
+        /* NOT SURE WHY THIS PIECE OF CODE WAS PRESENT
         for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
             if (brokerEntry.getKey().contains("d0"))
                 brokerCandidateCache.add(brokerEntry.getKey()); 
-        }
+        }*/
 
         log.info("{} brokers being considered for assignment of {}", brokerCandidateCache.size(), bundle);
 
@@ -1273,6 +1284,14 @@ public void writeBrokerDataOnZooKeeper() {
         updateLocalBrokerData();
         //if (needBrokerDataUpdate()) {
         localData.setLastUpdate(System.currentTimeMillis());
+        List<String> bundlesToRemove = new ArrayList<String>();
+        for (String b : pulsar.getCetusBrokerData().getBundleNetworkCoordinates().keySet()) {
+            if (!localData.getBundles().contains(b))
+                bundlesToRemove.add(b);
+        }
+        for (String bundleToRemove : bundlesToRemove) {
+            pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleToRemove);
+        }
         log.info("Writing bundles to ZooKeeper: {}" ,localData.getBundles());
         zkClient.setData(brokerZnodePath, localData.getJsonBytes(), -1);
 
