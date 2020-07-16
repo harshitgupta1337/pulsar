@@ -30,6 +30,8 @@ import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.admin.AdminResource;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
+import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerWrapper;
+import org.apache.pulsar.broker.loadbalance.impl.CetusModularLoadManagerImpl;
 import org.apache.pulsar.broker.loadbalance.ResourceUnit;
 import org.apache.pulsar.broker.lookup.LookupResult;
 import org.apache.pulsar.broker.service.BrokerServiceException.ServerMetadataException;
@@ -162,7 +164,7 @@ public class NamespaceService {
             boolean authoritative) {
         //LOG.info("getBrokerServiceUrlAsync called for topic {}", topic);
         return getBundleAsync(topic)
-                .thenCompose(bundle -> findBrokerServiceUrl(bundle, authoritative, false /* read-only */));
+                .thenCompose(bundle -> findBrokerServiceUrl(bundle, authoritative, false /* read-only */, true /* lookup request */));
     }
 
     public CompletableFuture<NamespaceBundle> getBundleAsync(TopicName topic) {
@@ -318,10 +320,15 @@ public class NamespaceService {
      * @return
      * @throws PulsarServerException
      */
-    private synchronized CompletableFuture<Optional<LookupResult>> findBrokerServiceUrl(NamespaceBundle bundle, boolean authoritative,
+    private CompletableFuture<Optional<LookupResult>> findBrokerServiceUrl(NamespaceBundle bundle, boolean authoritative,
             boolean readOnly) {
+        return findBrokerServiceUrl(bundle, authoritative, readOnly, false);
+    }
+
+    private CompletableFuture<Optional<LookupResult>> findBrokerServiceUrl(NamespaceBundle bundle, boolean authoritative,
+            boolean readOnly, boolean lookupRequest) {
         //if (LOG.isDebugEnabled()) {
-            //LOG.info("findBrokerServiceUrl: {} - read-only: {} - authoritative: {}", bundle, readOnly, authoritative);
+            LOG.info("findBrokerServiceUrl: {} - read-only: {} - authoritative: {}", bundle, readOnly, authoritative);
         //}
 
         ConcurrentOpenHashMap<NamespaceBundle, CompletableFuture<Optional<LookupResult>>> targetMap;
@@ -355,12 +362,23 @@ public class NamespaceService {
                     //LOG.info("nsData.get().isDisabled() for bundle {}", bundle);
                     future.completeExceptionally(
                         new IllegalStateException(String.format("Namespace bundle %s is being unloaded", bundle)));
-                } else {
+                } else if (lookupRequest) {
                        //if (LOG.isDebugEnabled()) {
                         LOG.info("Namespace bundle {} already owned by {} ", bundle, nsData);
                         //}
-                        future.complete(Optional.of(new LookupResult(nsData.get())));
-                    //}
+                        String desiredBroker = ((CetusModularLoadManagerImpl)((ModularLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        if (desiredBroker == null) {
+                            future.complete(Optional.of(new LookupResult(nsData.get())));
+                        } else {
+                            LOG.info("Desired broker for  bundle {} = {}", bundle, desiredBroker);
+                            String fullBrokerUrl = "http://"+desiredBroker;
+                            if (fullBrokerUrl.equals(nsData.get().getHttpUrl()))
+                                future.complete(Optional.of(new LookupResult(nsData.get())));
+                            else
+                                future.complete(Optional.empty());
+                        }
+                } else  {
+                    future.complete(Optional.of(new LookupResult(nsData.get())));
                 }
             }).exceptionally(exception -> {
                 LOG.warn("Failed to check owner for bundle {}: {}", bundle, exception.getMessage(), exception);

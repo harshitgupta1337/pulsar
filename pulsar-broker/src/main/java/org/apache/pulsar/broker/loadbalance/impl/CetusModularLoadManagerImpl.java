@@ -69,6 +69,7 @@ import org.apache.pulsar.broker.loadbalance.LoadSheddingStrategy;
 import org.apache.pulsar.broker.loadbalance.ModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.ModularLoadManagerStrategy;
 import org.apache.pulsar.broker.loadbalance.CetusBundleUnloadingStrategy;
+import org.apache.pulsar.broker.loadbalance.BrokerChange;
 import org.apache.pulsar.broker.loadbalance.impl.LoadManagerShared.BrokerTopicLoadingPredicate;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.naming.NamespaceBundleFactory;
@@ -194,6 +195,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     // Used to determine whether a bundle is preallocated.
     private final Map<String, String> preallocatedBundleToBroker;
 
+    public final Map<String, String> desiredBrokerForBundle;
+
     // Strategy used to determine where new topics should be placed.
     private ModularLoadManagerStrategy placementStrategy;
 
@@ -244,6 +247,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         loadSheddingPipeline.add(new OverloadShedder());
         bundleUnloadingStrategy = new CetusLoadShedder();
         preallocatedBundleToBroker = new ConcurrentHashMap<>();
+        desiredBrokerForBundle = new ConcurrentHashMap<>();
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
         this.brokerToFailureDomainMap = Maps.newHashMap();
         // CETUS
@@ -813,11 +817,13 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
             recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
-            final Multimap<String, String> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
+            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
             log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
-            bundlesToUnload.asMap().forEach((broker, bundles) -> {
-                    bundles.forEach(bundle -> {
+            bundlesToUnload.asMap().forEach((broker, brokerChanges) -> {
+                    brokerChanges.forEach(brokerChange -> {
+                            String bundle = brokerChange.bundle;
+                            String nextBroker = brokerChange.nextBroker;
                             final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
                             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
                             if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
@@ -830,6 +836,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
                             long startTime = System.nanoTime();
                             bundleUnloadStartTime.put(bundle, startTime);
+
+                            log.info("Marking desiredBroker for bundle {} = {}", bundle, nextBroker);
+                            this.desiredBrokerForBundle.put(bundle, nextBroker);
+                            log.info("desiredBrokerForBundle size = {}", this.desiredBrokerForBundle.size());
+                            log.info("desiredBrokerForBundle = {}", this.desiredBrokerForBundle);
+
                             //performUnloading(broker, bundle, bundleRange, namespaceName);
                             pulsar.getUnloadExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
                             //pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
@@ -923,93 +935,6 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         public void onUpdate(final String path, final CetusBrokerData data, final Stat stat) {
             scheduler.submit(this::updateAll);
         }
-
-
-    /**
-     * As the leader broker, find a suitable broker for the assignment of the given bundle.
-     *
-     * @param serviceUnit
-     *            ServiceUnitId for the bundle.
-     * @return The name of the selected broker, as it appears on ZooKeeper.
-     */
-    /*
-       @Override
-       public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUnit) {
-    // Use brokerCandidateCache as a lock to reduce synchronization.
-    synchronized (brokerCandidateCache) {
-    final String bundle = serviceUnit.toString();
-    if (preallocatedBundleToBroker.containsKey(bundle)) {
-    // If the given bundle is already in preallocated, return the selected broker.
-    return Optional.of(preallocatedBundleToBroker.get(bundle));
-    }
-    final BundleData data = cetusLoadData.getLoadData().getBundleData().computeIfAbsent(bundle,
-    key -> getBundleDataOrDefault(bundle));
-    brokerCandidateCache.clear();
-    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-    brokerTopicLoadingPredicate);
-
-    // filter brokers which owns topic higher than threshold
-    LoadManagerShared.filterBrokersWithLargeTopicCount(brokerCandidateCache, cetusLoadData.getLoadData(),
-    conf.getLoadBalancerBrokerMaxTopics());
-
-    // distribute namespaces to domain and brokers according to anti-affinity-group
-    LoadManagerShared.filterAntiAffinityGroupOwnedBrokers(pulsar, serviceUnit.toString(), brokerCandidateCache,
-    brokerToNamespaceToBundleRange, brokerToFailureDomainMap);
-    // distribute bundles evenly to candidate-brokers
-
-    LoadManagerShared.removeMostServicingBrokersForNamespace(serviceUnit.toString(), brokerCandidateCache,
-    brokerToNamespaceToBundleRange);
-    log.info("{} brokers being considered for assignment of {}", brokerCandidateCache.size(), bundle);
-
-    // Use the filter pipeline to finalize broker candidates.
-    try {
-    for (BrokerFilter filter : filterPipeline) {
-    filter.filter(brokerCandidateCache, data, cetusLoadData.getLoadData(), conf);
-    }
-    } catch ( BrokerFilterException x ) {
-    // restore the list of brokers to the full set
-    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-    brokerTopicLoadingPredicate);
-    }
-
-    if ( brokerCandidateCache.isEmpty() ) {
-    // restore the list of brokers to the full set
-    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-    brokerTopicLoadingPredicate);
-    }
-
-    // Choose a broker among the potentially smaller filtered list, when possible
-    Optional<String> broker = placementStrategy.selectBroker(brokerCandidateCache, data, cetusLoadData.getLoadData(), conf);
-    if (log.isDebugEnabled()) {
-    log.debug("Selected broker {} from candidate brokers {}", broker, brokerCandidateCache);
-    }
-
-    if (!broker.isPresent()) {
-    // No brokers available
-    return broker;
-    }
-
-    final double overloadThreshold = conf.getLoadBalancerBrokerOverloadedThresholdPercentage() / 100.0;
-    final double maxUsage = cetusLoadData.getLoadData().getBrokerData().get(broker.get()).getLocalData().getMaxResourceUsage();
-    if (maxUsage > overloadThreshold) {
-    // All brokers that were in the filtered list were overloaded, so check if there is a better broker
-    LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
-    brokerTopicLoadingPredicate);
-    broker = placementStrategy.selectBroker(brokerCandidateCache, data, cetusLoadData.getLoadData(), conf);
-    }
-
-    // Add new bundle to preallocated.
-    cetusLoadData.getLoadData().getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-    preallocatedBundleToBroker.put(bundle, broker.get());
-
-    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
-    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-    brokerToNamespaceToBundleRange.get(broker.get()).computeIfAbsent(namespaceName, k -> new HashSet<>())
-        .add(bundleRange);
-    return broker;
-}
-}
-*/
 
 // CETUS broker assignment selection - narrow down to specific singlular broker chosen
 // by our algorithm.
@@ -1111,6 +1036,13 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
 }
 
 private void getBrokersMeetLatency(final String bundle, int latencyReqMs) {
+    Optional<String> minDistanceBroker = Optional.of("");
+    String desiredBroker = this.desiredBrokerForBundle.get(bundle);
+    if (desiredBroker != null) {
+        brokerCandidateCache.add(desiredBroker); 
+        return;
+    }
+
     log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerDataMap().size());
     for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
         if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
@@ -1136,56 +1068,6 @@ private void getBrokersMeetLatency(final String bundle, int latencyReqMs) {
         }
 
     }
-}
-
-private Optional<String> getBrokerWithLeastLatency(final String bundle) {
-    Optional<String> minDistanceBroker = Optional.of("");
-    double minDistance = 100000;
-    log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerDataMap().size());
-    for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
-        if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
-            log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
-
-            if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < minDistance) {
-                log.info("Bundle broker found: {}  Distance : {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
-                try {
-                    minDistance = CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
-                    minDistanceBroker = Optional.of(brokerEntry.getKey()); 
-                }
-                catch (Exception e) {
-                    log.warn("Cannot find bundle!: {}", e);
-                }
-            }
-
-        }
-        else {
-            //for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBundleDataMap().entrySet()) {
-
-            //   log.info("Bundle in Bundle Map: {}", entry.getKey());
-            //}
-            log.info("Choosing first broker available. Bundle Map Size: {}, bundle: {} brokerZnode: {} ", cetusLoadData.getCetusBundleDataMap().size(), bundle, cetusBrokerZnodePath);
-
-            cetusLoadData.getCetusBundleDataMap().put(bundle, new CetusNetworkCoordinateData());
-            if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
-                log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
-
-                if(CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()) < minDistance) {
-                    log.info("Bundle broker found: {}  Distance : {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
-                    try {
-                        minDistance = CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
-                        minDistanceBroker = Optional.of(brokerEntry.getKey()); 
-                    }
-                    catch (Exception e) {
-                        log.warn("Cannot find bundle!: {}", e);
-                    }
-                }
-            }
-
-            //return Optional.of(brokerEntry.getKey());
-
-        }
-    }
-    return minDistanceBroker;
 }
 
 /**
@@ -1399,22 +1281,6 @@ private void refreshBrokerToFailureDomainMap() {
         log.warn("Failed to get domain-list for cluster {}", e.getMessage());
     }
 }
-
-/*
-// CETUS: Migrate bundle from one broker to another
-private void migrateBundle(String bundle,final String broker1, final String broker2) {
-// Get admin client
-// Unload bundle(pulsar.getAdminClient().namespaces().unloadNamespaceBundle()
-// Reassign to broker
-
-cetusLoadData.getLoadData().getBrokerData().get(broker.get()).getPreallocatedBundleData().put(bundle, data);
-preallocatedBundleToBroker.put(bundle, broker.get());
-
-
-
-}
- */
-
 
 private String getCoordinateZPath(final String broker) {
     final String brokerZPath = "/cetus/coordinate-data/" + broker;
