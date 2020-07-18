@@ -933,6 +933,10 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
      */
     @Override
         public void onUpdate(final String path, final CetusBrokerData data, final Stat stat) {
+            if (!pulsar.getLeaderElectionService().isLeader()) {
+                return;
+            }
+
             scheduler.submit(this::updateAll);
         }
 
