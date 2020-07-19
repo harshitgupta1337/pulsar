@@ -1115,7 +1115,8 @@ public class ServerCnx extends PulsarHandler {
                             if (schema != null) {
                                 schemaVersionFuture = topic.addSchema(schema);
                             } else {
-                                schemaVersionFuture = topic.hasSchema().thenCompose((hasSchema) -> {
+                                /*schemaVersionFuture = topic.hasSchema().thenCompose((hasSchema) -> {
+                                        log.info("Done checking hasSchema for topic {}", topicName.toString());
                                         CompletableFuture<SchemaVersion> result = new CompletableFuture<>();
                                         if (hasSchema && schemaValidationEnforced) {
                                             result.completeExceptionally(new IncompatibleSchemaException(
@@ -1125,6 +1126,9 @@ public class ServerCnx extends PulsarHandler {
                                         }
                                         return result;
                                     });
+                                */
+                                schemaVersionFuture = new CompletableFuture<>();
+                                schemaVersionFuture.complete(SchemaVersion.Empty);
                             }
 
                             schemaVersionFuture.exceptionally(exception -> {
