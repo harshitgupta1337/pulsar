@@ -461,9 +461,14 @@ public abstract class PulsarWebResource {
 
     protected NamespaceBundle validateNamespaceBundleOwnership(NamespaceName fqnn, BundlesData bundles,
             String bundleRange, boolean authoritative, boolean readOnly) {
+        return this.validateNamespaceBundleOwnership(fqnn, bundles, bundleRange, authoritative, readOnly, null);
+    }
+
+    protected NamespaceBundle validateNamespaceBundleOwnership(NamespaceName fqnn, BundlesData bundles,
+            String bundleRange, boolean authoritative, boolean readOnly, String nextBroker) {
         try {
             NamespaceBundle nsBundle = validateNamespaceBundleRange(fqnn, bundles, bundleRange);
-            validateBundleOwnership(nsBundle, authoritative, readOnly);
+            validateBundleOwnership(nsBundle, authoritative, readOnly, nextBroker);
             return nsBundle;
         } catch (WebApplicationException wae) {
             throw wae;
@@ -474,6 +479,11 @@ public abstract class PulsarWebResource {
     }
 
     public void validateBundleOwnership(NamespaceBundle bundle, boolean authoritative, boolean readOnly)
+            throws Exception {
+        this.validateBundleOwnership(bundle, authoritative, readOnly, null);
+    }
+
+    public void validateBundleOwnership(NamespaceBundle bundle, boolean authoritative, boolean readOnly, String nextBroker)
             throws Exception {
         NamespaceService nsService = pulsar().getNamespaceService();
 
@@ -502,10 +512,14 @@ public abstract class PulsarWebResource {
                 URI redirect = UriBuilder.fromUri(uri.getRequestUri()).host(webUrl.get().getHost())
                         .port(webUrl.get().getPort()).replaceQueryParam("authoritative", newAuthoritative).build();
 
+                if (nextBroker != null) {
+                    redirect = UriBuilder.fromUri(uri.getRequestUri()).replaceQueryParam("nextBroker", nextBroker).build();
+                }
+
                 log.debug("{} is not a service unit owned", bundle);
 
                 // Redirect
-                log.debug("Redirecting the rest call to {}", redirect);
+                log.info("Redirecting the rest call to {}", redirect);
                 throw new WebApplicationException(Response.temporaryRedirect(redirect).build());
             }
         } catch (IllegalArgumentException iae) {

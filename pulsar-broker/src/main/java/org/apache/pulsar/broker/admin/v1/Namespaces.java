@@ -385,9 +385,11 @@ public class Namespaces extends NamespacesBase {
     @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
     public void unloadNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
             @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
-            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative) {
+            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative,
+            @QueryParam("nextBroker") String nextBroker) {
+        log.info("nextBroker in v1 Namespaces = {}", nextBroker);
         validateNamespaceName(property, cluster, namespace);
-        internalUnloadNamespaceBundle(bundleRange, authoritative);
+        internalUnloadNamespaceBundle(bundleRange, authoritative, nextBroker);
     }
 
     @PUT

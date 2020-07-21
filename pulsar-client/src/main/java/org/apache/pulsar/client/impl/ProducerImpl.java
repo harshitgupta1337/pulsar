@@ -1588,6 +1588,20 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void connectionClosed(ClientCnx cnx) {
+        this.getClient().getLookup();
+        this.closedTime = System.currentTimeMillis();
+        log.info("Closed Time: {}", this.closedTime);
+        this.connectionHandler.connectionClosed(cnx);
+    }
+
+    void connectionClosed(ClientCnx cnx, String nextBroker) {
+        String newServiceUrl = "pulsar://"+nextBroker+":6650";
+        log.info("Updating serviceUrl to {}", newServiceUrl);
+        try {
+            this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+        } catch (PulsarClientException e) {
+            log.error("Error updating the service url to {}", newServiceUrl);
+        }
         this.closedTime = System.currentTimeMillis();
         log.info("Closed Time: {}", this.closedTime);
         this.connectionHandler.connectionClosed(cnx);

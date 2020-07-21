@@ -553,6 +553,11 @@ public class NamespaceService {
         return Optional.of(lookupAddress);
     }
 
+    public void unloadNamespaceBundle(NamespaceBundle bundle, String nextBroker) throws Exception {        
+        unloadNamespaceBundle(bundle, 1, TimeUnit.SECONDS, nextBroker);
+        LOG.info("Unloaded namespace bundle");
+    }
+
     public void unloadNamespaceBundle(NamespaceBundle bundle) throws Exception {
         
         unloadNamespaceBundle(bundle, 1, TimeUnit.SECONDS);
@@ -560,9 +565,13 @@ public class NamespaceService {
     }
 
     public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit) throws Exception {
+        this.unloadNamespaceBundle(bundle, timeout, timeoutUnit, null);
+    }
+
+    public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit, String nextBroker) throws Exception {
         bundlesCurrentlyUnloading.add(bundle.toString());
-        LOG.info("Currently Unloading: {}" , bundle.toString());
-        checkNotNull(ownershipCache.getOwnedBundle(bundle)).handleUnloadRequest(pulsar, timeout, timeoutUnit);
+        LOG.info("Currently Unloading: {} w/ nextBroker : {}" , bundle.toString(), nextBroker);
+        checkNotNull(ownershipCache.getOwnedBundle(bundle)).handleUnloadRequest(pulsar, timeout, timeoutUnit, nextBroker);
         pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle.toString());
         //LOG.info("Unloaded {}", bundle.toString());
         //bundlesCurrentlyUnloading.remove(bundle.toString());

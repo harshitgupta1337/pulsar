@@ -527,7 +527,12 @@ public abstract class NamespacesBase extends AdminResource {
 
     @SuppressWarnings("deprecation")
     public void internalUnloadNamespaceBundle(String bundleRange, boolean authoritative) {
-        log.info("[{}] Unloading namespace bundle {}/{}", clientAppId(), namespaceName, bundleRange);
+        this.internalUnloadNamespaceBundle(bundleRange, authoritative, null);
+    }
+
+    @SuppressWarnings("deprecation")
+    public void internalUnloadNamespaceBundle(String bundleRange, boolean authoritative, String nextBroker) {
+        log.info("[{}] Unloading namespace bundle {}/{} w/ nextBroker {}", clientAppId(), namespaceName, bundleRange, nextBroker);
 
         validateSuperUserAccess();
         Policies policies = getNamespacePolicies(namespaceName);
@@ -551,7 +556,7 @@ public abstract class NamespacesBase extends AdminResource {
         NamespaceBundle nsBundle = validateNamespaceBundleOwnership(namespaceName, policies.bundles, bundleRange,
                 authoritative, true);
         try {
-            pulsar().getNamespaceService().unloadNamespaceBundle(nsBundle);
+            pulsar().getNamespaceService().unloadNamespaceBundle(nsBundle, nextBroker);
             log.info("[{}] Successfully unloaded namespace bundle {}", clientAppId(), nsBundle.toString());
         } catch (Exception e) {
             log.error("[{}] Failed to unload namespace bundle {}/{}", clientAppId(), namespaceName, bundleRange, e);

@@ -843,7 +843,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                             log.info("desiredBrokerForBundle = {}", this.desiredBrokerForBundle);
 
                             //performUnloading(broker, bundle, bundleRange, namespaceName);
-                            pulsar.getUnloadExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
+                            pulsar.getUnloadExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName, nextBroker));
                             //pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
                             cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
                             }
@@ -851,10 +851,11 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                     });
         }
 
-    private void performUnloading(String broker, String bundle, String bundleRange, String namespaceName) {
-        log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} at ts = {}", bundle, broker, System.currentTimeMillis());
+    private void performUnloading(String broker, String bundle, String bundleRange, String namespaceName, String nextBroker) {
+        log.info("[Cetus Bundle Unload Strategy] Unloading bundle: {} from broker {} to broker {} at ts = {}", bundle, broker, nextBroker, System.currentTimeMillis());
+        String[] brokerSplit = nextBroker.split(":");
         try {
-            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
+            pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange, brokerSplit[0]);
         } catch (PulsarServerException | PulsarAdminException e) {
             log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
         }

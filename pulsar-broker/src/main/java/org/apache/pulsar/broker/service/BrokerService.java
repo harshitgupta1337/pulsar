@@ -1104,15 +1104,24 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
      * @return
      */
     public CompletableFuture<Integer> unloadServiceUnit(NamespaceBundle serviceUnit) {
+        return this.unloadServiceUnit(serviceUnit, null);
+    }
+
+    public CompletableFuture<Integer> unloadServiceUnit(NamespaceBundle serviceUnit, String nextBroker) {
         CompletableFuture<Integer> result = new CompletableFuture<Integer>();
         List<CompletableFuture<Void>> closeFutures = Lists.newArrayList();
         topics.forEach((name, topicFuture) -> {
                 TopicName topicName = TopicName.get(name);
                 if (serviceUnit.includes(topicName)) {
                 // Topic needs to be unloaded
-                log.debug("[{}] Unloading topic", topicName);
-                closeFutures.add(topicFuture
-                        .thenCompose(t -> t.isPresent() ? t.get().close() : CompletableFuture.completedFuture(null)));
+                log.info ("[{}] Unloading topic w/ nextBroker : {}", topicName, nextBroker);
+                if (nextBroker != null) {
+                    closeFutures.add(topicFuture
+                            .thenCompose(t -> t.isPresent() ? t.get().close(nextBroker) : CompletableFuture.completedFuture(null)));
+                } else {
+                    closeFutures.add(topicFuture
+                            .thenCompose(t -> t.isPresent() ? t.get().close() : CompletableFuture.completedFuture(null)));
+                }
                 }
                 pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(serviceUnit.toString());
                 });

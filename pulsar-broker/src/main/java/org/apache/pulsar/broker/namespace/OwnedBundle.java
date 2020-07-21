@@ -92,6 +92,10 @@ public class OwnedBundle {
      * @throws Exception
      */
     public void handleUnloadRequest(PulsarService pulsar, long timeout, TimeUnit timeoutUnit) throws Exception {
+        this.handleUnloadRequest(pulsar, timeout, timeoutUnit, null);
+    }
+
+    public void handleUnloadRequest(PulsarService pulsar, long timeout, TimeUnit timeoutUnit, String nextBroker) throws Exception {
 
         long unloadBundleStartTime = System.nanoTime();
         LOG.info("Unloading bundle in owned bundle");
@@ -133,7 +137,7 @@ public class OwnedBundle {
 
             // close topics forcefully
             try {
-                unloadedTopics = pulsar.getBrokerService().unloadServiceUnit(bundle).get(timeout, timeoutUnit);
+                unloadedTopics = pulsar.getBrokerService().unloadServiceUnit(bundle, nextBroker).get(timeout, timeoutUnit);
             } catch (TimeoutException e) {
                 // ignore topic-close failure to unload bundle
                 LOG.error("Failed to close topics in namespace {} in {}/{} timeout", bundle.toString(), timeout,

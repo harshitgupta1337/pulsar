@@ -85,6 +85,7 @@ import org.apache.pulsar.common.api.proto.PulsarApi.ServerError;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinate;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandGetNetworkCoordinateResponse;
 import org.apache.pulsar.common.api.proto.PulsarApi.CommandSerfJoin;
+import org.apache.pulsar.common.api.proto.PulsarApi.CommandNextBrokerHint;
 //***************************************************************
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -446,6 +447,19 @@ public class Commands {
         return res;
     }
 
+    public static ByteBuf newCloseProducer(long producerId, long requestId, String nextBroker) {
+        CommandCloseProducer.Builder closeProducerBuilder = CommandCloseProducer.newBuilder();
+        closeProducerBuilder.setProducerId(producerId);
+        closeProducerBuilder.setRequestId(requestId);
+        closeProducerBuilder.setNextBroker(nextBroker);
+        CommandCloseProducer closeProducer = closeProducerBuilder.build();
+        ByteBuf res = serializeWithSize(
+                BaseCommand.newBuilder().setType(Type.CLOSE_PRODUCER).setCloseProducer(closeProducerBuilder));
+        closeProducerBuilder.recycle();
+        closeProducer.recycle();
+        return res;
+    }
+
     @VisibleForTesting
     public static ByteBuf newProducer(String topic, long producerId, long requestId, String producerName,
                 Map<String, String> metadata) {
@@ -793,6 +807,17 @@ public class Commands {
         ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.SERF_JOIN).setSerfJoin(commandSerfJoin));
         commandSerfJoinBuilder.recycle();
         commandSerfJoin.recycle();
+        return res;
+    }
+
+    public static ByteBuf newNextBrokerHint(String nextBroker) {
+        CommandNextBrokerHint.Builder builder = CommandNextBrokerHint.newBuilder();
+        builder.setAddress(nextBroker);
+
+        CommandNextBrokerHint cmd = builder.build();
+        ByteBuf res = serializeWithSize(BaseCommand.newBuilder().setType(Type.NEXT_BROKER_HINT).setNextBrokerHint(cmd));
+        builder.recycle();
+        cmd.recycle();
         return res;
     }
 

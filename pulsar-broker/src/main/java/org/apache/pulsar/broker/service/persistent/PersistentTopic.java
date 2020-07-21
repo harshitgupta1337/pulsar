@@ -789,6 +789,11 @@ public class PersistentTopic implements Topic, AddEntryCallback {
         return deleteFuture;
     }
 
+    @Override
+    public CompletableFuture<Void> close(String nextBroker) {
+        return this.close();
+    }
+
     /**
      * Close this topic - close all producers and subscriptions associated with this topic
      *

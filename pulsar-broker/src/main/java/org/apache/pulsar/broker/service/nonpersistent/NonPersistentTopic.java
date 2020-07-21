@@ -501,6 +501,11 @@ public class NonPersistentTopic implements Topic {
      */
     @Override
     public CompletableFuture<Void> close() {
+        return this.close(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> close(String nextBroker) {
         CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
         lock.writeLock().lock();
@@ -519,11 +524,16 @@ public class NonPersistentTopic implements Topic {
         List<CompletableFuture<Void>> futures = Lists.newArrayList();
 
         replicators.forEach((cluster, replicator) -> futures.add(replicator.disconnect()));
-        producers.forEach(producer -> futures.add(producer.disconnect()));
-        subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        if (nextBroker != null) {
+            producers.forEach(producer -> futures.add(producer.disconnect(nextBroker)));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        } else {
+            producers.forEach(producer -> futures.add(producer.disconnect()));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        }
 
         FutureUtil.waitForAll(futures).thenRun(() -> {
-            log.info("[{}] Topic closed", topic);
+            log.info("[{}] Topic closed w/ nextBroker : {}", topic, nextBroker);
             // unload topic iterates over topics map and removing from the map with the same thread creates deadlock.
             // so, execute it in different thread
             brokerService.executor().execute(() -> {

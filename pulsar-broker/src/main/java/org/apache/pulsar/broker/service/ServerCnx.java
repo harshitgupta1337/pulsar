@@ -1580,15 +1580,24 @@ public class ServerCnx extends PulsarHandler {
     }
 
     public void closeProducer(Producer producer) {
+        this.closeProducer (producer, null);
+    }
+
+    public void closeProducer(Producer producer, String nextBroker) {
         // removes producer-connection from map and send close command to producer
         if (log.isDebugEnabled()) {
-            log.debug("[{}] Removed producer: {}", remoteAddress, producer);
+            log.debug("[{}] Removed producer: {} - for nextBroker : {}", remoteAddress, producer, nextBroker);
         }
         long producerId = producer.getProducerId();
         producers.remove(producerId);
         if (remoteEndpointProtocolVersion >= v5.getNumber()) {
-            ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L));
+            if (nextBroker != null)
+                ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L, nextBroker));
+            else
+                ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L));
+            log.info("Closing producer by ctx.writeAndFlush");
         } else {
+            log.info("Closing producer by close()");
             close();
         }
 

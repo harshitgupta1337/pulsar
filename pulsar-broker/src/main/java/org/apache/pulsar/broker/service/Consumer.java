@@ -71,6 +71,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Consumer {
     private final Subscription subscription;
+    private String nextBroker;
     private final SubType subType;
     private final ServerCnx cnx;
     private final String appId;
@@ -122,6 +123,7 @@ public class Consumer {
                     int maxUnackedMessages, ServerCnx cnx, String appId,
                     Map<String, String> metadata, boolean readCompacted, InitialPosition subscriptionInitialPosition) throws BrokerServiceException {
 
+        this.nextBroker = null;
         this.subscription = subscription;
         this.subType = subType;
         this.topicName = topicName;
@@ -372,7 +374,13 @@ public class Consumer {
     }
 
     public void disconnect() {
+        this.disconnect(null);
+    }
+
+    public void disconnect(String nextBroker) {
         log.info("Disconnecting consumer: {}", this);
+        //if (nextBroker != null)
+        //    cnx.ctx().writeAndFlush(Commands.newNextBrokerHint(nextBroker));        
         cnx.closeConsumer(this);
         try {
             close();
@@ -716,6 +724,10 @@ public class Consumer {
 
     public void setNetworkCoordinate(NetworkCoordinate coordinate) {
         this.coordinate = coordinate;
+    }
+
+    public void setNextBroker(String broker) {
+        this.nextBroker = broker;
     }
 
     private static final Logger log = LoggerFactory.getLogger(Consumer.class);

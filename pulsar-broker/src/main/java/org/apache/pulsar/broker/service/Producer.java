@@ -429,15 +429,19 @@ public class Producer {
      *
      * @return Completable future indicating completion of producer close
      */
-    public CompletableFuture<Void> disconnect() {
+    public CompletableFuture<Void> disconnect(String nextBroker) {
         if (!closeFuture.isDone()) {
             log.info("Disconnecting producer: {}", this);
             cnx.ctx().executor().execute(() -> {
-                cnx.closeProducer(this);
+                cnx.closeProducer(this, nextBroker);
                 closeNow();
             });
         }
         return closeFuture;
+    }
+
+    public CompletableFuture<Void> disconnect() {
+        return this.disconnect(null);
     }
 
     public void updateRates() {
