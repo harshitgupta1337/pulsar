@@ -841,6 +841,7 @@ public interface Namespaces {
 
     void unloadNamespaceBundle(String namespace, String bundle, String nextBroker) throws PulsarAdminException;
 
+    void proactivelyOwnNamespaceBundle(String namespace, String bundle, String nextBroker) throws PulsarAdminException;
     /**
      * Split namespace bundle
      *

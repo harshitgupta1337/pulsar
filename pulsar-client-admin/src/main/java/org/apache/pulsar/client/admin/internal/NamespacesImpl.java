@@ -434,6 +434,18 @@ public class NamespacesImpl extends BaseResource implements Namespaces {
     }
 
     @Override
+    public void proactivelyOwnNamespaceBundle(String namespace, String bundle, String nextBroker) throws PulsarAdminException {
+        try {
+            NamespaceName ns = NamespaceName.get(namespace);
+            WebTarget path = namespacePath(ns, bundle, "proactivelyown");
+            if (nextBroker != null)
+                request(path.queryParam("nextBroker", nextBroker)).put(Entity.entity("", MediaType.APPLICATION_JSON), ErrorData.class);
+        } catch (Exception e) {
+            throw getApiException(e);
+        }
+    }
+
+    @Override
     public void unloadNamespaceBundle(String namespace, String bundle) throws PulsarAdminException {
         this.unloadNamespaceBundle(namespace, bundle, null);
     }

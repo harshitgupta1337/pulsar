@@ -526,6 +526,21 @@ public abstract class NamespacesBase extends AdminResource {
     }
 
     @SuppressWarnings("deprecation")
+    public void internalProactivelyOwnNamespaceBundle(String bundleRange, String nextBroker, boolean authoritative) {
+        if (authoritative) { // TODO Also check if the nextBroker is equal to myself (broker)
+            log.info("About to actually proactivelyOwnBundle {}", bundleRange);
+            Policies policies = getNamespacePolicies(namespaceName);
+            //if (isBundleOwnedByAnyBroker(namespaceName, policies.bundles, bundleRange)) {
+            //    log.info("[{}] Namespace bundle is not owned by any broker {}/{}", clientAppId(), namespaceName,
+            //            bundleRange);
+            NamespaceBundle bundle = validateNamespaceBundleRange(namespaceName, policies.bundles, bundleRange);
+            pulsar().getNamespaceService().proactivelyOwnBundleAndRetry(bundle);
+        } else {
+            redirectProactivelyOwnCall(bundleRange, nextBroker);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     public void internalUnloadNamespaceBundle(String bundleRange, boolean authoritative) {
         this.internalUnloadNamespaceBundle(bundleRange, authoritative, null);
     }

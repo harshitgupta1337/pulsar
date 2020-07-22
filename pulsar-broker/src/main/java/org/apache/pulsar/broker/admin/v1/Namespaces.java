@@ -380,6 +380,19 @@ public class Namespaces extends NamespacesBase {
     }
 
     @PUT
+    @Path("/{property}/{cluster}/{namespace}/{bundle}/proactivelyown")
+    @ApiOperation(hidden = true, value = "Unload a namespace bundle")
+    @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
+    public void proactivelyOwnNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
+            @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
+            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative,
+            @QueryParam("nextBroker") String nextBroker) {
+        log.info("proactivelyOwn in v1 Namespaces for bundle {}", bundleRange);
+        validateNamespaceName(property, cluster, namespace);
+        internalProactivelyOwnNamespaceBundle(bundleRange, nextBroker, authoritative);
+    }
+
+    @PUT
     @Path("/{property}/{cluster}/{namespace}/{bundle}/unload")
     @ApiOperation(hidden = true, value = "Unload a namespace bundle")
     @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
