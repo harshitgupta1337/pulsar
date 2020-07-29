@@ -817,7 +817,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
             recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
-            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getNamespaceService());
+            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
             log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
             bundlesToUnload.asMap().forEach((broker, brokerChanges) -> {
@@ -1050,6 +1050,7 @@ private void getBrokersMeetLatency(final String bundle, int latencyReqMs) {
 
     log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerDataMap().size());
     for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
+        
         if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
             log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
 

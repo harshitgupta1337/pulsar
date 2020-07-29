@@ -58,8 +58,9 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
 
     private final Multimap<String, BrokerChange> selectedBundleCache = ArrayListMultimap.create();
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService) {
+    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
         selectedBundleCache.clear();
+        log.info("LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
         log.info("SelectedBundleCache: {}", selectedBundleCache.toString());
         log.info("Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
@@ -73,6 +74,10 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                     for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
                         if (brokerEntry.getKey().equals(entry.getKey())) 
                             continue;
+                        
+                        if (brokerEntry.getKey().equals(loadMgrAddress.split("//")[1]))
+                            continue;
+
                         double distToOtherBroker = CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
                         log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker);
                         if (distToOtherBroker*1000.0 < CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {

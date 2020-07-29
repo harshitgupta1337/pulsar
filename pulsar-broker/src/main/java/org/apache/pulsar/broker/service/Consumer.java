@@ -379,8 +379,6 @@ public class Consumer {
 
     public void disconnect(String nextBroker) {
         log.info("Disconnecting consumer: {}", this);
-        //if (nextBroker != null)
-        //    cnx.ctx().writeAndFlush(Commands.newNextBrokerHint(nextBroker));        
         cnx.closeConsumer(this);
         try {
             close();

@@ -40,5 +40,5 @@ public interface CetusBundleUnloadingStrategy {
      *            The service configuration.
      * @return A map from all selected bundles to Pair(currBroker, nextCandidateBroker)
      */
-    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService);
+    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress);
 }
