@@ -41,6 +41,8 @@ import java.util.ArrayList;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
+import java.io.*;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
@@ -269,6 +271,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         }
 	
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
 	clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }
 
@@ -299,15 +302,45 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     public void sendCoordinate() {
-     if(client.getConfiguration().isUseSerfCoordinates()) {
-        this.coordinate = serfClient.getCoordinate();
-     }
+        synchronized (this.serfClient) {
+            if(client.getConfiguration().isUseSerfCoordinates()) {
+                this.coordinate = serfClient.getCoordinate();
+            }
+        }
         ClientCnx cnx = cnx();
-        //log.info("Sending coordate to : {}", cnx().getRemoteHostName());
+        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
         cnx.sendNetworkCoordinates(msg, requestId); 
+    }
+
+    public void updateSerfGateway() {
+        if (!client.getConfiguration().isUseSerfCoordinates())
+            return;
+
+        String nodeName = null, ip = null;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            nodeName = br.readLine();
+            //log.info("Node Name: {}", nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+            ip = br.readLine();
+        } catch (Exception e) {
+            log.warn("Exception in updateSerfGateway: {}", e);
+        }
+
+        if (nodeName == null || ip == null) 
+            return;
+
+        synchronized (this.serfClient) {
+            if (!(nodeName.equals(this.serfClient.getNodeName()) && ip.equals(this.serfClient.getRpcIpAddr()))) {
+                // Need to change the client
+                log.info("Changing the Serf node and IP to {}, {}", nodeName, ip);
+                this.serfClient = new SerfClient(ip, 7373, nodeName);
+            }
+        }
     }
 
     public ConnectionHandler getConnectionHandler() {
