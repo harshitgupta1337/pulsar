@@ -44,6 +44,7 @@ public interface NonPersistentDispatcher extends Dispatcher{
     boolean canUnsubscribe(Consumer consumer);
 
     CompletableFuture<Void> close() ;
+    CompletableFuture<Void> close(String nextBroker) ;
 
     CompletableFuture<Void> disconnectAllConsumers();
 

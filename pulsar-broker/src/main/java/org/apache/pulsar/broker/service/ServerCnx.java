@@ -1604,6 +1604,10 @@ public class ServerCnx extends PulsarHandler {
     }
 
     public void closeConsumer(Consumer consumer) {
+        this.closeConsumer(consumer, null);
+    }
+    
+    public void closeConsumer(Consumer consumer, String nextBroker) {
         // removes consumer-connection from map and send close command to consumer
         if (log.isDebugEnabled()) {
             log.debug("[{}] Removed consumer: {}", remoteAddress, consumer);
@@ -1611,7 +1615,10 @@ public class ServerCnx extends PulsarHandler {
         long consumerId = consumer.consumerId();
         consumers.remove(consumerId);
         if (remoteEndpointProtocolVersion >= v5.getNumber()) {
-            ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L));
+            if (nextBroker == null)
+                ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L));
+            else
+                ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L, nextBroker));
         } else {
             close();
         }

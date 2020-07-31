@@ -526,7 +526,7 @@ public class NonPersistentTopic implements Topic {
         replicators.forEach((cluster, replicator) -> futures.add(replicator.disconnect()));
         if (nextBroker != null) {
             producers.forEach(producer -> futures.add(producer.disconnect(nextBroker)));
-            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect(nextBroker)));
         } else {
             producers.forEach(producer -> futures.add(producer.disconnect()));
             subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));

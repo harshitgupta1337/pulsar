@@ -423,6 +423,19 @@ public class Commands {
         return res;
     }
 
+    public static ByteBuf newCloseConsumer(long consumerId, long requestId, String nextBroker) {
+        CommandCloseConsumer.Builder closeConsumerBuilder = CommandCloseConsumer.newBuilder();
+        closeConsumerBuilder.setConsumerId(consumerId);
+        closeConsumerBuilder.setRequestId(requestId);
+        closeConsumerBuilder.setNextBroker(nextBroker);
+        CommandCloseConsumer closeConsumer = closeConsumerBuilder.build();
+        ByteBuf res = serializeWithSize(
+                BaseCommand.newBuilder().setType(Type.CLOSE_CONSUMER).setCloseConsumer(closeConsumer));
+        closeConsumerBuilder.recycle();
+        closeConsumer.recycle();
+        return res;
+    }
+
     public static ByteBuf newReachedEndOfTopic(long consumerId) {
         CommandReachedEndOfTopic.Builder reachedEndOfTopicBuilder = CommandReachedEndOfTopic.newBuilder();
         reachedEndOfTopicBuilder.setConsumerId(consumerId);

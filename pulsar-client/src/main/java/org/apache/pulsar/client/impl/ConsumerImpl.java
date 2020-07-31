@@ -1697,6 +1697,19 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.connectionHandler.connectionClosed(cnx);
     }
 
+    void connectionClosed(ClientCnx cnx, String nextBroker) {
+        String newServiceUrl = "pulsar://"+nextBroker+":6650";
+        log.info("Updating serviceUrl to {}", newServiceUrl);
+        try {
+            this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+        } catch (PulsarClientException e) {
+            log.error("Error updating the service url to {}", newServiceUrl);
+        }
+        this.closedTime = System.currentTimeMillis();
+        log.info("Closed Time: {}", this.closedTime);
+        this.connectionHandler.connectionClosed(cnx);
+    }
+
     @VisibleForTesting
         public ClientCnx getClientCnx() {
             return this.connectionHandler.getClientCnx();

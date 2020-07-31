@@ -146,6 +146,11 @@ public class NonPersistentDispatcherMultipleConsumers extends AbstractDispatcher
         return disconnectAllConsumers();
     }
 
+    public CompletableFuture<Void> close(String nextBroker) {
+        IS_CLOSED_UPDATER.set(this, TRUE);
+        return disconnectAllConsumers(nextBroker);
+    }
+
     @Override
     public synchronized void consumerFlow(Consumer consumer, int additionalNumberOfMessages) {
         if (!consumerSet.contains(consumer)) {
@@ -168,6 +173,16 @@ public class NonPersistentDispatcherMultipleConsumers extends AbstractDispatcher
             closeFuture.complete(null);
         } else {
             consumerList.forEach(Consumer::disconnect);
+        }
+        return closeFuture;
+    }
+
+    public synchronized CompletableFuture<Void> disconnectAllConsumers(String nextBroker) {
+        closeFuture = new CompletableFuture<>();
+        if (consumerList.isEmpty()) {
+            closeFuture.complete(null);
+        } else {
+            consumerList.forEach(c -> c.disconnect(nextBroker));
         }
         return closeFuture;
     }

@@ -379,7 +379,11 @@ public class Consumer {
 
     public void disconnect(String nextBroker) {
         log.info("Disconnecting consumer: {}", this);
-        cnx.closeConsumer(this);
+        if (nextBroker == null) {
+            cnx.closeConsumer(this);
+        } else {
+            cnx.closeConsumer(this, nextBroker);
+        }
         try {
             close();
         } catch (BrokerServiceException e) {
