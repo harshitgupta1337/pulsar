@@ -183,8 +183,8 @@ public class PulsarClientImpl implements PulsarClient {
 
             br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
 	        this.serfBindIp = this.serfRpcIp = br.readLine();
-	        this.serfBindPort = 8000;
-	        this.serfRpcPort =  7374;
+	        this.serfBindPort = 8085;
+	        this.serfRpcPort =  7373;
             this.isJoinedToSerfCluster = false;
             /*
 	        final Runtime rt = Runtime.getRuntime();

@@ -45,6 +45,9 @@ import java.util.ArrayList;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Timeout;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -289,12 +292,41 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         int interval = 1000;
         log.info("Running Coordinate Service");
         //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        if(!client.getIsJoinedToSerfCluster()) {
-            joinSerfCluster();
-        }
+        //if(!client.getIsJoinedToSerfCluster()) {
+        //    joinSerfCluster();
+        //}
 
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
         clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
+    }
+
+    public void updateSerfGateway() {
+        if (!client.getConfiguration().isUseSerfCoordinates())
+            return;
+
+        String nodeName = null, ip = null;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            nodeName = br.readLine();
+            //log.info("Node Name: {}", nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+            ip = br.readLine();
+        } catch (Exception e) {
+            log.warn("Exception in updateSerfGateway: {}", e);
+        }
+
+        if (nodeName == null || ip == null)
+            return;
+
+        synchronized (this.serfClient) {
+            if (!(nodeName.equals(this.serfClient.getNodeName()) && ip.equals(this.serfClient.getRpcIpAddr()))) {
+                // Need to change the client
+                log.info("Changing the Serf node and IP to {}, {}", nodeName, ip);
+                this.serfClient = new SerfClient(ip, 7373, nodeName);
+            }
+        }
     }
 
     public void writeDownTimes() {
