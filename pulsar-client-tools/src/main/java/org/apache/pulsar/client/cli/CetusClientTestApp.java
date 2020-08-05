@@ -57,10 +57,11 @@ public class CetusClientTestApp {
     @Parameter(names = { "--inject-coordinates" }, description = "set this flag to inject coordinates" )
     boolean injectCoordinates;
 
+    @Parameter(names = { "--use-nc-proxy" }, description = "set this flag to use NC proxy instead of agent running on client" )
+    boolean useNcProxy;
+
     @Parameter(names = { "-nt", "--num-topics" }, description = "Number of topics to create")
     int numTopics;
-
-
 
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
@@ -82,6 +83,7 @@ public class CetusClientTestApp {
         this.numTopics = Integer.parseInt(properties.getProperty("numTopics", "1"));
         this.runEternally = Boolean.parseBoolean(properties.getProperty("runEternally", "false"));
         this.injectCoordinates = Boolean.parseBoolean(properties.getProperty("injectCoordinates", "false"));
+        this.useNcProxy = Boolean.parseBoolean(properties.getProperty("useNcProxy", "false"));
         this.tlsAllowInsecureConnection = Boolean
                 .parseBoolean(properties.getProperty("tlsAllowInsecureConnection", "false"));
         this.tlsEnableHostnameVerification = Boolean
@@ -107,6 +109,7 @@ public class CetusClientTestApp {
         clientBuilder.tlsTrustCertsFilePath(this.tlsTrustCertsFilePath);
         clientBuilder.serviceUrl(serviceURL);
         clientBuilder.setUseSerfCoordinates(!injectCoordinates);
+        clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
         this.produceCommand.updateConfig(clientBuilder);
         this.consumeCommand.updateConfig(clientBuilder);
     }

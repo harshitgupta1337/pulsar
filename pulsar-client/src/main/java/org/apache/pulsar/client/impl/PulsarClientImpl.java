@@ -106,12 +106,12 @@ public class PulsarClientImpl implements PulsarClient {
     }
 
     private static final String SERF_RPC_IP = "0.0.0.0";
-    private static final int SERF_RPC_PORT = 7374;
+    private static final int SERF_RPC_PORT = 7373;
     private static String serfRpcIp;
     private static int serfRpcPort;
 
     private static final String SERF_BIND_IP = "0.0.0.0";
-    private static final int SERF_BIND_PORT = 8000;
+    private static final int SERF_BIND_PORT = 8085;
     private static String serfBindIp;
     private static int serfBindPort;
 
@@ -174,10 +174,7 @@ public class PulsarClientImpl implements PulsarClient {
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
         try {
-            //InetAddress IAddress = InetAddress.getLocalHost();
-            //this.nodeName = IAddress.getHostName();
             BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
-            
             this.nodeName = br.readLine();
             log.info("Node Name: {}", this.nodeName);
 
@@ -214,14 +211,10 @@ public class PulsarClientImpl implements PulsarClient {
         }
         
         state.set(State.Open);
-        joinSerfCluster();
     }
 
     public ClientConfigurationData getConfiguration() {
         return conf;
-    }
-
-    protected void joinSerfCluster() {
     }
 
     @Override

@@ -195,6 +195,12 @@ public class ClientBuilderImpl implements ClientBuilder {
         return this;
     }
 
+    @Override
+    public ClientBuilder setUseNetworkCoordinateProxy(boolean useNcProxy) {
+        conf.setUseNetworkCoordinateProxy(useNcProxy);
+        return this;
+    }
+
     public ClientConfigurationData getClientConfigurationData() {
         return conf;
     }

@@ -61,6 +61,7 @@ public class ClientConfigurationData implements Serializable, Cloneable {
    
     // Cetus Inject Coordinate
     private boolean useSerfCoordinates = true;
+    private boolean useNetworkCoordinateProxy = false;
  
     public ClientConfigurationData clone() {
         try {
