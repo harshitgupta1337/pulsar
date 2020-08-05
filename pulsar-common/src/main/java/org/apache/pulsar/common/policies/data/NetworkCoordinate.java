@@ -14,7 +14,7 @@ public class NetworkCoordinate {
     private double[] coordinateVector;
 
     public NetworkCoordinate() {
-        this.valid = false;
+        this.valid = true;
         this.adjustment = 0;
         this.error = 0;
         this.height = 0;

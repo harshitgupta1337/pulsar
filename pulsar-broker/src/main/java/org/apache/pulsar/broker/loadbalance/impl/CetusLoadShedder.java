@@ -74,7 +74,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                         if (brokerEntry.getKey().equals(entry.getKey())) 
                             continue;
                         double distToOtherBroker = CoordinateUtil.calculateDistance(topicEntry.getValue().getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate());
-                        log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker);
+                        log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}, current latency bound = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker*1000.0, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS);
                         if (distToOtherBroker*1000.0 < CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
                             betterBrokerFound = true;
                             betterBroker = brokerEntry.getKey();
