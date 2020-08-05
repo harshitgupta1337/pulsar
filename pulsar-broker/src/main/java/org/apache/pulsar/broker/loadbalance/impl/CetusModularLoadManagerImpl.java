@@ -307,16 +307,16 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         };
 
         //brokerDataCache.registerListener(this);
-
+        
         cetusBrokerDataCache = new ZooKeeperDataCache<CetusBrokerData>(pulsar.getLocalZkCache()) {
             @Override
                 public CetusBrokerData deserialize(String key, byte[] content) throws Exception {
                     return ObjectMapperFactory.getThreadLocal().readValue(content, CetusBrokerData.class);
                 }
         };
+        
 
         cetusBrokerDataCache.registerListener(this);
-
 
         if (SystemUtils.IS_OS_LINUX) {
             brokerHostUsage = new LinuxBrokerHostUsageImpl(pulsar);
