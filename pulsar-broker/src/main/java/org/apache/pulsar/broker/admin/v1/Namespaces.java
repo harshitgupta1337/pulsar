@@ -393,6 +393,16 @@ public class Namespaces extends NamespacesBase {
     }
 
     @PUT
+    @Path("/{property}/{cluster}/{namespace}/{bundle}/unload_legacy")
+    @ApiOperation(hidden = true, value = "Unload a namespace bundle")
+    @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
+    public void unloadNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
+            @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
+            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative) {
+        unloadNamespaceBundle(property, cluster, namespace, bundleRange, authoritative, null);
+    }
+
+    @PUT
     @Path("/{property}/{cluster}/{namespace}/{bundle}/unload")
     @ApiOperation(hidden = true, value = "Unload a namespace bundle")
     @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
