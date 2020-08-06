@@ -88,6 +88,9 @@ public class CetusDroneClient {
     @Parameter(names = { "-S", "--swarm-id" }, description = "Swarm ID")
     int swarmId = 0;
 
+    @Parameter(names = { "--use-nc-proxy" }, description = "set this flag to use NC proxy instead of agent running on client" )
+    boolean useNcProxy;
+
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;
@@ -127,6 +130,7 @@ public class CetusDroneClient {
         this.clientBuilder.tlsTrustCertsFilePath(this.tlsTrustCertsFilePath);
         this.clientBuilder.serviceUrl(serviceURL);
         this.clientBuilder.setUseSerfCoordinates(true);
+        this.clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
     }
 
     private void produceMessages(String topic, String messagePayload, int produceRate) {
