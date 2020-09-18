@@ -68,6 +68,8 @@ public class ServiceConfiguration implements PulsarConfiguration {
     // Enable the WebSocket API service
     private boolean webSocketServiceEnabled = false;
 
+    private boolean proactiveLoadingEnabled = true;
+
     // Flag to control features that are meant to be used when running in standalone mode
     private boolean isRunningStandalone = false;
 
@@ -613,6 +615,14 @@ public class ServiceConfiguration implements PulsarConfiguration {
 
     public void setNumIOThreads(int numIOThreads) {
         this.numIOThreads = numIOThreads;
+    }
+
+    public boolean isProactiveLoadingEnabled() {
+        return proactiveLoadingEnabled;
+    }
+
+    public void setProactiveLoadingEnabled(boolean proactiveLoadingEnabled) {
+        this.proactiveLoadingEnabled = proactiveLoadingEnabled;
     }
 
     public boolean isWebSocketServiceEnabled() {
