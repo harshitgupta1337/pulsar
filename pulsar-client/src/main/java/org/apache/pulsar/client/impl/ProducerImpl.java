@@ -114,6 +114,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     // Cetus - Track Broker
     private String currentBroker;
+    private boolean enableNextBrokerHint;
 
     // Globally unique producer name
     private String producerName;
@@ -151,6 +152,12 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     public ProducerImpl(PulsarClientImpl client, String topic, ProducerConfigurationData conf,
                         CompletableFuture<Producer<T>> producerCreatedFuture, int partitionIndex, Schema<T> schema,
                         ProducerInterceptors<T> interceptors) {
+        this(client, topic, conf, producerCreatedFuture, partitionIndex, schema, interceptors, true);
+    }
+
+    public ProducerImpl(PulsarClientImpl client, String topic, ProducerConfigurationData conf,
+                        CompletableFuture<Producer<T>> producerCreatedFuture, int partitionIndex, Schema<T> schema,
+                        ProducerInterceptors<T> interceptors, boolean enableNextBrokerHint) {
         super(client, topic, conf, producerCreatedFuture, schema, interceptors);
         this.producerId = client.newProducerId();
         this.producerName = conf.getProducerName();
@@ -160,6 +167,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
         // CETUS
         this.coordinate = new NetworkCoordinate();
+        this.enableNextBrokerHint = enableNextBrokerHint;
       
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
@@ -1631,12 +1639,14 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void connectionClosed(ClientCnx cnx, String nextBroker) {
-        String newServiceUrl = "pulsar://"+nextBroker+":6650";
-        log.info("Updating serviceUrl to {}", newServiceUrl);
-        try {
-            this.getClient().getLookup().updateServiceUrl(newServiceUrl);
-        } catch (PulsarClientException e) {
-            log.error("Error updating the service url to {}", newServiceUrl);
+        if (this.enableNextBrokerHint) {
+            String newServiceUrl = "pulsar://"+nextBroker+":6650";
+            log.info("Updating serviceUrl to {}", newServiceUrl);
+            try {
+                this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+            } catch (PulsarClientException e) {
+                log.error("Error updating the service url to {}", newServiceUrl);
+            }
         }
         this.closedTime = System.currentTimeMillis();
         log.info("Closed Time: {}", this.closedTime);

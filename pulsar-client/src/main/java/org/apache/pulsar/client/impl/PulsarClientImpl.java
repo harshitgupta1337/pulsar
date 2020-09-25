@@ -128,6 +128,7 @@ public class PulsarClientImpl implements PulsarClient {
     private final AtomicLong requestIdGenerator = new AtomicLong();
 
     private final EventLoopGroup eventLoopGroup;
+    private final boolean enableNextBrokerHint;
 
     @Deprecated
     public PulsarClientImpl(String serviceUrl, ClientConfiguration conf) throws PulsarClientException {
@@ -162,13 +163,14 @@ public class PulsarClientImpl implements PulsarClient {
         this.eventLoopGroup = eventLoopGroup;
         this.conf = conf;
         conf.getAuthentication().start();
+        this.enableNextBrokerHint = conf.isEnableNextBrokerHint();
          
         this.cnxPool = cnxPool;
         externalExecutorProvider = new ExecutorProvider(conf.getNumListenerThreads(), getThreadFactory("pulsar-external-listener"));
         if (conf.getServiceUrl().startsWith("http")) {
             lookup = new HttpLookupService(conf, eventLoopGroup);
         } else {
-            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
+            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor(), conf.isEnableNextBrokerHint());
         }
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
         producers = Maps.newIdentityHashMap();
@@ -367,7 +369,7 @@ public class PulsarClientImpl implements PulsarClient {
                 producer = new PartitionedProducerImpl<>(PulsarClientImpl.this, topic, conf, metadata.partitions,
                         producerCreatedFuture, schema, interceptors);
             } else {
-                producer = new ProducerImpl<>(PulsarClientImpl.this, topic, conf, producerCreatedFuture, -1, schema, interceptors);
+                producer = new ProducerImpl<>(PulsarClientImpl.this, topic, conf, producerCreatedFuture, -1, schema, interceptors, this.enableNextBrokerHint);
             }
 
             synchronized (producers) {
@@ -518,7 +520,7 @@ public class PulsarClientImpl implements PulsarClient {
                     listenerThread, consumerSubscribedFuture, metadata.partitions, schema, interceptors);
             } else {
                 consumer = new ConsumerImpl<>(PulsarClientImpl.this, topic, conf, listenerThread, -1,
-                        consumerSubscribedFuture, schema, interceptors);
+                        consumerSubscribedFuture, schema, interceptors, this.enableNextBrokerHint);
             }
 
             synchronized (consumers) {
@@ -848,7 +850,7 @@ public class PulsarClientImpl implements PulsarClient {
         if (conf.getServiceUrl().startsWith("http")) {
             lookup = new HttpLookupService(conf, eventLoopGroup);
         } else {
-            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
+            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor(), this.enableNextBrokerHint);
         }
     }
 

@@ -54,12 +54,14 @@ public class BinaryProtoLookupService implements LookupService {
     protected volatile InetSocketAddress serviceAddress;
     private final boolean useTls;
     private final ExecutorService executor;
+    private final boolean enableNextBrokerHint;
 
-    public BinaryProtoLookupService(PulsarClientImpl client, String serviceUrl, boolean useTls, ExecutorService executor)
+    public BinaryProtoLookupService(PulsarClientImpl client, String serviceUrl, boolean useTls, ExecutorService executor, boolean enableNextBrokerHint)
             throws PulsarClientException {
         this.client = client;
         this.useTls = useTls;
         this.executor = executor;
+        this.enableNextBrokerHint = enableNextBrokerHint;
         updateServiceUrl(serviceUrl);
     }
 
@@ -86,7 +88,7 @@ public class BinaryProtoLookupService implements LookupService {
      * @return broker-socket-address that serves given topic
      */
     public CompletableFuture<Pair<InetSocketAddress, InetSocketAddress>> getBroker(TopicName topicName) {
-        return findBroker(serviceAddress, true, topicName);
+        return findBroker(serviceAddress, this.enableNextBrokerHint, topicName);
     }
 
     /**

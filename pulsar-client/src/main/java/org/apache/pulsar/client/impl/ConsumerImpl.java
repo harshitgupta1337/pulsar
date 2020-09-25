@@ -148,6 +148,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
     //Cetus - Track Broker
     private String currentBroker;
+    private boolean enableNextBrokerHint;
 
     //Cetus - client downtimes
     private ArrayList<Long> clientDownTimes;
@@ -187,12 +188,23 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
     ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
             ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture, Schema<T> schema, ConsumerInterceptors interceptors) {
-        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors);
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors, true);
+    }
+
+    ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
+            ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture, Schema<T> schema, ConsumerInterceptors interceptors, boolean enableNextBrokerHint) {
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors, enableNextBrokerHint);
     }
 
     ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
             ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture,
             SubscriptionMode subscriptionMode, MessageId startMessageId, Schema<T> schema, ConsumerInterceptors interceptors) {
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, subscriptionMode, startMessageId, schema, interceptors, true);
+    }
+
+    ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
+            ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture,
+            SubscriptionMode subscriptionMode, MessageId startMessageId, Schema<T> schema, ConsumerInterceptors interceptors, boolean enableNextBrokerHint) {
         super(client, topic, conf, conf.getReceiverQueueSize(), listenerExecutor, subscribeFuture, schema, interceptors);
         this.consumerId = client.newConsumerId();
         this.subscriptionMode = subscriptionMode;
@@ -208,6 +220,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider-consumer"));
         this.currentBroker = null;
+        this.enableNextBrokerHint = enableNextBrokerHint;
         this.closedTime = 0;
         this.clientDownTimes = new ArrayList<Long>();
         this.clientDownTimeLoggerService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-client-downtime-writer"));
@@ -1735,12 +1748,14 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     }
 
     void connectionClosed(ClientCnx cnx, String nextBroker) {
-        String newServiceUrl = "pulsar://"+nextBroker+":6650";
-        log.info("Updating serviceUrl to {}", newServiceUrl);
-        try {
-            this.getClient().getLookup().updateServiceUrl(newServiceUrl);
-        } catch (PulsarClientException e) {
-            log.error("Error updating the service url to {}", newServiceUrl);
+        if (this.enableNextBrokerHint) {
+            String newServiceUrl = "pulsar://"+nextBroker+":6650";
+            log.info("Updating serviceUrl to {}", newServiceUrl);
+            try {
+                this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+            } catch (PulsarClientException e) {
+                log.error("Error updating the service url to {}", newServiceUrl);
+            }
         }
         this.closedTime = System.currentTimeMillis();
         log.info("Closed Time: {}", this.closedTime);

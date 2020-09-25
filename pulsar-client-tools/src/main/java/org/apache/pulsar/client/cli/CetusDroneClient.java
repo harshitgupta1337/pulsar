@@ -91,6 +91,9 @@ public class CetusDroneClient {
     @Parameter(names = { "--use-nc-proxy" }, description = "set this flag to use NC proxy instead of agent running on client" )
     boolean useNcProxy;
 
+    @Parameter(names = { "--disable-next-broker-hint" }, description = "set this flag to disable the use of next broker hint" )
+    boolean disableNextBrokerHint;
+
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;
@@ -131,6 +134,7 @@ public class CetusDroneClient {
         this.clientBuilder.serviceUrl(serviceURL);
         this.clientBuilder.setUseSerfCoordinates(true);
         this.clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
+        this.clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
     }
 
     private void produceMessages(String topic, String messagePayload, int produceRate) {

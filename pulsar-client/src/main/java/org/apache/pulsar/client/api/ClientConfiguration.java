@@ -379,4 +379,8 @@ public class ClientConfiguration implements Serializable {
         return confData;
     }
 
+    public void setEnableNextBrokerHint(boolean enableNextBrokerHint) {
+        confData.setEnableNextBrokerHint(enableNextBrokerHint);
+    }
+
 }
