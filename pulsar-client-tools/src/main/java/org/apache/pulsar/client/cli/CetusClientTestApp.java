@@ -60,6 +60,10 @@ public class CetusClientTestApp {
     @Parameter(names = { "--use-nc-proxy" }, description = "set this flag to use NC proxy instead of agent running on client" )
     boolean useNcProxy;
 
+    @Parameter(names = { "--disable-next-broker-hint" }, description = "set this flag to disable the use of next broker hint" )
+    boolean disableNextBrokerHint;
+
+
     @Parameter(names = { "-nt", "--num-topics" }, description = "Number of topics to create")
     int numTopics;
 
@@ -110,6 +114,7 @@ public class CetusClientTestApp {
         clientBuilder.serviceUrl(serviceURL);
         clientBuilder.setUseSerfCoordinates(!injectCoordinates);
         clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
+        clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
         this.produceCommand.updateConfig(clientBuilder);
         this.consumeCommand.updateConfig(clientBuilder);
     }

@@ -321,4 +321,6 @@ public interface ClientBuilder extends Cloneable {
 
     ClientBuilder setUseNetworkCoordinateProxy(boolean useNcProxy);
 
+    ClientBuilder setEnableNextBrokerHint(boolean enableNextBrokerHint);
+
 }

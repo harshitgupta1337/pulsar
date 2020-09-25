@@ -201,6 +201,12 @@ public class ClientBuilderImpl implements ClientBuilder {
         return this;
     }
 
+    @Override
+    public ClientBuilder setEnableNextBrokerHint(boolean enableNextBrokerHint) {
+        conf.setEnableNextBrokerHint(enableNextBrokerHint);
+        return this;
+    }
+
     public ClientConfigurationData getClientConfigurationData() {
         return conf;
     }

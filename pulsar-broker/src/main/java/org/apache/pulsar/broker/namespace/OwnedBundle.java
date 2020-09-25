@@ -44,13 +44,16 @@ public class OwnedBundle {
             AtomicIntegerFieldUpdater.newUpdater(OwnedBundle.class, "isActive");
     private volatile int isActive = TRUE;
 
+    private boolean enableProactiveLoading;
+
     /**
      * constructor
      *
      * @param nsname
      */
-    public OwnedBundle(NamespaceBundle suName) {
+    public OwnedBundle(NamespaceBundle suName, boolean enableProactiveLoading) {
         this.bundle = suName;
+        this.enableProactiveLoading = enableProactiveLoading;
         IS_ACTIVE_UPDATER.set(this, TRUE);
     };
 
@@ -61,8 +64,9 @@ public class OwnedBundle {
      * @param nssvc
      * @param active
      */
-    public OwnedBundle(NamespaceBundle suName, boolean active) {
+    public OwnedBundle(NamespaceBundle suName, boolean enableProactiveLoading, boolean active) {
         this.bundle = suName;
+        this.enableProactiveLoading = enableProactiveLoading;
         IS_ACTIVE_UPDATER.set(this, active ? TRUE : FALSE);
     }
 
@@ -126,14 +130,19 @@ public class OwnedBundle {
             pulsar.getNamespaceService().getOwnershipCache().updateBundleState(this.bundle, false);
             // delete ownership node on zk
             try {
-                // Make an async call to the next broker to tryAcquireOwnership
-                pulsar.getExecutor().execute(() -> {
-                    try {
-                        pulsar.getAdminClient().namespaces().proactivelyOwnNamespaceBundle(bundle.getNamespaceObject().toString(), bundle.getBundleRange(), nextBroker);
-                    } catch (Exception e) {
-                        LOG.error("Exception during call to .proactivelyOwnNamespaceBundle");
-                    }
-                });
+                if (this.enableProactiveLoading) {
+                    LOG.info("DOING PROACTIVE LOADING");
+                    // Make an async call to the next broker to tryAcquireOwnership
+                    pulsar.getExecutor().execute(() -> {
+                            try {
+                            pulsar.getAdminClient().namespaces().proactivelyOwnNamespaceBundle(bundle.getNamespaceObject().toString(), bundle.getBundleRange(), nextBroker);
+                            } catch (Exception e) {
+                            LOG.error("Exception during call to .proactivelyOwnNamespaceBundle");
+                            }
+                            });
+                } else {
+                    LOG.info("NOT DOING PROACTIVE LOADING BECAUSE DISABLED");
+                }
                 pulsar.getNamespaceService().getOwnershipCache().removeOwnership(bundle).get(timeout, timeoutUnit);
             } catch (Exception e) {
                 // Failed to remove ownership node: enable namespace-bundle again so, it can serve new topics
