@@ -64,7 +64,9 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
         log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());
         log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
         for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+            log.info("ALL_LOAD_SHEDDER Checking CetusBrokerData for broker {}", entry.getKey());
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getBundleNetworkCoordinates().entrySet()) {
+                log.info("ALL_LOAD_SHEDDER Adding bundle {} on broker {} for load shedding", topicEntry.getKey(), entry.getKey());
                 selectedBundleCache.put(entry.getKey(), new BrokerChange(topicEntry.getKey(), null));
             }
         }

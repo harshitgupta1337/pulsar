@@ -246,7 +246,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
         //cetusLoadData.getLoadData() = new LoadData();
         loadSheddingPipeline = new ArrayList<>();
         loadSheddingPipeline.add(new OverloadShedder());
-        bundleUnloadingStrategy = new CetusLoadShedder();
+        bundleUnloadingStrategy = new CetusAllLoadShedder();
         preallocatedBundleToBroker = new ConcurrentHashMap<>();
         desiredBrokerForBundle = new ConcurrentHashMap<>();
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
@@ -786,10 +786,13 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 // TODO IMPORTANT : This also means that once this list is populated, it cannot be changed
                 // We need to populate a sorted list of brokers that does not change
                 this.brokersList = new ArrayList<String>();
-                String selfUrl = pulsar.getBrokerServiceUrl();
+                String httpPrefix = "http://";
+                String selfUrl = pulsar.getWebServiceAddress().substring(httpPrefix.length());
+                log.info("PERIODIC_LB SELFURL : {}", selfUrl);
+                log.info("PERIODIC_LB BrokerDataMap size : {}", cetusLoadData.getCetusBrokerDataMap().size());
                 for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
                     // Also exclude this broker (load manager)
-                    log.debug("PERIODIC_LB SELFURL : {} BROKERENTRY : {}", selfUrl, brokerEntry.getKey());
+                    log.info("PERIODIC_LB SELFURL : {} BROKERENTRY : {}", selfUrl, brokerEntry.getKey());
                     if (selfUrl.equals(brokerEntry.getKey()))
                         continue;
                     this.brokersList.add(brokerEntry.getKey());
@@ -798,7 +801,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 Collections.sort(this.brokersList);
                 this.nextTargetBrokerIdx = 0;
             } else {
-                if (currTime - lastLoadSheddingTime <= CetusPeriodicLoadManager.PERIOD_SEC*1000) 
+                if (currTime - this.lastLoadSheddingTime <= CetusPeriodicLoadManager.PERIOD_SEC*1000) 
                     return; // No load shedding needed at this time
                
                 // The broker to select for all bundles is contained in this.nextTargetBrokerIdx
@@ -820,16 +823,14 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                                 long startTime = System.nanoTime();
                                 bundleUnloadStartTime.put(bundle, startTime);
 
-                                log.info("Marking desiredBroker for bundle {} = {}", bundle, nextBroker);
+                                log.info("Initiating migration of Bundle {} Broker {} ---> Broker {} at ts = {}", bundle, currBroker, nextBroker, currTime);
                                 this.desiredBrokerForBundle.put(bundle, nextBroker);
-                                log.info("desiredBrokerForBundle size = {}", this.desiredBrokerForBundle.size());
-                                log.info("desiredBrokerForBundle = {}", this.desiredBrokerForBundle);
-
                                 pulsar.getUnloadExecutor().execute(() -> performUnloading(currBroker, bundle, bundleRange, namespaceName, nextBroker));
                             }
                             });
                         });
                 this.nextTargetBrokerIdx = (this.nextTargetBrokerIdx+1)%this.brokersList.size();
+                this.lastLoadSheddingTime = System.currentTimeMillis();
             }
         }
 

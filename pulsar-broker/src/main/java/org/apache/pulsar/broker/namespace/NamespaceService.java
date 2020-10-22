@@ -32,6 +32,8 @@ import org.apache.pulsar.broker.admin.AdminResource;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
 import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerWrapper;
 import org.apache.pulsar.broker.loadbalance.impl.CetusModularLoadManagerImpl;
+import org.apache.pulsar.broker.loadbalance.impl.PeriodicLoadManagerWrapper;
+import org.apache.pulsar.broker.loadbalance.impl.CetusPeriodicLoadManagerImpl;
 import org.apache.pulsar.broker.loadbalance.ResourceUnit;
 import org.apache.pulsar.broker.lookup.LookupResult;
 import org.apache.pulsar.broker.service.BrokerServiceException.ServerMetadataException;
@@ -366,7 +368,12 @@ public class NamespaceService {
                        //if (LOG.isDebugEnabled()) {
                         LOG.info("Namespace bundle {} already owned by {} ", bundle, nsData);
                         //}
-                        String desiredBroker = ((CetusModularLoadManagerImpl)((ModularLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        String desiredBroker = null;
+                        if (loadManager.get() instanceof CetusModularLoadManagerImpl) 
+                            desiredBroker = ((CetusModularLoadManagerImpl)((ModularLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        else if (loadManager.get() instanceof CetusPeriodicLoadManagerImpl) 
+                            desiredBroker = ((CetusPeriodicLoadManagerImpl)((PeriodicLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        LOG.info("Finally desired broker selected = {}", desiredBroker);
                         if (desiredBroker == null) {
                             future.complete(Optional.of(new LookupResult(nsData.get())));
                         } else {
