@@ -31,6 +31,7 @@ import com.google.gson.Gson;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,6 +49,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
 import java.io.FileWriter;
+import java.io.FileReader;
+import java.io.BufferedReader;
 
 import org.apache.bookkeeper.util.ZkUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -233,7 +236,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
     private long lastLoadSheddingTime;
     private final long initTime;
     private List<String> brokersList;
-    private int nextTargetBrokerIdx;
+    private String lastTargetBroker;
 
     /**
      * Initializes fields which do not depend on PulsarService. initialize(PulsarService) should subsequently be called.
@@ -261,7 +264,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
         this.lastLoadSheddingTime = 0;
         this.initTime = System.currentTimeMillis();
         this.brokersList = null;
-        this.nextTargetBrokerIdx = -1;
+        this.lastTargetBroker = null;
         
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
             @Override
@@ -758,6 +761,20 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
             }
         }
 
+        public String readNextTargetBroker() {
+            String broker = null;
+            try {
+                FileReader r = new FileReader(CetusPeriodicLoadManager.TARGET_BROKER);
+                BufferedReader reader = new BufferedReader(r);
+                broker = reader.readLine();
+                broker = broker.trim();
+                r.close();
+            } catch (IOException e) {
+                return null;
+            }
+            if (broker.equals("")) return null;
+            return broker;
+        }
 
     /**
      * As the leader broker, select bundles for the namespace service to unload so that they may be reassigned to new
@@ -799,16 +816,29 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 }
                 // Now sort the list to create a deterministic order
                 Collections.sort(this.brokersList);
-                this.nextTargetBrokerIdx = 0;
+                  
+                // Write the broker list to /tmp/brokerlist.txt
+                try {
+                    FileWriter w = new FileWriter(CetusPeriodicLoadManager.BROKER_LIST_LOC); 
+                    for (String brokerUrl : this.brokersList) {
+                        w.write(brokerUrl+"\n");
+                    }
+                    w.flush();
+                    w.close();
+                } catch (IOException e) {
+                    System.err.println("Error writing brokers list");
+                    e.printStackTrace();
+                }
+                  
             } else {
-                if (currTime - this.lastLoadSheddingTime <= CetusPeriodicLoadManager.PERIOD_SEC*1000) 
-                    return; // No load shedding needed at this time
-               
-                // The broker to select for all bundles is contained in this.nextTargetBrokerIdx
+                String nextTargetBroker = readNextTargetBroker();
+                if (nextTargetBroker == null) return;
+                if (this.lastTargetBroker != null && this.lastTargetBroker.equals(nextTargetBroker)) return;
+
                 final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
                 log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
-                String nextBroker = this.brokersList.get(this.nextTargetBrokerIdx);
+                String nextBroker = nextTargetBroker;
                 bundlesToUnload.asMap().forEach((currBroker, brokerChanges) -> {
                         brokerChanges.forEach(brokerChange -> {
                             String bundle = brokerChange.bundle;
@@ -829,7 +859,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                             }
                             });
                         });
-                this.nextTargetBrokerIdx = (this.nextTargetBrokerIdx+1)%this.brokersList.size();
+                this.lastTargetBroker = nextTargetBroker;
                 this.lastLoadSheddingTime = System.currentTimeMillis();
             }
         }
