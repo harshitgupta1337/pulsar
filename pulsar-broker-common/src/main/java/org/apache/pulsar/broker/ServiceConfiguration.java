@@ -528,7 +528,7 @@ public class ServiceConfiguration implements PulsarConfiguration {
      ****/
     
     // Options - CentroidMin, CentroidSat, AllPairsMin 
-    private String cetusBrokerSelectionMethod = "CentroidMin";
+    private String cetusBrokerSelectionStrategy = "CentroidMin";
     
 
     public String getZookeeperServers() {
@@ -1555,12 +1555,12 @@ public class ServiceConfiguration implements PulsarConfiguration {
         this.replicationProducerQueueSize = replicationProducerQueueSize;
     }
    
-    public String getCetusBrokerSelectionMethod() {
-        return cetusBrokerSelectionMethod;
+    public String getCetusBrokerSelectionStrategy() {
+        return cetusBrokerSelectionStrategy;
     }
 
-    public void setCetusBrokerSelectionMethod(String cetusBrokerSelectionMethod) {
-        this.cetusBrokerSelectionMethod = cetusBrokerSelectionMethod;
+    public void setCetusBrokerSelectionStrategy(String cetusBrokerSelectionStrategy) {
+        this.cetusBrokerSelectionStrategy = cetusBrokerSelectionStrategy;
     }
     @Deprecated
     public boolean isReplicationTlsEnabled() {

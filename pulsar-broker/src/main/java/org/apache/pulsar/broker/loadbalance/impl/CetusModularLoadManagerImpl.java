@@ -232,7 +232,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
   private static final Deserializer<CetusBrokerData> cetusDeserializer = (key, content) -> jsonMapper()
     .readValue(content, CetusBrokerData.class);
 
-  private brokerSelectionAlgorithm;
+  private String brokerSelectionStrategy;
 
 
   /**
@@ -329,7 +329,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     conf = pulsar.getConfiguration();
 
-    brokerSelectionAlgorithm = conf.getBrokerSelectionAlgorithm();
+    brokerSelectionStrategy = conf.getCetusBrokerSelectionStrategy();
 
     // Initialize the default stats to assume for unseen bundles (hard-coded for now).
     defaultStats.msgThroughputIn = DEFAULT_MESSAGE_THROUGHPUT;

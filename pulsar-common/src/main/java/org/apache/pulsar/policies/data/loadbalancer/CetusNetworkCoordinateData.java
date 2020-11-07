@@ -158,6 +158,7 @@ public class CetusNetworkCoordinateData {
         return avgCoordinate; 
     }
 
+
     public ConcurrentHashMap<String, NetworkCoordinate> getProducerCoordinates() {
         return producerCoordinates;
     }
