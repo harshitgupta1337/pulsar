@@ -151,8 +151,7 @@ public class PulsarService implements AutoCloseable {
     public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
 
 
-    private final ScheduledExecutorService unloadExecutor = Executors.newScheduledThreadPool(16,
-            new DefaultThreadFactory("unload-exec"));
+    private final ScheduledExecutorService unloadExecutor;
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(20,
             new DefaultThreadFactory("pulsar"));
     private final ScheduledExecutorService cacheExecutor = Executors.newScheduledThreadPool(10,
@@ -230,6 +229,7 @@ public class PulsarService implements AutoCloseable {
 		this.shutdownService = new MessagingServiceShutdownHook(this);
 		this.loadManagerExecutor = Executors
 			.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-load-manager"));
+        this.unloadExecutor = Executors.newScheduledThreadPool(config.getNumUnloadThreads(), new DefaultThreadFactory("unload-exec"));
 		this.functionWorkerService = functionWorkerService;
 		// Cetus Netowrk Coordinate Data
 		//this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();

@@ -70,6 +70,8 @@ public class ServiceConfiguration implements PulsarConfiguration {
 
     private boolean proactiveLoadingEnabled = true;
 
+    private int numUnloadThreads = 16;
+
     // Flag to control features that are meant to be used when running in standalone mode
     private boolean isRunningStandalone = false;
 
@@ -615,6 +617,14 @@ public class ServiceConfiguration implements PulsarConfiguration {
 
     public void setNumIOThreads(int numIOThreads) {
         this.numIOThreads = numIOThreads;
+    }
+
+    public int getNumUnloadThreads() {
+        return numUnloadThreads;
+    }
+
+    public void setNumUnloadThreads(int num) {
+        this.numUnloadThreads = num;
     }
 
     public boolean isProactiveLoadingEnabled() {
