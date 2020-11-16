@@ -817,7 +817,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
             recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
 
-            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
+            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData, conf, pulsar.getWebServiceAddress());
             log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
             bundlesToUnload.asMap().forEach((broker, brokerChanges) -> {
@@ -1156,6 +1156,7 @@ public void stop() throws PulsarServerException {
 public LocalBrokerData updateLocalBrokerData() {
     try {
         final SystemResourceUsage systemResourceUsage = LoadManagerShared.getSystemResourceUsage(brokerHostUsage);
+        log.info("Updating local broker data");
         localData.update(systemResourceUsage, getBundleStats());
     } catch (Exception e) {
         log.warn("Error when attempting to update local broker data: {}", e);

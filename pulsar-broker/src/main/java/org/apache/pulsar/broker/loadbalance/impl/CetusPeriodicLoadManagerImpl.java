@@ -657,6 +657,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 if (brokerDataMap.containsKey(broker)) {
                     // Replace previous local broker data.
                     brokerDataMap.get(broker).setLocalData(localData);
+                    log.info("Updating message rates for broker {}. In = {},{} ; Out = {},{}", broker, localData.getMsgThroughputIn(), localData.getMsgRateIn(), localData.getMsgThroughputOut(), localData.getMsgRateOut());
                 } else {
                     // Initialize BrokerData object for previously unseen
                     // brokers.
@@ -835,7 +836,7 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 if (nextTargetBroker == null) return;
                 if (this.lastTargetBroker != null && this.lastTargetBroker.equals(nextTargetBroker)) return;
 
-                final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
+                final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData, conf, pulsar.getWebServiceAddress());
                 log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
                 String nextBroker = nextTargetBroker;
@@ -1191,6 +1192,7 @@ public void writeBrokerDataOnZooKeeper() {
                 bundlesToRemove.add(b);
         }
         for (String bundleToRemove : bundlesToRemove) {
+            log.info("Removing bundle {} from CetusBrokerData.BundleNetworkCoordinates");
             pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundleToRemove);
         }
         log.info("Writing bundles to ZooKeeper: {}" ,localData.getBundles());

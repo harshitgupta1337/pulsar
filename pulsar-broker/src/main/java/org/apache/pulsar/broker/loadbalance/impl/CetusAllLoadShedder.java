@@ -41,6 +41,7 @@ import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.BrokerChange;
 import org.apache.pulsar.broker.namespace.NamespaceService;
+import org.apache.pulsar.broker.loadbalance.CetusLoadData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +59,8 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
 
     private final Multimap<String, BrokerChange> selectedBundleCache = ArrayListMultimap.create();
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
+    public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress) {
+        ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
         selectedBundleCache.clear();
         log.info("ALL_LOAD_SHEDDER LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
         log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());

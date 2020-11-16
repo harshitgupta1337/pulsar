@@ -333,7 +333,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
     }
 
     void startStatsUpdater() {
-        statsUpdater.scheduleAtFixedRate(safeRun(this::updateRates), 60, 60, TimeUnit.SECONDS);
+        statsUpdater.scheduleAtFixedRate(safeRun(this::updateRates), 5, 5, TimeUnit.SECONDS);
 
         // Ensure the broker starts up with initial stats
         updateRates();
