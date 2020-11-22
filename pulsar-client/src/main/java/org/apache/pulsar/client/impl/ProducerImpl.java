@@ -319,7 +319,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             }
         }
         ClientCnx cnx = cnx();
-        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
+        log.info("{} Sending coordate to : {}", topic, cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
