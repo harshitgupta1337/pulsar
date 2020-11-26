@@ -105,7 +105,14 @@ public class OwnershipCache {
      */
     private final NamespaceBundleFactory bundleFactory;
 
+    private boolean enableProactiveLoading;
+
     private class OwnedServiceUnitCacheLoader implements AsyncCacheLoader<String, OwnedBundle> {
+        private boolean enableProactiveLoading;
+
+        public OwnedServiceUnitCacheLoader (boolean enableProactiveLoading) {
+            this.enableProactiveLoading = enableProactiveLoading;
+        }
 
         @SuppressWarnings("deprecation")
         @Override
@@ -131,7 +138,7 @@ public class OwnershipCache {
                             }
                             ownershipReadOnlyCache.invalidate(namespaceBundleZNode);
                             future.complete(new OwnedBundle(
-                                    ServiceUnitZkUtils.suBundleFromPath(namespaceBundleZNode, bundleFactory)));
+                                    ServiceUnitZkUtils.suBundleFromPath(namespaceBundleZNode, bundleFactory), this.enableProactiveLoading, true));
                         } else {
                             // Failed to acquire lock
                             future.completeExceptionally(KeeperException.create(rc));
@@ -150,6 +157,7 @@ public class OwnershipCache {
      */
     public OwnershipCache(PulsarService pulsar, NamespaceBundleFactory bundleFactory) {
         this.ownerBrokerUrl = pulsar.getBrokerServiceUrl();
+        this.enableProactiveLoading = pulsar.getConfiguration().isProactiveLoadingEnabled();
         this.ownerBrokerUrlTls = pulsar.getBrokerServiceUrlTls();
         this.selfOwnerInfo = new NamespaceEphemeralData(ownerBrokerUrl, ownerBrokerUrlTls,
                 pulsar.getWebServiceAddress(), pulsar.getWebServiceAddressTls(), false);
@@ -160,7 +168,7 @@ public class OwnershipCache {
         this.ownershipReadOnlyCache = pulsar.getLocalZkCacheService().ownerInfoCache();
         // ownedBundlesCache contains all namespaces that are owned by the local broker
         this.ownedBundlesCache = Caffeine.newBuilder().executor(MoreExecutors.directExecutor())
-                .buildAsync(new OwnedServiceUnitCacheLoader());
+                .buildAsync(new OwnedServiceUnitCacheLoader(this.enableProactiveLoading));
     }
 
     /**
@@ -175,15 +183,18 @@ public class OwnershipCache {
     public CompletableFuture<Optional<NamespaceEphemeralData>> getOwnerAsync(NamespaceBundle suname) {
         String path = ServiceUnitZkUtils.path(suname);
 
+        LOG.info("Inside getOwnerAsync for bundle {}", suname);
         CompletableFuture<OwnedBundle> ownedBundleFuture = ownedBundlesCache.getIfPresent(path);
         if (ownedBundleFuture != null) {
             // Either we're the owners or we're trying to become the owner.
             return ownedBundleFuture.thenApply(serviceUnit -> {
                 // We are the owner of the service unit
+                LOG.info("ownedByndleFuture retrieved. We are the owner of service unit bundle {}", suname);
                 return Optional.of(serviceUnit.isActive() ? selfOwnerInfo : selfOwnerInfoDisabled);
             });
         }
 
+        LOG.info("We are NOT the owner of service unit bundle {}", suname);
         // If we're not the owner, we need to check if anybody else is
         return ownershipReadOnlyCache.getAsync(path);
     }

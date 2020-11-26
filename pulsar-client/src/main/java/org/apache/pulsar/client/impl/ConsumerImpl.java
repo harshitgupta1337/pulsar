@@ -45,6 +45,9 @@ import java.util.ArrayList;
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Timeout;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -145,6 +148,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
     //Cetus - Track Broker
     private String currentBroker;
+    private boolean enableNextBrokerHint;
 
     //Cetus - client downtimes
     private ArrayList<Long> clientDownTimes;
@@ -184,12 +188,23 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
     ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
             ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture, Schema<T> schema, ConsumerInterceptors interceptors) {
-        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors);
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors, true);
+    }
+
+    ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
+            ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture, Schema<T> schema, ConsumerInterceptors interceptors, boolean enableNextBrokerHint) {
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, SubscriptionMode.Durable, null, schema, interceptors, enableNextBrokerHint);
     }
 
     ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
             ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture,
             SubscriptionMode subscriptionMode, MessageId startMessageId, Schema<T> schema, ConsumerInterceptors interceptors) {
+        this(client, topic, conf, listenerExecutor, partitionIndex, subscribeFuture, subscriptionMode, startMessageId, schema, interceptors, true);
+    }
+
+    ConsumerImpl(PulsarClientImpl client, String topic, ConsumerConfigurationData<T> conf,
+            ExecutorService listenerExecutor, int partitionIndex, CompletableFuture<Consumer<T>> subscribeFuture,
+            SubscriptionMode subscriptionMode, MessageId startMessageId, Schema<T> schema, ConsumerInterceptors interceptors, boolean enableNextBrokerHint) {
         super(client, topic, conf, conf.getReceiverQueueSize(), listenerExecutor, subscribeFuture, schema, interceptors);
         this.consumerId = client.newConsumerId();
         this.subscriptionMode = subscriptionMode;
@@ -205,6 +220,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider-consumer"));
         this.currentBroker = null;
+        this.enableNextBrokerHint = enableNextBrokerHint;
         this.closedTime = 0;
         this.clientDownTimes = new ArrayList<Long>();
         this.clientDownTimeLoggerService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-client-downtime-writer"));
@@ -288,13 +304,47 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     void startCoordinateProviderService() {
         int interval = 1000;
         log.info("Running Coordinate Service");
-        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        if(!client.getIsJoinedToSerfCluster()) {
-            joinSerfCluster();
+
+        if(!client.getConfiguration().isUseNetworkCoordinateProxy()) {
+            //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+            if(!client.getIsJoinedToSerfCluster()) {
+                joinSerfCluster();
+            }
         }
 
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+        if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
+            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
+        }
         clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
+    }
+
+    public void updateSerfGateway() {
+        if (!client.getConfiguration().isUseSerfCoordinates())
+            return;
+
+        String nodeName = null, ip = null;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            nodeName = br.readLine();
+            //log.info("Node Name: {}", nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+            ip = br.readLine();
+        } catch (Exception e) {
+            log.warn("Exception in updateSerfGateway: {}", e);
+        }
+
+        if (nodeName == null || ip == null)
+            return;
+
+        synchronized (this.serfClient) {
+            if (!(nodeName.equals(this.serfClient.getNodeName()) && ip.equals(this.serfClient.getRpcIpAddr()))) {
+                // Need to change the client
+                log.info("Changing the Serf node and IP to {}, {}", nodeName, ip);
+                this.serfClient = new SerfClient(ip, 7373, nodeName);
+            }
+        }
     }
 
     public void writeDownTimes() {
@@ -1694,6 +1744,21 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     void connectionClosed(ClientCnx cnx) {
         this.closedTime = System.currentTimeMillis();
         log.info("Closed time: {}", this.closedTime);
+        this.connectionHandler.connectionClosed(cnx);
+    }
+
+    void connectionClosed(ClientCnx cnx, String nextBroker) {
+        if (this.enableNextBrokerHint) {
+            String newServiceUrl = "pulsar://"+nextBroker+":6650";
+            log.info("Updating serviceUrl to {}", newServiceUrl);
+            try {
+                this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+            } catch (PulsarClientException e) {
+                log.error("Error updating the service url to {}", newServiceUrl);
+            }
+        }
+        this.closedTime = System.currentTimeMillis();
+        log.info("Closed Time: {}", this.closedTime);
         this.connectionHandler.connectionClosed(cnx);
     }
 

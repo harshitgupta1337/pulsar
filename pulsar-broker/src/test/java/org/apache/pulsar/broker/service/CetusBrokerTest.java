@@ -132,10 +132,10 @@ public class CetusBrokerTest extends BrokerTestBase {
         Thread.sleep(ASYNC_EVENT_COMPLETION_WAIT); 
         assertTrue(pulsarClient.producersCount() == 2);
         assertTrue(pulsarClient.consumersCount() == 1);
-        long consumerId = consumer.getConsumerId();
-        long producerId = producer.getProducerId();
-        long producerId2 = producer2.getProducerId();
-        log.info("Got Consumer Id:"+consumerId); 
+        String consumerName = consumer.getConsumerName();
+        String producerName = producer.getProducerName();
+        String producerName2 = producer2.getProducerName();
+        log.info("Got Consumer Id:"+consumerName); 
         BrokerService brokerService = pulsar.getBrokerService();
            
         log.info("Got Service");
@@ -149,7 +149,7 @@ public class CetusBrokerTest extends BrokerTestBase {
         //URI uri = new URI(pulsarClientImpl.getConfiguration().getServiceUrl());
         //InetSocketAddress address = InetSocketAddress.createUnresolved(uri.getHost(), uri.getPort());
         //ClientCnx cnx = pulsarClientImpl.getCnxPool().getConnection(address).getNow(null);
-        //ConsumerImpl<?> consumerImpl = cnx.getConsumer(consumerId);
+        //ConsumerImpl<?> consumerImpl = cnx.getConsumer(consumerName);
         //assertTrue(consumerImpl.getNetworkCoordinate().getAdjustment() != 0);
 
 
@@ -165,30 +165,30 @@ public class CetusBrokerTest extends BrokerTestBase {
     
         log.info("Got consumer network coordinate on other side of sleep");
 
-        ConcurrentHashMap<Long, NetworkCoordinate> consumerCoords = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinates();
+        ConcurrentHashMap<String, NetworkCoordinate> consumerCoords = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinates();
 
-        for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoords.entrySet()) {
+        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoords.entrySet()) {
             log.info("Consumer Id in Map: {}", entry.getKey());
         }
 
-        double adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinate(consumerId).getAdjustment();
+        double adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinate(consumerName).getAdjustment();
 
         assertTrue(adjustment != 0);
 
         log.info("Verified consumer adjustment is {}", adjustment);
 
-        adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerId).getAdjustment();
+        adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerName).getAdjustment();
 
         assertTrue(adjustment != 0);
 
         log.info("Verified producer adjustment is {}", adjustment);
 
-        adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerId2).getAdjustment();
+        adjustment = brokerService.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerName2).getAdjustment();
         assertTrue(adjustment != 0);
 
         log.info("Verified second producer adjustment is {}", adjustment);
 
-        //assertTrue(brokerService.getNetworkCoordinateCollector().getConsumerCoordinate(consumerId).getAdjustment() == 1);
+        //assertTrue(brokerService.getNetworkCoordinateCollector().getConsumerCoordinate(consumerName).getAdjustment() == 1);
 
         String brokerZkPath = "/cetus/coordinate-data" + "/" + brokerService.pulsar().getAdvertisedAddress() + ":" + brokerService.pulsar().getConfiguration().getWebServicePort();
 
@@ -234,11 +234,11 @@ public class CetusBrokerTest extends BrokerTestBase {
         log.info("Read back Zk info");
        
         if(cetusBrokerData != null) {
-            producerCoordinate = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerId);
+            producerCoordinate = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerName);
 
-            consumerCoordinate = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinate(consumerId);        
+            consumerCoordinate = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getConsumerCoordinate(consumerName);        
 
-            producerCoordinate2 = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerId2);
+            producerCoordinate2 = cetusBrokerData.getBundleNetworkCoordinates().get(bundleName).getProducerCoordinate(producerName2);
 
             //log.info("Producer Coordinate Adjustment: " +producerCoordinate.getAdjustment());
         }

@@ -41,6 +41,8 @@ import java.util.ArrayList;
 //***********************************************************************
 import com.google.common.collect.Queues;
 
+import java.io.*;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.util.Recycler;
 import io.netty.util.Recycler.Handle;
@@ -112,6 +114,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     // Cetus - Track Broker
     private String currentBroker;
+    private boolean enableNextBrokerHint;
 
     // Globally unique producer name
     private String producerName;
@@ -149,6 +152,12 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     public ProducerImpl(PulsarClientImpl client, String topic, ProducerConfigurationData conf,
                         CompletableFuture<Producer<T>> producerCreatedFuture, int partitionIndex, Schema<T> schema,
                         ProducerInterceptors<T> interceptors) {
+        this(client, topic, conf, producerCreatedFuture, partitionIndex, schema, interceptors, true);
+    }
+
+    public ProducerImpl(PulsarClientImpl client, String topic, ProducerConfigurationData conf,
+                        CompletableFuture<Producer<T>> producerCreatedFuture, int partitionIndex, Schema<T> schema,
+                        ProducerInterceptors<T> interceptors, boolean enableNextBrokerHint) {
         super(client, topic, conf, producerCreatedFuture, schema, interceptors);
         this.producerId = client.newProducerId();
         this.producerName = conf.getProducerName();
@@ -158,6 +167,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         this.semaphore = new Semaphore(conf.getMaxPendingMessages(), true);
         // CETUS
         this.coordinate = new NetworkCoordinate();
+        this.enableNextBrokerHint = enableNextBrokerHint;
       
         this.serfClient = new SerfClient(client.getSerfRpcIp(), client.getSerfRpcPort(), client.getNodeName());
         this.coordinateProviderService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("cetus-coordinate-provider"));
@@ -262,14 +272,18 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     void startCoordinateProviderService() {
         int interval = 1000;
-	    log.info("Running Coordinate Service");
-        //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
-        if(!client.getIsJoinedToSerfCluster()) {
-	        joinSerfCluster();
+        if(!client.getConfiguration().isUseNetworkCoordinateProxy()) {
+            //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
+            if(!client.getIsJoinedToSerfCluster()) {
+                joinSerfCluster();
+            }
         }
-	
+
         coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
-	clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
+        if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
+            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
+        }
+        clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }
 
     public void writeDownTimes() {
@@ -299,15 +313,45 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     public void sendCoordinate() {
-     if(client.getConfiguration().isUseSerfCoordinates()) {
-        this.coordinate = serfClient.getCoordinate();
-     }
+        synchronized (this.serfClient) {
+            if(client.getConfiguration().isUseSerfCoordinates()) {
+                this.coordinate = serfClient.getCoordinate();
+            }
+        }
         ClientCnx cnx = cnx();
-        //log.info("Sending coordate to : {}", cnx().getRemoteHostName());
+        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 	
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));
         cnx.sendNetworkCoordinates(msg, requestId); 
+    }
+
+    public void updateSerfGateway() {
+        if (!client.getConfiguration().isUseSerfCoordinates())
+            return;
+
+        String nodeName = null, ip = null;
+        try {
+            BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
+            nodeName = br.readLine();
+            //log.info("Node Name: {}", nodeName);
+
+            br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
+            ip = br.readLine();
+        } catch (Exception e) {
+            log.warn("Exception in updateSerfGateway: {}", e);
+        }
+
+        if (nodeName == null || ip == null) 
+            return;
+
+        synchronized (this.serfClient) {
+            if (!(nodeName.equals(this.serfClient.getNodeName()) && ip.equals(this.serfClient.getRpcIpAddr()))) {
+                // Need to change the client
+                log.info("Changing the Serf node and IP to {}, {}", nodeName, ip);
+                this.serfClient = new SerfClient(ip, 7373, nodeName);
+            }
+        }
     }
 
     public ConnectionHandler getConnectionHandler() {
@@ -1588,6 +1632,22 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void connectionClosed(ClientCnx cnx) {
+        this.getClient().getLookup();
+        this.closedTime = System.currentTimeMillis();
+        log.info("Closed Time: {}", this.closedTime);
+        this.connectionHandler.connectionClosed(cnx);
+    }
+
+    void connectionClosed(ClientCnx cnx, String nextBroker) {
+        if (this.enableNextBrokerHint) {
+            String newServiceUrl = "pulsar://"+nextBroker+":6650";
+            log.info("Updating serviceUrl to {}", newServiceUrl);
+            try {
+                this.getClient().getLookup().updateServiceUrl(newServiceUrl);
+            } catch (PulsarClientException e) {
+                log.error("Error updating the service url to {}", newServiceUrl);
+            }
+        }
         this.closedTime = System.currentTimeMillis();
         log.info("Closed Time: {}", this.closedTime);
         this.connectionHandler.connectionClosed(cnx);

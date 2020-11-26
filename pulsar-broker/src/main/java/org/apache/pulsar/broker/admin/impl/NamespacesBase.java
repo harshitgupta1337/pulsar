@@ -526,8 +526,28 @@ public abstract class NamespacesBase extends AdminResource {
     }
 
     @SuppressWarnings("deprecation")
+    public void internalProactivelyOwnNamespaceBundle(String bundleRange, String nextBroker, boolean authoritative) {
+        if (authoritative) { // TODO Also check if the nextBroker is equal to myself (broker)
+            log.info("About to actually proactivelyOwnBundle {}", bundleRange);
+            Policies policies = getNamespacePolicies(namespaceName);
+            //if (isBundleOwnedByAnyBroker(namespaceName, policies.bundles, bundleRange)) {
+            //    log.info("[{}] Namespace bundle is not owned by any broker {}/{}", clientAppId(), namespaceName,
+            //            bundleRange);
+            NamespaceBundle bundle = validateNamespaceBundleRange(namespaceName, policies.bundles, bundleRange);
+            pulsar().getNamespaceService().proactivelyOwnBundleAndRetry(bundle);
+        } else {
+            redirectProactivelyOwnCall(bundleRange, nextBroker);
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     public void internalUnloadNamespaceBundle(String bundleRange, boolean authoritative) {
-        log.info("[{}] Unloading namespace bundle {}/{}", clientAppId(), namespaceName, bundleRange);
+        this.internalUnloadNamespaceBundle(bundleRange, authoritative, null);
+    }
+
+    @SuppressWarnings("deprecation")
+    public void internalUnloadNamespaceBundle(String bundleRange, boolean authoritative, String nextBroker) {
+        log.info("[{}] Unloading namespace bundle {}/{} w/ nextBroker {}", clientAppId(), namespaceName, bundleRange, nextBroker);
 
         validateSuperUserAccess();
         Policies policies = getNamespacePolicies(namespaceName);
@@ -551,7 +571,7 @@ public abstract class NamespacesBase extends AdminResource {
         NamespaceBundle nsBundle = validateNamespaceBundleOwnership(namespaceName, policies.bundles, bundleRange,
                 authoritative, true);
         try {
-            pulsar().getNamespaceService().unloadNamespaceBundle(nsBundle);
+            pulsar().getNamespaceService().unloadNamespaceBundle(nsBundle, nextBroker);
             log.info("[{}] Successfully unloaded namespace bundle {}", clientAppId(), nsBundle.toString());
         } catch (Exception e) {
             log.error("[{}] Failed to unload namespace bundle {}/{}", clientAppId(), namespaceName, bundleRange, e);

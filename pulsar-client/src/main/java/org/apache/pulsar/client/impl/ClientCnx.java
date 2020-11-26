@@ -671,11 +671,14 @@ public class ClientCnx extends PulsarHandler {
 
     @Override
     protected void handleCloseProducer(CommandCloseProducer closeProducer) {
-        log.info("[{}] Broker notification of Closed producer: {}", remoteAddress, closeProducer.getProducerId());
+        log.info("[{}] Broker notification of Closed producer: {}, {}", remoteAddress, closeProducer.getProducerId(), closeProducer.hasNextBroker());
         final long producerId = closeProducer.getProducerId();
         ProducerImpl<?> producer = producers.get(producerId);
         if (producer != null) {
-            producer.connectionClosed(this);
+            if (closeProducer.hasNextBroker())
+                producer.connectionClosed(this, closeProducer.getNextBroker());
+            else
+                producer.connectionClosed(this);
         } else {
             log.warn("Producer with id {} not found while closing producer ", producerId);
         }
@@ -683,11 +686,14 @@ public class ClientCnx extends PulsarHandler {
 
     @Override
     protected void handleCloseConsumer(CommandCloseConsumer closeConsumer) {
-        log.info("[{}] Broker notification of Closed consumer: {}", remoteAddress, closeConsumer.getConsumerId());
+        log.info("[{}] Broker notification of Closed consumer: {}, {}", remoteAddress, closeConsumer.getConsumerId(), closeConsumer.hasNextBroker());
         final long consumerId = closeConsumer.getConsumerId();
         ConsumerImpl<?> consumer = consumers.get(consumerId);
         if (consumer != null) {
-            consumer.connectionClosed(this);
+            if (closeConsumer.hasNextBroker())
+                consumer.connectionClosed(this, closeConsumer.getNextBroker());
+            else
+                consumer.connectionClosed(this);
         } else {
             log.warn("Consumer with id {} not found while closing consumer ", consumerId);
         }

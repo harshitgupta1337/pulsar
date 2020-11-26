@@ -31,12 +31,14 @@ import com.google.gson.Gson;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.io.IOException;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -47,6 +49,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
 import java.io.FileWriter;
+import java.io.FileReader;
+import java.io.BufferedReader;
 
 import org.apache.bookkeeper.util.ZkUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -62,7 +66,7 @@ import org.apache.pulsar.broker.loadbalance.BrokerFilter;
 import org.apache.pulsar.broker.loadbalance.BrokerFilterException;
 import org.apache.pulsar.broker.loadbalance.BrokerHostUsage;
 import org.apache.pulsar.broker.loadbalance.BundleSplitStrategy;
-import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
+import org.apache.pulsar.broker.loadbalance.CetusPeriodicLoadManager;
 import org.apache.pulsar.broker.loadbalance.LoadData;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
 import org.apache.pulsar.broker.loadbalance.LoadSheddingStrategy;
@@ -101,10 +105,10 @@ import org.apache.pulsar.common.util.CoordinateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
-    private static final Logger log = LoggerFactory.getLogger(CetusModularLoadManagerImpl.class);
+public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
+    private static final Logger log = LoggerFactory.getLogger(CetusPeriodicLoadManagerImpl.class);
 
-    private static final java.util.logging.Logger bundleStatsLog = java.util.logging.Logger.getLogger(CetusModularLoadManagerImpl.class.getName());
+    private static final java.util.logging.Logger bundleStatsLog = java.util.logging.Logger.getLogger(CetusPeriodicLoadManagerImpl.class.getName());
 
     // Path to ZNode whose children contain BundleData jsons for each bundle (new API version of ResourceQuota).
     public static final String BUNDLE_DATA_ZPATH = "/loadbalance/bundle-data";
@@ -223,21 +227,21 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
     private Map<String, Long> bundleUnloadStartTime;
     private ScheduledExecutorService bundleStatsPrintService;
 
-
-
-
     private static final Deserializer<LocalBrokerData> loadReportDeserializer = (key, content) -> jsonMapper()
         .readValue(content, LocalBrokerData.class);
 
     private static final Deserializer<CetusBrokerData> cetusDeserializer = (key, content) -> jsonMapper()
         .readValue(content, CetusBrokerData.class);
 
-
+    private long lastLoadSheddingTime;
+    private final long initTime;
+    private List<String> brokersList;
+    private String lastTargetBroker;
 
     /**
      * Initializes fields which do not depend on PulsarService. initialize(PulsarService) should subsequently be called.
      */
-    public CetusModularLoadManagerImpl() {
+    public CetusPeriodicLoadManagerImpl() {
         brokerCandidateCache = new HashSet<>();
         brokerToNamespaceToBundleRange = new HashMap<>();
         defaultStats = new NamespaceBundleStats();
@@ -245,7 +249,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         //cetusLoadData.getLoadData() = new LoadData();
         loadSheddingPipeline = new ArrayList<>();
         loadSheddingPipeline.add(new OverloadShedder());
-        bundleUnloadingStrategy = new CetusLoadShedder();
+        bundleUnloadingStrategy = new CetusAllLoadShedder();
         preallocatedBundleToBroker = new ConcurrentHashMap<>();
         desiredBrokerForBundle = new ConcurrentHashMap<>();
         scheduler = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-modular-load-manager"));
@@ -257,7 +261,11 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
         this.bundleUnloadTimes = ArrayListMultimap.create();
         this.bundleUnloadStartTime = new HashMap<>();
         this.bundleStatsPrintService = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("broker-print"));
-        //
+        this.lastLoadSheddingTime = 0;
+        this.initTime = System.currentTimeMillis();
+        this.brokersList = null;
+        this.lastTargetBroker = null;
+        
         this.brokerTopicLoadingPredicate = new BrokerTopicLoadingPredicate() {
             @Override
                 public boolean isEnablePersistentTopics(String brokerUrl) {
@@ -295,7 +303,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
                 log.debug("Update Received for path {}", path);
                 }
                 reapDeadBrokerPreallocations(data);
-                scheduler.submit(CetusModularLoadManagerImpl.this::updateAll);
+                scheduler.submit(CetusPeriodicLoadManagerImpl.this::updateAll);
                 }
                 });
 
@@ -366,7 +374,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
      * @param pulsar
      *            Client to construct this manager from.
      */
-    public CetusModularLoadManagerImpl(final PulsarService pulsar) {
+    public CetusPeriodicLoadManagerImpl(final PulsarService pulsar) {
         this();
         initialize(pulsar);
     }
@@ -753,102 +761,107 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             }
         }
 
+        public String readNextTargetBroker() {
+            String broker = null;
+            try {
+                FileReader r = new FileReader(CetusPeriodicLoadManager.TARGET_BROKER);
+                BufferedReader reader = new BufferedReader(r);
+                broker = reader.readLine();
+                broker = broker.trim();
+                r.close();
+            } catch (IOException e) {
+                return null;
+            }
+            if (broker.equals("")) return null;
+            return broker;
+        }
 
     /**
      * As the leader broker, select bundles for the namespace service to unload so that they may be reassigned to new
      * brokers.
      */
 
-    /*
-    // CETUS - Remove and replace with coordinate based unload mechanism
-    @Override
-    public synchronized void doLoadShedding() {
-    if (!LoadManagerShared.isLoadSheddingEnabled(pulsar)) {
-    return;
-    }
-    if (getAvailableBrokers().size() <= 1) {
-    log.info("Only 1 broker available: no load shedding will be performed");
-    return;
-    }
-    // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
-    // map.
-    final long timeout = System.currentTimeMillis()
-    - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
-    final Map<String, Long> recentlyUnloadedBundles = cetusLoadData.getLoadData().getRecentlyUnloadedBundles();
-    recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
-
-    for (LoadSheddingStrategy strategy : loadSheddingPipeline) {
-    final Multimap<String, String> bundlesToUnload = strategy.findBundlesForUnloading(cetusLoadData.getLoadData(), conf);
-
-    bundlesToUnload.asMap().forEach((broker, bundles) -> {
-    bundles.forEach(bundle -> {
-    final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
-    final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-    if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
-    return;
-    }
-
-    log.info("[Overload shedder] Unloading bundle: {} from broker {}", bundle, broker);
-    try {
-    pulsar.getAdminClient().namespaces().unloadNamespaceBundle(namespaceName, bundleRange);
-    cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
-    } catch (PulsarServerException | PulsarAdminException e) {
-    log.warn("Error when trying to perform load shedding on {} for broker {}", bundle, broker, e);
-    }
-    });
-    });
-    }
-    }
-     */
-
-    // CETUS - Unload Bundles
     @Override
         public synchronized void doLoadShedding() {
             if (getAvailableBrokers().size() <= 1) {
                 log.info("Only 1 broker available: no load shedding will be performed");
                 return;
             }
-            // Remove bundles who have been unloaded for longer than the grace period from the recently unloaded
-            // map.
-            final long timeout = System.currentTimeMillis()
-                - 5000; // 5 secs, typically the time taken by network coordinates to converge
-                // TODO - TimeUnit.MINUTES.toMillis(conf.getLoadBalancerSheddingGracePeriodMinutes());
-            final Map<String, Long> recentlyUnloadedBundles = cetusLoadData.getLoadData().getRecentlyUnloadedBundles();
 
-            recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
+            long currTime = System.currentTimeMillis();
+            /** 
+             * If this is first call to this function, 
+             */
+            if (currTime - initTime <= CetusPeriodicLoadManager.WARMUP_SECS*1000) {
+                log.debug("Warmup not done. Only {} seconds have passed since init.", (currTime - initTime)/1000);
+                return;
+            }
 
-            final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
-            log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
+            
+            if (this.brokersList == null) {
+                // Broker set hasn't been populated yet. 
+                // TODO IMPORTANT : This also means that once this list is populated, it cannot be changed
+                // We need to populate a sorted list of brokers that does not change
+                this.brokersList = new ArrayList<String>();
+                String httpPrefix = "http://";
+                String selfUrl = pulsar.getWebServiceAddress().substring(httpPrefix.length());
+                log.info("PERIODIC_LB SELFURL : {}", selfUrl);
+                log.info("PERIODIC_LB BrokerDataMap size : {}", cetusLoadData.getCetusBrokerDataMap().size());
+                for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
+                    // Also exclude this broker (load manager)
+                    log.info("PERIODIC_LB SELFURL : {} BROKERENTRY : {}", selfUrl, brokerEntry.getKey());
+                    if (selfUrl.equals(brokerEntry.getKey()))
+                        continue;
+                    this.brokersList.add(brokerEntry.getKey());
+                }
+                // Now sort the list to create a deterministic order
+                Collections.sort(this.brokersList);
+                  
+                // Write the broker list to /tmp/brokerlist.txt
+                try {
+                    FileWriter w = new FileWriter(CetusPeriodicLoadManager.BROKER_LIST_LOC); 
+                    for (String brokerUrl : this.brokersList) {
+                        w.write(brokerUrl+"\n");
+                    }
+                    w.flush();
+                    w.close();
+                } catch (IOException e) {
+                    System.err.println("Error writing brokers list");
+                    e.printStackTrace();
+                }
+                  
+            } else {
+                String nextTargetBroker = readNextTargetBroker();
+                if (nextTargetBroker == null) return;
+                if (this.lastTargetBroker != null && this.lastTargetBroker.equals(nextTargetBroker)) return;
 
-            bundlesToUnload.asMap().forEach((broker, brokerChanges) -> {
-                    brokerChanges.forEach(brokerChange -> {
+                final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
+                log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
+
+                String nextBroker = nextTargetBroker;
+                bundlesToUnload.asMap().forEach((currBroker, brokerChanges) -> {
+                        brokerChanges.forEach(brokerChange -> {
                             String bundle = brokerChange.bundle;
-                            String nextBroker = brokerChange.nextBroker;
                             final String namespaceName = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
                             final String bundleRange = LoadManagerShared.getBundleRangeFromBundleName(bundle);
-                            if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, broker)) {
+                            if (!shouldAntiAffinityNamespaceUnload(namespaceName, bundleRange, currBroker)) {
                             return;
                             }
-                            // TODO We should also add logic to check if the current assigned broker is the same on
-                            // from which the last recent unloading took place
-                            if(!cetusLoadData.getLoadData().getRecentlyUnloadedBundles().containsKey(bundle))
+                            // TODO Do we still need the recently unloaded condition ?
+                            if(!nextBroker.equals(currBroker))
                             {
+                                long startTime = System.nanoTime();
+                                bundleUnloadStartTime.put(bundle, startTime);
 
-                            long startTime = System.nanoTime();
-                            bundleUnloadStartTime.put(bundle, startTime);
-
-                            log.info("Marking desiredBroker for bundle {} = {}", bundle, nextBroker);
-                            this.desiredBrokerForBundle.put(bundle, nextBroker);
-                            log.info("desiredBrokerForBundle size = {}", this.desiredBrokerForBundle.size());
-                            log.info("desiredBrokerForBundle = {}", this.desiredBrokerForBundle);
-
-                            //performUnloading(broker, bundle, bundleRange, namespaceName);
-                            pulsar.getUnloadExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName, nextBroker));
-                            //pulsar.getExecutor().execute(() -> performUnloading(broker, bundle, bundleRange, namespaceName));
-                            cetusLoadData.getLoadData().getRecentlyUnloadedBundles().put(bundle, System.currentTimeMillis());
+                                log.info("Initiating migration of Bundle {} Broker {} ---> Broker {} at ts = {}", bundle, currBroker, nextBroker, currTime);
+                                this.desiredBrokerForBundle.put(bundle, nextBroker);
+                                pulsar.getUnloadExecutor().execute(() -> performUnloading(currBroker, bundle, bundleRange, namespaceName, nextBroker));
                             }
                             });
-                    });
+                        });
+                this.lastTargetBroker = nextTargetBroker;
+                this.lastLoadSheddingTime = System.currentTimeMillis();
+            }
         }
 
     private void performUnloading(String broker, String bundle, String bundleRange, String namespaceName, String nextBroker) {
@@ -955,7 +968,7 @@ public Optional<String> selectBrokerForAssignment(final ServiceUnitId serviceUni
                 key -> getBundleDataOrDefault(bundle));
         brokerCandidateCache.clear();
 
-        getBrokersMeetLatency(bundle, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS); //ms
+        getBrokersMeetLatency(bundle, CetusPeriodicLoadManager.CETUS_LATENCY_BOUND_MS); //ms
 
         //LoadManagerShared.applyNamespacePolicies(serviceUnit, policies, brokerCandidateCache, getAvailableBrokers(),
         //brokerTopicLoadingPredicate);

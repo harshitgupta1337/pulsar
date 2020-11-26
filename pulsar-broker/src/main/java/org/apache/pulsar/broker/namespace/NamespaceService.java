@@ -32,6 +32,8 @@ import org.apache.pulsar.broker.admin.AdminResource;
 import org.apache.pulsar.broker.loadbalance.LoadManager;
 import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerWrapper;
 import org.apache.pulsar.broker.loadbalance.impl.CetusModularLoadManagerImpl;
+import org.apache.pulsar.broker.loadbalance.impl.PeriodicLoadManagerWrapper;
+import org.apache.pulsar.broker.loadbalance.impl.CetusPeriodicLoadManagerImpl;
 import org.apache.pulsar.broker.loadbalance.ResourceUnit;
 import org.apache.pulsar.broker.lookup.LookupResult;
 import org.apache.pulsar.broker.service.BrokerServiceException.ServerMetadataException;
@@ -366,7 +368,12 @@ public class NamespaceService {
                        //if (LOG.isDebugEnabled()) {
                         LOG.info("Namespace bundle {} already owned by {} ", bundle, nsData);
                         //}
-                        String desiredBroker = ((CetusModularLoadManagerImpl)((ModularLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        String desiredBroker = null;
+                        if (loadManager.get() instanceof CetusModularLoadManagerImpl) 
+                            desiredBroker = ((CetusModularLoadManagerImpl)((ModularLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        else if (loadManager.get() instanceof CetusPeriodicLoadManagerImpl) 
+                            desiredBroker = ((CetusPeriodicLoadManagerImpl)((PeriodicLoadManagerWrapper)loadManager.get()).getLoadManager()).desiredBrokerForBundle.get(bundle.toString());
+                        LOG.info("Finally desired broker selected = {}", desiredBroker);
                         if (desiredBroker == null) {
                             future.complete(Optional.of(new LookupResult(nsData.get())));
                         } else {
@@ -450,6 +457,7 @@ public class NamespaceService {
                         // Found owner for the namespace bundle
 
                         // Schedule the task to pre-load topics
+                        LOG.info("Calling loadNamespaceTopics for bundle {}", bundle);
                         pulsar.loadNamespaceTopics(bundle);
 
                         lookupFuture.complete(Optional.of(new LookupResult(ownerInfo)));
@@ -553,6 +561,11 @@ public class NamespaceService {
         return Optional.of(lookupAddress);
     }
 
+    public void unloadNamespaceBundle(NamespaceBundle bundle, String nextBroker) throws Exception {        
+        unloadNamespaceBundle(bundle, 1, TimeUnit.SECONDS, nextBroker);
+        LOG.info("Unloaded namespace bundle");
+    }
+
     public void unloadNamespaceBundle(NamespaceBundle bundle) throws Exception {
         
         unloadNamespaceBundle(bundle, 1, TimeUnit.SECONDS);
@@ -560,10 +573,17 @@ public class NamespaceService {
     }
 
     public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit) throws Exception {
+        this.unloadNamespaceBundle(bundle, timeout, timeoutUnit, null);
+    }
+
+    public void unloadNamespaceBundle(NamespaceBundle bundle, long timeout, TimeUnit timeoutUnit, String nextBroker) throws Exception {
         bundlesCurrentlyUnloading.add(bundle.toString());
-        LOG.info("Currently Unloading: {}" , bundle.toString());
-        checkNotNull(ownershipCache.getOwnedBundle(bundle)).handleUnloadRequest(pulsar, timeout, timeoutUnit);
+        LOG.info("Currently Unloading: {} w/ nextBroker : {}" , bundle.toString(), nextBroker);
+        checkNotNull(ownershipCache.getOwnedBundle(bundle)).handleUnloadRequest(pulsar, timeout, timeoutUnit, nextBroker);
         pulsar.getCetusBrokerData().getBundleNetworkCoordinates().remove(bundle.toString());
+        // Make an async call to the next broker to tryAcquireOwnership
+        //NamespaceName nsname = bundle.getNamespaceObject();
+        //pulsar.getAdminClient().namespaces().proactivelyOwnNamespaceBundle(nsname.toString(), bundle.toString(), nextBroker);
         //LOG.info("Unloaded {}", bundle.toString());
         //bundlesCurrentlyUnloading.remove(bundle.toString());
     }
@@ -1068,5 +1088,50 @@ public class NamespaceService {
             LOG.debug("SLA Monitoring not owned by the broker: ns={}", getSLAMonitorNamespace(host, config));
         }
         return isNameSpaceRegistered;
+    }
+
+    public void proactivelyOwnBundleAndRetry(NamespaceBundle bundle) {
+            pulsar.getExecutor().execute(() -> {
+                boolean complete = false;
+                for (int retryIdx = 0; retryIdx < 3 && !complete; retryIdx++) {
+                    LOG.info("Trying to proactively acquire ownership of bundle {} retryNum = {}", bundle, retryIdx);
+                    try {
+                    ownershipCache.tryAcquiringOwnership(bundle).thenAccept(ownerInfo -> {
+                        if (ownerInfo.isDisabled()) {
+                            LOG.info("Namespace bundle {} is currently being unloaded", bundle);
+                        } else {
+                            // Found owner for the namespace bundle
+                            LOG.info("Successfully and proactively acquired ownership for bundle {}", bundle);
+                            LOG.info("Calling loadNamespaceTopics for bundle {}", bundle);
+                            pulsar.loadNamespaceTopics(bundle);
+
+                            bundlesCurrentlyUnloading.remove(bundle.toString());
+
+                            // Schedule the task to pre-load topics
+                            //pulsar.loadNamespaceTopics(bundle);
+                            //bundlesCurrentlyUnloading.remove(bundle.toString());
+                            return;
+                        }
+                    }).exceptionally(exception -> {
+                        LOG.warn("Failed to acquire ownership for namespace bundle {}: ", bundle, exception.getMessage(),
+                                exception);
+                        return null;
+                        }).get();
+                    if (ownershipCache.isNamespaceBundleOwned(bundle)) {
+                        complete = true;
+                        break; // No more retrying
+                    } else {
+                        LOG.info("ownershipCache.isNamespaceBundleOwned(bundle) = false for bundle {}", bundle);
+                    }
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception e) {
+                        break;
+                    }    
+                } catch (Exception e) {
+                    LOG.error("Exception in proactivelyOwnBundleAndRetry for bundle {}", bundle);
+                }
+            }
+        });
     }
 }

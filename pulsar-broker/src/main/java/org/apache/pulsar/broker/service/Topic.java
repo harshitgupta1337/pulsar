@@ -98,6 +98,7 @@ public interface Topic {
     CompletableFuture<Void> checkReplication();
 
     CompletableFuture<Void> close();
+    CompletableFuture<Void> close(String nextBroker);
 
     void checkGC(int gcInterval);
 
