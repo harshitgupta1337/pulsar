@@ -137,7 +137,14 @@ public class CetusDroneClient {
         this.clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
     }
 
-    private void produceMessages(String topic, String messagePayload, int produceRate) {
+    private String genPayload(int size) {
+        String res = "";
+        for (int i = 0; i < size; i++) 
+            res += "0";
+        return res;
+    }
+
+    private void produceMessages(String topic, int payloadSize, int produceRate) {
         int numMessagesSent = 0;
         try {
             PulsarClient client = clientBuilder.build();
@@ -151,6 +158,7 @@ public class CetusDroneClient {
                 }
 
                 String ts = Long.toString(System.currentTimeMillis());
+                String messagePayload = ts + " " + this.genPayload(payloadSize - ts.length());
                 producer.send(messagePayload.getBytes());
 
                 numMessagesSent++;
@@ -184,7 +192,10 @@ public class CetusDroneClient {
                 } else {
                     numMessagesConsumed += 1;
                     String output = this.interpretMessage(msg, false);
-                    System.out.println("Reccvd message "+output);
+                    long ts = System.currentTimeMillis() ;
+                    String splits[] = output.split(" ");
+                    long sentTs = Long.parseLong(splits[0]);
+                    System.out.println("E2E DELAY at "+sentTs+" = " + (ts - sentTs) + " ms");
                     consumer.acknowledge(msg);
                 }
             }
@@ -232,7 +243,7 @@ public class CetusDroneClient {
             if (isLeader) {
                 service.schedule(safeRun(() -> consumeMessages(detectionTopic)), 0, TimeUnit.MILLISECONDS);
             } else {
-                service.schedule(safeRun(() -> produceMessages(detectionTopic, "DETECTION", detectionRate)), 0, TimeUnit.MILLISECONDS);
+                service.schedule(safeRun(() -> produceMessages(detectionTopic, 1000, detectionRate)), 0, TimeUnit.MILLISECONDS);
             }
 
             try {
@@ -246,7 +257,7 @@ public class CetusDroneClient {
 
             String followLeaderTopic = generateFullTopicName("follow_leader_"+swarmId);
             if (isLeader) {
-                service2.schedule(safeRun(() -> produceMessages(followLeaderTopic, "FOLLOW_LEADER", followRate)), 0, TimeUnit.MILLISECONDS);
+                service2.schedule(safeRun(() -> produceMessages(followLeaderTopic, 1000, followRate)), 0, TimeUnit.MILLISECONDS);
             } else {
                 service2.schedule(safeRun(() -> consumeMessages(followLeaderTopic)), 0, TimeUnit.MILLISECONDS);
             }

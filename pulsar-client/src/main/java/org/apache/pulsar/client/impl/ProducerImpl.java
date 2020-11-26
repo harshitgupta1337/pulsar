@@ -348,7 +348,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         synchronized (this.serfClient) {
             if (!(nodeName.equals(this.serfClient.getNodeName()) && ip.equals(this.serfClient.getRpcIpAddr()))) {
                 // Need to change the client
-                log.info("Changing the Serf node and IP to {}, {}", nodeName, ip);
+                log.info("Changing the Serf node and IP to {}, {} for topic {} at {}", nodeName, ip, topic, System.currentTimeMillis());
                 this.serfClient = new SerfClient(ip, 7373, nodeName);
             }
         }
