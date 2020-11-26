@@ -48,35 +48,35 @@ public class CetusNetworkCoordinateData {
 
     private NetworkCoordinate brokerCoordinate;
 
-    private ConcurrentHashMap<Long, NetworkCoordinate> producerCoordinates;
-    private ConcurrentHashMap<Long, NetworkCoordinate> consumerCoordinates;
+    private ConcurrentHashMap<String, NetworkCoordinate> producerCoordinates;
+    private ConcurrentHashMap<String, NetworkCoordinate> consumerCoordinates;
 
     public CetusNetworkCoordinateData() {
         this.brokerCoordinate = new NetworkCoordinate();
-        this.producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
-        this.consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+        this.producerCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
+        this.consumerCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
     } 
 
     public CetusNetworkCoordinateData(NetworkCoordinate brokerCoordinate) {
         this.brokerCoordinate = brokerCoordinate;
-        this.producerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
-        this.consumerCoordinates = new ConcurrentHashMap<Long, NetworkCoordinate>(16,1);
+        this.producerCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
+        this.consumerCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
     }
 
-    public void putConsumerCoordinate(long nodeId, NetworkCoordinate coordinate) { 
-        consumerCoordinates.put(nodeId, coordinate);
+    public void putConsumerCoordinate(String nodeName, NetworkCoordinate coordinate) { 
+        consumerCoordinates.put(nodeName, coordinate);
     }
 
-    public void putProducerCoordinate(long nodeId, NetworkCoordinate coordinate) {
-        producerCoordinates.put(nodeId, coordinate);
+    public void putProducerCoordinate(String nodeName, NetworkCoordinate coordinate) {
+        producerCoordinates.put(nodeName, coordinate);
     }
 
-    public NetworkCoordinate getConsumerCoordinate(long nodeId) {
-        return consumerCoordinates.get(nodeId);
+    public NetworkCoordinate getConsumerCoordinate(String nodeName) {
+        return consumerCoordinates.get(nodeName);
     }
 
-    public NetworkCoordinate getProducerCoordinate(long nodeId) {
-        return producerCoordinates.get(nodeId);
+    public NetworkCoordinate getProducerCoordinate(String nodeName) {
+        return producerCoordinates.get(nodeName);
     }
 
     public void setBrokerCoordinate(NetworkCoordinate coordinate) {
@@ -91,11 +91,11 @@ public class CetusNetworkCoordinateData {
     public double getProducerConsumerCoordinateAvgValue() {
         double total = 0.0;
         //producerCoordinates.forEach((producerId, coordinate) -> {
-        for(Map.Entry<Long, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
+        for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
             total += entry.getValue().getCoordinateAvg();
         }
         //consumerCoordinates.forEach((consumerId, coordinate) -> {
-        for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
+        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
             total += entry.getValue().getCoordinateAvg();
         }
 
@@ -115,7 +115,7 @@ public class CetusNetworkCoordinateData {
             return coordinate;
         }
         //producerCoordinates.forEach((producerId, coordinate) -> {
-        for(Map.Entry<Long, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
+        for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
             double[] coordinateVector = entry.getValue().getCoordinateVector();
             for(int i = 0; i < coordinateVector.length; i++) {
                 totalCoordinateVector[i]+= coordinateVector[i];
@@ -126,8 +126,10 @@ public class CetusNetworkCoordinateData {
         }
         //consumerCoordinates.forEach((consumerId, coordinate) -> {
         int notValid = 0;
-        for(Map.Entry<Long, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
+        log.info("Producers: {}, Consumers: {}", producerCoordinates.size(), consumerCoordinates.size());
+        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
             if(entry.getValue().isValid()) {
+                log.info("Consumer Value is valid");
                 double[] coordinateVector = entry.getValue().getCoordinateVector();
                 for(int i = 0; i < coordinateVector.length; i++) {
                     totalCoordinateVector[i]+= coordinateVector[i];
@@ -137,6 +139,7 @@ public class CetusNetworkCoordinateData {
                 totalError += entry.getValue().getError();
             }
             else {
+                log.info("Consumer value is INVALID");
                 notValid += 1;
             }
         }
@@ -150,23 +153,24 @@ public class CetusNetworkCoordinateData {
         double avgError =   (totalError/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
         NetworkCoordinate avgCoordinate = new NetworkCoordinate(true, avgAdjustment, avgError, avgHeight, avgCoordinateVector);
 
+        log.info("Avg Coordinate: {} Adjustment {} Height {} Error {}", avgCoordinateVector, avgAdjustment, avgHeight, avgError);
 
         return avgCoordinate; 
     }
 
-    public ConcurrentHashMap<Long, NetworkCoordinate> getProducerCoordinates() {
+    public ConcurrentHashMap<String, NetworkCoordinate> getProducerCoordinates() {
         return producerCoordinates;
     }
     
-    public void setProducerCoordinates(ConcurrentHashMap<Long, NetworkCoordinate> producerCoordinates) {
+    public void setProducerCoordinates(ConcurrentHashMap<String, NetworkCoordinate> producerCoordinates) {
         this.producerCoordinates = producerCoordinates;
     }
 
-    public void setConsumerCoordinates(ConcurrentHashMap<Long, NetworkCoordinate> consumerCoordinates) {
+    public void setConsumerCoordinates(ConcurrentHashMap<String, NetworkCoordinate> consumerCoordinates) {
         this.consumerCoordinates = consumerCoordinates;
     }
 
-    public ConcurrentHashMap<Long, NetworkCoordinate> getConsumerCoordinates() { 
+    public ConcurrentHashMap<String, NetworkCoordinate> getConsumerCoordinates() { 
         return consumerCoordinates;
     }
     

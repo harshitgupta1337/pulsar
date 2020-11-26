@@ -89,6 +89,7 @@ public class BundleSplitterTask implements BundleSplitStrategy {
                 if (stats.topics > maxBundleTopics || stats.consumerCount + stats.producerCount > maxBundleSessions
                         || totalMessageRate > maxBundleMsgRate || totalMessageThroughput > maxBundleBandwidth) {
                     final String namespace = LoadManagerShared.getNamespaceNameFromBundleName(bundle);
+		    log.info("Bundle: {}, Topics: {}", bundle, stats.topics);
                     try {
                         final int bundleCount = pulsar.getNamespaceService()
                                 .getBundleCount(NamespaceName.get(namespace));

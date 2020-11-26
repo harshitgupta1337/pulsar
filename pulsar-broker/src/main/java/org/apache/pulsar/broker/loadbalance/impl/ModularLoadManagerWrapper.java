@@ -121,7 +121,7 @@ public class ModularLoadManagerWrapper implements LoadManager {
         return loadManager.getLoadReportDeserializer();
     }
 
-    public ModularLoadManager getLoadManager() {
+    public CetusModularLoadManager getLoadManager() {
         return loadManager;
     }
 

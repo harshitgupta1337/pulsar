@@ -5,6 +5,7 @@ import java.util.Map;
 import org.apache.pulsar.broker.BundleLatencyData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
+import org.apache.pulsar.broker.loadbalance.LoadData;
 
 /**
  * This class contains all information necessary to load balance Cetus
@@ -16,6 +17,8 @@ public class CetusLoadData {
 	private ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap;
 
     private ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap;
+
+    private LoadData loadData;
 	
     /**
      * Initialize a CetusLoadData.
@@ -23,6 +26,7 @@ public class CetusLoadData {
     public CetusLoadData() {
         cetusBrokerDataMap = new ConcurrentHashMap<String, CetusBrokerData>(16,1);
         cetusBundleDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
+        loadData = new LoadData();
     }
     
     public ConcurrentHashMap<String, CetusBrokerData> getCetusBrokerDataMap() {
@@ -31,6 +35,10 @@ public class CetusLoadData {
 
      public ConcurrentHashMap<String, CetusNetworkCoordinateData> getCetusBundleDataMap() {
     	return cetusBundleDataMap;
+    }
+
+    public LoadData getLoadData() {
+        return loadData;
     }
 
 }

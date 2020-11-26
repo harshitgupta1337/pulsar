@@ -38,7 +38,7 @@ public interface CetusBundleUnloadingStrategy {
      *            The coordinate data to used to make the unloading decision.
      * @param conf
      *            The service configuration.
-     * @return A map from all selected bundles to the brokers on which they reside.
+     * @return A map from all selected bundles to Pair(currBroker, nextCandidateBroker)
      */
-    Multimap<String, String> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService);
+    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, NamespaceService namespaceService);
 }

@@ -111,6 +111,10 @@ public class NamespaceBundles {
     public void validateBundle(NamespaceBundle nsBundle) throws Exception {
         int idx = Arrays.binarySearch(partitions, nsBundle.getLowerEndpoint());
         checkArgument(idx >= 0, "Cannot find bundle in the bundles list");
+        if (!nsBundle.getUpperEndpoint().equals(bundles.get(idx).getUpperEndpoint())) {
+            String err = "UPPER_ENDPOINT_MISMATCH Got : "+nsBundle.getUpperEndpoint()+"\tExpected : "+bundles.get(idx).getUpperEndpoint();
+            checkArgument(false, err);
+        }
         checkArgument(nsBundle.getUpperEndpoint().equals(bundles.get(idx).getUpperEndpoint()),
                 "Invalid upper boundary for bundle");
     }

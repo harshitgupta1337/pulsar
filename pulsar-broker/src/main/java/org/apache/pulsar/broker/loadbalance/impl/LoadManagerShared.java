@@ -84,7 +84,8 @@ public class LoadManagerShared {
     };
 
     // update LoadReport at most every 5 seconds
-    public static final long LOAD_REPORT_UPDATE_MIMIMUM_INTERVAL = TimeUnit.SECONDS.toMillis(5);
+    public static final long LOAD_REPORT_UPDATE_MIMIMUM_INTERVAL = 2500;
+    //public static final long LOAD_REPORT_UPDATE_MIMIMUM_INTERVAL = TimeUnit.MILLISECONDS(2500);
 
     private static final String DEFAULT_DOMAIN = "default";
 

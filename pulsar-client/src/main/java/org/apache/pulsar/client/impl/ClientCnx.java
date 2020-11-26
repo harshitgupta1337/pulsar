@@ -540,7 +540,7 @@ public class ClientCnx extends PulsarHandler {
     CoordinateInfo.Builder createCoordinateInfo(ProducerImpl<?> producer) {
         CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
 	    coordinateInfoBuilder.setNodeType("producer");
-	    coordinateInfoBuilder.setNodeId(producer.producerId);
+	    coordinateInfoBuilder.setNodeName(producer.getProducerName());
         //TopicName topicName = new TopicName(producer.getTopic());
         coordinateInfoBuilder.setTopic(producer.getTopic());
         NetworkCoordinate coordinate = producer.getNetworkCoordinate();
@@ -558,7 +558,7 @@ public class ClientCnx extends PulsarHandler {
     CoordinateInfo.Builder createCoordinateInfo(ConsumerImpl<?> consumer) {
         CoordinateInfo.Builder coordinateInfoBuilder = CoordinateInfo.newBuilder();
 	    coordinateInfoBuilder.setNodeType("consumer");
-	    coordinateInfoBuilder.setNodeId(consumer.consumerId);
+	    coordinateInfoBuilder.setNodeName(consumer.consumerName);
         //TopicName topicName = new TopicName(consumer.getTopic());
         coordinateInfoBuilder.setTopic(consumer.getTopic());
         NetworkCoordinate coordinate = consumer.getNetworkCoordinate();
@@ -585,7 +585,7 @@ public class ClientCnx extends PulsarHandler {
         commandSerfJoinBuilder.setAddress(client.getSerfBindIp());
         commandSerfJoinBuilder.setRequestId(requestId);
         commandSerfJoinBuilder.setPort(client.getSerfBindPort());
-        log.info("Created Serf Join Message!");
+        log.info("Created Serf Join Message to {}:{}  !", client.getSerfBindIp(), client.getSerfBindPort());
         return commandSerfJoinBuilder;
     }
 

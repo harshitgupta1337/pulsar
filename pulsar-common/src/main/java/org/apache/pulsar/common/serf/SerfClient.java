@@ -70,6 +70,7 @@ public class SerfClient {
     public SerfClient(String ip, long port, String nodeName)  {
         this.nodeName = nodeName;
         try {
+            log.info("SERF CLIENT INIT : {} {} {} ", ip, port,  nodeName);
             ep = new SocketEndpoint(ip, (int) port);
             client = new Client(ep);
             client.handshake();

@@ -151,11 +151,13 @@ public class PulsarService implements AutoCloseable {
     public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
 
 
+    private final ScheduledExecutorService unloadExecutor = Executors.newScheduledThreadPool(16,
+            new DefaultThreadFactory("unload-exec"));
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(20,
             new DefaultThreadFactory("pulsar"));
     private final ScheduledExecutorService cacheExecutor = Executors.newScheduledThreadPool(10,
             new DefaultThreadFactory("zk-cache-callback"));
-    private final OrderedExecutor orderedExecutor = OrderedExecutor.newBuilder().numThreads(8).name("pulsar-ordered")
+    private final OrderedExecutor orderedExecutor = OrderedExecutor.newBuilder().numThreads(32).name("pulsar-ordered")
             .build();
     private final ScheduledExecutorService loadManagerExecutor;
     private ScheduledExecutorService compactorExecutor;
@@ -249,15 +251,16 @@ public class PulsarService implements AutoCloseable {
 			LOG.info("Node Name: {}", this.nodeName);
 			br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
 			this.serfBindIp = this.serfRpcIp = br.readLine();
-			this.serfBindPort = 8000;
-			this.serfRpcPort =  7374;
+			this.serfBindPort = 8085;
+			this.serfRpcPort =  7373;
 		}
 		catch (Exception e) {
 			LOG.info("Cannot setup serf!");
 		this.nodeName="n1";
 	}
 
-        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
+        this.serfClient = new SerfClient(this.serfRpcIp, this.serfRpcPort, nodeName);
+        //this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
 
 
     }
@@ -340,6 +343,10 @@ public class PulsarService implements AutoCloseable {
             // guard against null executors
             if (executor != null) {
                 executor.shutdown();
+            }
+    
+            if (unloadExecutor != null) {
+                unloadExecutor.shutdown();
             }
 
             orderedExecutor.shutdown();
@@ -479,7 +486,7 @@ public class PulsarService implements AutoCloseable {
                         //long loadSheddingInterval = TimeUnit.MINUTES
                                 //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
                         // CETUS - update load shedding to happen more often
-                        long loadSheddingInterval = 1000;
+                        long loadSheddingInterval = 2500;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 
@@ -539,7 +546,7 @@ public class PulsarService implements AutoCloseable {
 
     // CETUS: Coordinate Collector Service start
     void startCoordinateCollectorService() {
-        int interval = 100;
+        int interval = 1500;
 
         cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
                                                            0, interval, TimeUnit.MILLISECONDS);
@@ -792,6 +799,10 @@ public class PulsarService implements AutoCloseable {
 
     public ScheduledExecutorService getExecutor() {
         return executor;
+    }
+
+    public ScheduledExecutorService getUnloadExecutor() {
+        return unloadExecutor;
     }
 
     public ScheduledExecutorService getCacheExecutor() {
