@@ -24,6 +24,8 @@ import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.common.util.CoordinateUtil;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+
 import org.apache.pulsar.broker.namespace.NamespaceService;
 
 /**
@@ -41,4 +43,7 @@ public interface CetusBundleUnloadingStrategy {
      * @return A map from all selected bundles to Pair(currBroker, nextCandidateBroker)
      */
     Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress);
+
+    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n);
+
 }

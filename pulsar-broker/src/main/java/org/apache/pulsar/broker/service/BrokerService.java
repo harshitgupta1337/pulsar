@@ -204,6 +204,7 @@ public class BrokerService implements Closeable, ZooKeeperCacheListener<Policies
         this.pulsar = pulsar;
         this.managedLedgerFactory = pulsar.getManagedLedgerFactory();
         this.port = new URI(pulsar.getBrokerServiceUrl()).getPort();
+        log.info("broker service url = {} ; port = {}", pulsar.getBrokerServiceUrl(), port);
         this.tlsPort = new URI(pulsar.getBrokerServiceUrlTls()).getPort();
         this.topics = new ConcurrentOpenHashMap<>();
         this.replicationClients = new ConcurrentOpenHashMap<>();
