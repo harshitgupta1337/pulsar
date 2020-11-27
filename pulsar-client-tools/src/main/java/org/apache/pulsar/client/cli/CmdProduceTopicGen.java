@@ -50,7 +50,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 @Parameters(commandDescription = "Produce messages to a specified number of topics")
 public class CmdProduceTopicGen {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CetusClientTestApp.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CmdProduceTopicGen.class);
     private static final int MAX_MESSAGES = 1000000;
 
     @Parameter(description = "TopicName", required = true)
@@ -83,6 +83,9 @@ public class CmdProduceTopicGen {
 
     @Parameter(names = { "-si", "--inter-producer-sleep-ms" }, description = "Milliseconds between creating 2 producers")
     private int interProducerSleepMs = 1000;
+
+    @Parameter(names = { "-nc", "--num-clients" }, description = "Number of clients to create per topic (either producer or consumer)")
+    private int numClients = 1;
     
     boolean noMessages = false;
 
@@ -228,16 +231,17 @@ public class CmdProduceTopicGen {
         int returnCode = 0;
 
         for(String topic : topics) {
-            try {
-                ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
-
-                service.schedule(safeRun(() -> produce(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while producing messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("{} messages successfully produced", numMessagesSent);
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
+                    service.schedule(safeRun(() -> produce(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while producing messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("{} messages successfully produced", numMessagesSent);
+                }
             }
         }
 
@@ -282,20 +286,22 @@ public class CmdProduceTopicGen {
         int returnCode = 0;
 
         for(String topic : topics) {
-            try {
-                ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
-                service.schedule(safeRun(() -> produceForever(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while producing messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("{} messages successfully produced", numMessagesSent);
-            }
-            try {
-                Thread.sleep(interProducerSleepMs);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
+                    service.schedule(safeRun(() -> produceForever(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while producing messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("{} messages successfully produced", numMessagesSent);
+                }
+                try {
+                    Thread.sleep(interProducerSleepMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
         while(true) {
@@ -305,40 +311,5 @@ public class CmdProduceTopicGen {
                 LOG.error("Error while sleeping after all producer threads have been created");
             }
         }
-        /*
-        try {
-            PulsarClient client = clientBuilder.build();
-            Producer<byte[]> producer = client.newProducer().topic(topic).create();
-
-            List<byte[]> messageBodies = generateMessageBodies(this.messages, this.messageFileNames);
-            RateLimiter limiter = (this.publishRate > 0) ? RateLimiter.create(this.publishRate) : null;
-            while(true) {
-                for (int i = 0; i < this.numTimesProduce; i++) {
-                    for (byte[] content : messageBodies) {
-                        if (limiter != null) {
-                            limiter.acquire();
-                        }
-                        producer.send(content);
-                        numMessagesSent++;
-                    }
-                }
-                try {
-	                Thread.sleep(1000);
-	            } 
-                catch (Exception e) {
-		           LOG.error("Failed to sleep inside run()");
-	            }
-            }
-            //client.close();
-        } catch (Exception e) {
-            LOG.error("Error while producing messages");
-            LOG.error(e.getMessage(), e);
-            returnCode = -1;
-        } finally {
-            LOG.info("{} messages successfully produced", numMessagesSent);
-        }
-        */
-
-        //return returnCode;
     }
 }

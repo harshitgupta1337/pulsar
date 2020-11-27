@@ -55,7 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Parameters(commandDescription = "Consume messages from a specified topic")
 public class CmdConsumeTopicGen {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PulsarClientTool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CmdConsumeTopicGen.class);
     private static final String MESSAGE_BOUNDARY = "----- got message -----";
 
     @Parameter(description = "TopicName", required = true)
@@ -89,6 +89,9 @@ public class CmdConsumeTopicGen {
 
     @Parameter(names = { "-si", "--inter-consumer-sleep-ms" }, description = "Milliseconds between creating 2 consumers")
     private int interConsumerSleepMs = 1000;
+
+    @Parameter(names = { "-nc", "--num-clients" }, description = "Number of clients to create per topic (either producer or consumer)")
+    private int numClients = 1;
 
     ClientBuilder clientBuilder;
 
@@ -202,20 +205,22 @@ public class CmdConsumeTopicGen {
         }
 
         for (String topic : topics) {
-            try {
-                ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("consumers"));
-                service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while consuming messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("Consumer created for topic {} ", topic);
-            }
-            try {
-                Thread.sleep(interConsumerSleepMs);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("consumers"));
+                    service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while consuming messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("Consumer XYZZY created for topic {} ", topic);
+                }
+                try {
+                    Thread.sleep(interConsumerSleepMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
 

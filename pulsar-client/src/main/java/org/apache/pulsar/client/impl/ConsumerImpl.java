@@ -378,7 +378,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             this.coordinate = serfClient.getCoordinate();
         }
         ClientCnx cnx = cnx();
-        //log.info("Sending coordate to : {}", cnx().getRemoteHostName());
+        log.info("Sending coordate to : {}", cnx().getRemoteHostName());
         long requestId = client.newRequestId();
 
         ByteBuf msg = Commands.newGetNetworkCoordinateResponse(cnx.createGetNetworkCoordinateResponse(this, requestId));

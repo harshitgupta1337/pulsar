@@ -37,7 +37,7 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 
 @Parameters(commandDescription = "Produce or consume messages on a specified topic")
-public class CetusClientTestApp {
+public class CetusDumbClientApp {
 
     @Parameter(names = { "--url" }, description = "Broker URL to which to connect.")
     String serviceURL = null;
@@ -50,12 +50,6 @@ public class CetusClientTestApp {
 
     @Parameter(names = { "-h", "--help", }, help = true, description = "Show this help.")
     boolean help;
-
-    @Parameter(names = { "-rf", "--run-forever" }, description = "set this flag to run forever" )
-    boolean runEternally;
-
-    @Parameter(names = { "--inject-coordinates" }, description = "set this flag to inject coordinates" )
-    boolean injectCoordinates;
 
     @Parameter(names = { "--use-nc-proxy" }, description = "set this flag to use NC proxy instead of agent running on client" )
     boolean useNcProxy;
@@ -74,10 +68,11 @@ public class CetusClientTestApp {
     String tlsTrustCertsFilePath = null;
 
     JCommander commandParser;
-    CmdProduceTopicGen produceCommand;
-    CmdConsumeTopicGen consumeCommand;
+    DumbProducerGen produceCommand;
+    DumbConsumerGen consumeCommand;
 
-    public CetusClientTestApp(Properties properties) throws MalformedURLException {
+    public CetusDumbClientApp(Properties properties) throws MalformedURLException {
+        System.out.println("Initializing CetusDumpClientApp");
         this.serviceURL = StringUtils.isNotBlank(properties.getProperty("brokerServiceUrl"))
                 ? properties.getProperty("brokerServiceUrl") : properties.getProperty("webServiceUrl");
         // fallback to previous-version serviceUrl property to maintain backward-compatibility
@@ -87,8 +82,6 @@ public class CetusClientTestApp {
         this.authPluginClassName = properties.getProperty("authPlugin");
         this.authParams = properties.getProperty("authParams");
         this.numTopics = Integer.parseInt(properties.getProperty("numTopics", "1"));
-        this.runEternally = Boolean.parseBoolean(properties.getProperty("runEternally", "false"));
-        this.injectCoordinates = Boolean.parseBoolean(properties.getProperty("injectCoordinates", "false"));
         this.useNcProxy = Boolean.parseBoolean(properties.getProperty("useNcProxy", "false"));
         this.tlsAllowInsecureConnection = Boolean
                 .parseBoolean(properties.getProperty("tlsAllowInsecureConnection", "false"));
@@ -96,8 +89,8 @@ public class CetusClientTestApp {
                 .parseBoolean(properties.getProperty("tlsEnableHostnameVerification", "false"));
         this.tlsTrustCertsFilePath = properties.getProperty("tlsTrustCertsFilePath");
 
-        produceCommand = new CmdProduceTopicGen();
-        consumeCommand = new CmdConsumeTopicGen();
+        produceCommand = new DumbProducerGen();
+        consumeCommand = new DumbConsumerGen();
 
         this.commandParser = new JCommander();
         commandParser.setProgramName("pulsar-client");
@@ -114,7 +107,7 @@ public class CetusClientTestApp {
         clientBuilder.allowTlsInsecureConnection(this.tlsAllowInsecureConnection);
         clientBuilder.tlsTrustCertsFilePath(this.tlsTrustCertsFilePath);
         clientBuilder.serviceUrl(serviceURL);
-        clientBuilder.setUseSerfCoordinates(!injectCoordinates);
+        clientBuilder.setUseSerfCoordinates(true);
         clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
         clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
         this.produceCommand.updateConfig(clientBuilder);
@@ -137,7 +130,7 @@ public class CetusClientTestApp {
 
             try {
                 this.updateConfig(); // If the --url, --auth-plugin, or --auth-params parameter are not specified,
-                                     // it will default to the values passed in by the constructor
+                // it will default to the values passed in by the constructor
             } catch (MalformedURLException mue) {
                 System.out.println("Unable to parse URL " + this.serviceURL);
                 commandParser.usage();
@@ -150,19 +143,9 @@ public class CetusClientTestApp {
 
             String chosenCommand = commandParser.getParsedCommand();
             if ("produce".equals(chosenCommand)) {
-                if(runEternally == true) {
-                    return produceCommand.runForever();
-                }
-                else { 
-                    return produceCommand.run();
-                }
+                return produceCommand.run();
             } else if ("consume".equals(chosenCommand)) {
-                if(runEternally == true) {
-                    return consumeCommand.runForever();
-                }
-                else {
-                    return consumeCommand.run();
-                }
+                return consumeCommand.run();
             } else {
                 commandParser.usage();
                 return -1;
@@ -198,7 +181,7 @@ public class CetusClientTestApp {
             }
         }
 
-        CetusClientTestApp clientTool = new CetusClientTestApp(properties);
+        CetusDumbClientApp clientTool = new CetusDumbClientApp(properties);
         int exit_code = clientTool.run(Arrays.copyOfRange(args, 1, args.length));
 
 	    //Thread.sleep (10000);
