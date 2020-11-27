@@ -271,7 +271,6 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
     }
 
     void startCoordinateProviderService() {
-        int interval = 1000;
         if(!client.getConfiguration().isUseNetworkCoordinateProxy()) {
             //coordinateProviderService.schedule(safeRun(() -> joinSerfCluster()), interval, TimeUnit.MILLISECONDS);
             if(!client.getIsJoinedToSerfCluster()) {
@@ -279,9 +278,12 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             }
         }
 
-        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+        int updateSerfGwMillis = client.getConfiguration().getUpdateSerfGwSecs()*1000;
+        int sendCoordinateMillis = client.getConfiguration().getSendCoordinateSecs()*1000;
+
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), updateSerfGwMillis, updateSerfGwMillis, TimeUnit.MILLISECONDS);
         if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
-            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
+            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), sendCoordinateMillis, sendCoordinateMillis, TimeUnit.MILLISECONDS);
         }
         clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }

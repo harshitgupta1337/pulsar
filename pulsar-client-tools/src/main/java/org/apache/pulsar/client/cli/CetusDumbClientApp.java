@@ -63,6 +63,12 @@ public class CetusDumbClientApp {
     @Parameter(names = { "-nc", "--num-clients" }, description = "Number of clients to create per topic (either producer or consumer)")
     int numClients;
 
+    @Parameter(names = { "--send-coordinates-secs" }, description = "Period (in secs) to send coordinates to broker" )
+    int sendCoordinateSecs = 5;
+
+    @Parameter(names = { "--update-serf-gw-secs" }, description = "Period (in secs) to check for Serf GW update" )
+    int updateSerfGwSecs = 5;
+
     boolean tlsAllowInsecureConnection = false;
     boolean tlsEnableHostnameVerification = false;
     String tlsTrustCertsFilePath = null;
@@ -110,6 +116,8 @@ public class CetusDumbClientApp {
         clientBuilder.setUseSerfCoordinates(true);
         clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
         clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
+        clientBuilder.setUpdateSerfGwSecs(updateSerfGwSecs);
+        clientBuilder.setSendCoordinateSecs(sendCoordinateSecs);
         this.produceCommand.updateConfig(clientBuilder);
         this.consumeCommand.updateConfig(clientBuilder);
     }

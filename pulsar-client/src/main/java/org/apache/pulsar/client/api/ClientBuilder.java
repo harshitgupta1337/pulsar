@@ -323,4 +323,7 @@ public interface ClientBuilder extends Cloneable {
 
     ClientBuilder setEnableNextBrokerHint(boolean enableNextBrokerHint);
 
+    ClientBuilder setUpdateSerfGwSecs(int s);
+
+    ClientBuilder setSendCoordinateSecs(int sec);
 }

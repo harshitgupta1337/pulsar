@@ -302,7 +302,6 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     }
 
     void startCoordinateProviderService() {
-        int interval = 1000;
         log.info("Running Coordinate Service");
 
         if(!client.getConfiguration().isUseNetworkCoordinateProxy()) {
@@ -312,9 +311,12 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             }
         }
 
-        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), interval, interval, TimeUnit.MILLISECONDS);
+        int updateSerfGwMillis = client.getConfiguration().getUpdateSerfGwSecs()*1000;
+        int sendCoordinateMillis = client.getConfiguration().getSendCoordinateSecs()*1000;
+
+        coordinateProviderService.scheduleAtFixedRate(safeRun(() -> sendCoordinate()), sendCoordinateMillis, sendCoordinateMillis, TimeUnit.MILLISECONDS);
         if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
-            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), interval, interval, TimeUnit.MILLISECONDS);
+            coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), updateSerfGwMillis, updateSerfGwMillis, TimeUnit.MILLISECONDS);
         }
         clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }

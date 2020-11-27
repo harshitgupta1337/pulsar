@@ -207,6 +207,18 @@ public class ClientBuilderImpl implements ClientBuilder {
         return this;
     }
 
+    @Override
+    public ClientBuilder setSendCoordinateSecs (int sec) {
+        conf.setSendCoordinateSecs(sec);
+        return this;
+    }
+
+    @Override
+    public ClientBuilder setUpdateSerfGwSecs (int sec) {
+        conf.setUpdateSerfGwSecs(sec);
+        return this;
+    }
+
     public ClientConfigurationData getClientConfigurationData() {
         return conf;
     }

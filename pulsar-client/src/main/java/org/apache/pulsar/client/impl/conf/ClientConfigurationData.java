@@ -63,6 +63,8 @@ public class ClientConfigurationData implements Serializable, Cloneable {
     private boolean useSerfCoordinates = true;
     private boolean useNetworkCoordinateProxy = false;
     private boolean enableNextBrokerHint = true;
+    private int sendCoordinateSecs = 1;
+    private int updateSerfGwSecs = 1;
  
     public ClientConfigurationData clone() {
         try {

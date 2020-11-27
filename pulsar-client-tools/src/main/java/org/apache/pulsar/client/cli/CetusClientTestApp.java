@@ -63,6 +63,12 @@ public class CetusClientTestApp {
     @Parameter(names = { "--disable-next-broker-hint" }, description = "set this flag to disable the use of next broker hint" )
     boolean disableNextBrokerHint;
 
+    @Parameter(names = { "--send-coordinates-secs" }, description = "Period (in secs) to send coordinates to broker" )
+    int sendCoordinateSecs = 5;
+
+    @Parameter(names = { "--update-serf-gw-secs" }, description = "Period (in secs) to check for Serf GW update" )
+    int updateSerfGwSecs = 5;
+
     @Parameter(names = { "-nt", "--num-topics" }, description = "Number of topics to create")
     int numTopics;
 
@@ -117,6 +123,8 @@ public class CetusClientTestApp {
         clientBuilder.setUseSerfCoordinates(!injectCoordinates);
         clientBuilder.setUseNetworkCoordinateProxy(useNcProxy);
         clientBuilder.setEnableNextBrokerHint(!disableNextBrokerHint);
+        clientBuilder.setUpdateSerfGwSecs(updateSerfGwSecs);
+        clientBuilder.setSendCoordinateSecs(sendCoordinateSecs);
         this.produceCommand.updateConfig(clientBuilder);
         this.consumeCommand.updateConfig(clientBuilder);
     }
