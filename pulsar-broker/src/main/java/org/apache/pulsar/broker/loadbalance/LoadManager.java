@@ -26,6 +26,7 @@ import org.apache.pulsar.broker.PulsarServerException;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.loadbalance.impl.ModularLoadManagerWrapper;
+import org.apache.pulsar.broker.loadbalance.impl.PeriodicLoadManagerWrapper;
 import org.apache.pulsar.broker.loadbalance.impl.SimpleLoadManagerImpl;
 import org.apache.pulsar.common.naming.ServiceUnitId;
 import org.apache.pulsar.common.stats.Metrics;
@@ -141,7 +142,11 @@ public interface LoadManager {
                 final LoadManager casted = new ModularLoadManagerWrapper((CetusModularLoadManager) loadManagerInstance);
                 casted.initialize(pulsar);
                 return casted;
-            }
+            } else if (loadManagerInstance instanceof CetusPeriodicLoadManager) {
+                final LoadManager casted = new PeriodicLoadManagerWrapper((CetusPeriodicLoadManager) loadManagerInstance);
+                casted.initialize(pulsar);
+                return casted;
+            }  
         } catch (Exception e) {
             log.warn("Error when trying to create load manager: {}");
         }

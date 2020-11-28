@@ -1829,9 +1829,9 @@ public final class PulsarApi {
     boolean hasTopic();
     String getTopic();
     
-    // optional uint64 node_id = 4;
-    boolean hasNodeId();
-    long getNodeId();
+    // optional string node_name = 4;
+    boolean hasNodeName();
+    String getNodeName();
     
     // optional double error = 5;
     boolean hasError();
@@ -1960,14 +1960,36 @@ public final class PulsarApi {
       }
     }
     
-    // optional uint64 node_id = 4;
-    public static final int NODE_ID_FIELD_NUMBER = 4;
-    private long nodeId_;
-    public boolean hasNodeId() {
+    // optional string node_name = 4;
+    public static final int NODE_NAME_FIELD_NUMBER = 4;
+    private java.lang.Object nodeName_;
+    public boolean hasNodeName() {
       return ((bitField0_ & 0x00000008) == 0x00000008);
     }
-    public long getNodeId() {
-      return nodeId_;
+    public String getNodeName() {
+      java.lang.Object ref = nodeName_;
+      if (ref instanceof String) {
+        return (String) ref;
+      } else {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString bs = 
+            (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+        String s = bs.toStringUtf8();
+        if (org.apache.pulsar.shaded.com.google.protobuf.v241.Internal.isValidUtf8(bs)) {
+          nodeName_ = s;
+        }
+        return s;
+      }
+    }
+    private org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString getNodeNameBytes() {
+      java.lang.Object ref = nodeName_;
+      if (ref instanceof String) {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString b = 
+            org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString.copyFromUtf8((String) ref);
+        nodeName_ = b;
+        return b;
+      } else {
+        return (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+      }
     }
     
     // optional double error = 5;
@@ -2025,7 +2047,7 @@ public final class PulsarApi {
       nodeType_ = "";
       valid_ = false;
       topic_ = "";
-      nodeId_ = 0L;
+      nodeName_ = "";
       error_ = 0D;
       height_ = 0D;
       adjustment_ = 0D;
@@ -2064,7 +2086,7 @@ public final class PulsarApi {
         output.writeBytes(3, getTopicBytes());
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeUInt64(4, nodeId_);
+        output.writeBytes(4, getNodeNameBytes());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         output.writeDouble(5, error_);
@@ -2100,7 +2122,7 @@ public final class PulsarApi {
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
-          .computeUInt64Size(4, nodeId_);
+          .computeBytesSize(4, getNodeNameBytes());
       }
       if (((bitField0_ & 0x00000010) == 0x00000010)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
@@ -2237,7 +2259,7 @@ public final class PulsarApi {
         bitField0_ = (bitField0_ & ~0x00000002);
         topic_ = "";
         bitField0_ = (bitField0_ & ~0x00000004);
-        nodeId_ = 0L;
+        nodeName_ = "";
         bitField0_ = (bitField0_ & ~0x00000008);
         error_ = 0D;
         bitField0_ = (bitField0_ & ~0x00000010);
@@ -2295,7 +2317,7 @@ public final class PulsarApi {
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000008;
         }
-        result.nodeId_ = nodeId_;
+        result.nodeName_ = nodeName_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000010;
         }
@@ -2328,8 +2350,8 @@ public final class PulsarApi {
         if (other.hasTopic()) {
           setTopic(other.getTopic());
         }
-        if (other.hasNodeId()) {
-          setNodeId(other.getNodeId());
+        if (other.hasNodeName()) {
+          setNodeName(other.getNodeName());
         }
         if (other.hasError()) {
           setError(other.getError());
@@ -2400,9 +2422,9 @@ public final class PulsarApi {
               topic_ = input.readBytes();
               break;
             }
-            case 32: {
+            case 34: {
               bitField0_ |= 0x00000008;
-              nodeId_ = input.readUInt64();
+              nodeName_ = input.readBytes();
               break;
             }
             case 41: {
@@ -2525,25 +2547,40 @@ public final class PulsarApi {
         
       }
       
-      // optional uint64 node_id = 4;
-      private long nodeId_ ;
-      public boolean hasNodeId() {
+      // optional string node_name = 4;
+      private java.lang.Object nodeName_ = "";
+      public boolean hasNodeName() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
-      public long getNodeId() {
-        return nodeId_;
+      public String getNodeName() {
+        java.lang.Object ref = nodeName_;
+        if (!(ref instanceof String)) {
+          String s = ((org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref).toStringUtf8();
+          nodeName_ = s;
+          return s;
+        } else {
+          return (String) ref;
+        }
       }
-      public Builder setNodeId(long value) {
-        bitField0_ |= 0x00000008;
-        nodeId_ = value;
+      public Builder setNodeName(String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000008;
+        nodeName_ = value;
         
         return this;
       }
-      public Builder clearNodeId() {
+      public Builder clearNodeName() {
         bitField0_ = (bitField0_ & ~0x00000008);
-        nodeId_ = 0L;
+        nodeName_ = getDefaultInstance().getNodeName();
         
         return this;
+      }
+      void setNodeName(org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString value) {
+        bitField0_ |= 0x00000008;
+        nodeName_ = value;
+        
       }
       
       // optional double error = 5;
@@ -18228,6 +18265,10 @@ public final class PulsarApi {
     // required uint64 request_id = 2;
     boolean hasRequestId();
     long getRequestId();
+    
+    // optional string next_broker = 3;
+    boolean hasNextBroker();
+    String getNextBroker();
   }
   public static final class CommandCloseProducer extends
       org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
@@ -18284,9 +18325,42 @@ public final class PulsarApi {
       return requestId_;
     }
     
+    // optional string next_broker = 3;
+    public static final int NEXT_BROKER_FIELD_NUMBER = 3;
+    private java.lang.Object nextBroker_;
+    public boolean hasNextBroker() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    public String getNextBroker() {
+      java.lang.Object ref = nextBroker_;
+      if (ref instanceof String) {
+        return (String) ref;
+      } else {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString bs = 
+            (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+        String s = bs.toStringUtf8();
+        if (org.apache.pulsar.shaded.com.google.protobuf.v241.Internal.isValidUtf8(bs)) {
+          nextBroker_ = s;
+        }
+        return s;
+      }
+    }
+    private org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString getNextBrokerBytes() {
+      java.lang.Object ref = nextBroker_;
+      if (ref instanceof String) {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString b = 
+            org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString.copyFromUtf8((String) ref);
+        nextBroker_ = b;
+        return b;
+      } else {
+        return (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+      }
+    }
+    
     private void initFields() {
       producerId_ = 0L;
       requestId_ = 0L;
+      nextBroker_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -18319,6 +18393,9 @@ public final class PulsarApi {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeUInt64(2, requestId_);
       }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, getNextBrokerBytes());
+      }
     }
     
     private int memoizedSerializedSize = -1;
@@ -18334,6 +18411,10 @@ public final class PulsarApi {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
           .computeUInt64Size(2, requestId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeBytesSize(3, getNextBrokerBytes());
       }
       memoizedSerializedSize = size;
       return size;
@@ -18452,6 +18533,8 @@ public final class PulsarApi {
         bitField0_ = (bitField0_ & ~0x00000001);
         requestId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        nextBroker_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
       
@@ -18493,6 +18576,10 @@ public final class PulsarApi {
           to_bitField0_ |= 0x00000002;
         }
         result.requestId_ = requestId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.nextBroker_ = nextBroker_;
         result.bitField0_ = to_bitField0_;
         return result;
       }
@@ -18504,6 +18591,9 @@ public final class PulsarApi {
         }
         if (other.hasRequestId()) {
           setRequestId(other.getRequestId());
+        }
+        if (other.hasNextBroker()) {
+          setNextBroker(other.getNextBroker());
         }
         return this;
       }
@@ -18550,6 +18640,11 @@ public final class PulsarApi {
             case 16: {
               bitField0_ |= 0x00000002;
               requestId_ = input.readUInt64();
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000004;
+              nextBroker_ = input.readBytes();
               break;
             }
           }
@@ -18600,6 +18695,42 @@ public final class PulsarApi {
         return this;
       }
       
+      // optional string next_broker = 3;
+      private java.lang.Object nextBroker_ = "";
+      public boolean hasNextBroker() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      public String getNextBroker() {
+        java.lang.Object ref = nextBroker_;
+        if (!(ref instanceof String)) {
+          String s = ((org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref).toStringUtf8();
+          nextBroker_ = s;
+          return s;
+        } else {
+          return (String) ref;
+        }
+      }
+      public Builder setNextBroker(String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        nextBroker_ = value;
+        
+        return this;
+      }
+      public Builder clearNextBroker() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        nextBroker_ = getDefaultInstance().getNextBroker();
+        
+        return this;
+      }
+      void setNextBroker(org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString value) {
+        bitField0_ |= 0x00000004;
+        nextBroker_ = value;
+        
+      }
+      
       // @@protoc_insertion_point(builder_scope:pulsar.proto.CommandCloseProducer)
     }
     
@@ -18621,6 +18752,10 @@ public final class PulsarApi {
     // required uint64 request_id = 2;
     boolean hasRequestId();
     long getRequestId();
+    
+    // optional string next_broker = 3;
+    boolean hasNextBroker();
+    String getNextBroker();
   }
   public static final class CommandCloseConsumer extends
       org.apache.pulsar.shaded.com.google.protobuf.v241.GeneratedMessageLite
@@ -18677,9 +18812,42 @@ public final class PulsarApi {
       return requestId_;
     }
     
+    // optional string next_broker = 3;
+    public static final int NEXT_BROKER_FIELD_NUMBER = 3;
+    private java.lang.Object nextBroker_;
+    public boolean hasNextBroker() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    public String getNextBroker() {
+      java.lang.Object ref = nextBroker_;
+      if (ref instanceof String) {
+        return (String) ref;
+      } else {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString bs = 
+            (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+        String s = bs.toStringUtf8();
+        if (org.apache.pulsar.shaded.com.google.protobuf.v241.Internal.isValidUtf8(bs)) {
+          nextBroker_ = s;
+        }
+        return s;
+      }
+    }
+    private org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString getNextBrokerBytes() {
+      java.lang.Object ref = nextBroker_;
+      if (ref instanceof String) {
+        org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString b = 
+            org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString.copyFromUtf8((String) ref);
+        nextBroker_ = b;
+        return b;
+      } else {
+        return (org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref;
+      }
+    }
+    
     private void initFields() {
       consumerId_ = 0L;
       requestId_ = 0L;
+      nextBroker_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -18712,6 +18880,9 @@ public final class PulsarApi {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeUInt64(2, requestId_);
       }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, getNextBrokerBytes());
+      }
     }
     
     private int memoizedSerializedSize = -1;
@@ -18727,6 +18898,10 @@ public final class PulsarApi {
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
           .computeUInt64Size(2, requestId_);
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += org.apache.pulsar.shaded.com.google.protobuf.v241.CodedOutputStream
+          .computeBytesSize(3, getNextBrokerBytes());
       }
       memoizedSerializedSize = size;
       return size;
@@ -18845,6 +19020,8 @@ public final class PulsarApi {
         bitField0_ = (bitField0_ & ~0x00000001);
         requestId_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000002);
+        nextBroker_ = "";
+        bitField0_ = (bitField0_ & ~0x00000004);
         return this;
       }
       
@@ -18886,6 +19063,10 @@ public final class PulsarApi {
           to_bitField0_ |= 0x00000002;
         }
         result.requestId_ = requestId_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.nextBroker_ = nextBroker_;
         result.bitField0_ = to_bitField0_;
         return result;
       }
@@ -18897,6 +19078,9 @@ public final class PulsarApi {
         }
         if (other.hasRequestId()) {
           setRequestId(other.getRequestId());
+        }
+        if (other.hasNextBroker()) {
+          setNextBroker(other.getNextBroker());
         }
         return this;
       }
@@ -18945,6 +19129,11 @@ public final class PulsarApi {
               requestId_ = input.readUInt64();
               break;
             }
+            case 26: {
+              bitField0_ |= 0x00000004;
+              nextBroker_ = input.readBytes();
+              break;
+            }
           }
         }
       }
@@ -18991,6 +19180,42 @@ public final class PulsarApi {
         requestId_ = 0L;
         
         return this;
+      }
+      
+      // optional string next_broker = 3;
+      private java.lang.Object nextBroker_ = "";
+      public boolean hasNextBroker() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      public String getNextBroker() {
+        java.lang.Object ref = nextBroker_;
+        if (!(ref instanceof String)) {
+          String s = ((org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString) ref).toStringUtf8();
+          nextBroker_ = s;
+          return s;
+        } else {
+          return (String) ref;
+        }
+      }
+      public Builder setNextBroker(String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        nextBroker_ = value;
+        
+        return this;
+      }
+      public Builder clearNextBroker() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        nextBroker_ = getDefaultInstance().getNextBroker();
+        
+        return this;
+      }
+      void setNextBroker(org.apache.pulsar.shaded.com.google.protobuf.v241.ByteString value) {
+        bitField0_ |= 0x00000004;
+        nextBroker_ = value;
+        
       }
       
       // @@protoc_insertion_point(builder_scope:pulsar.proto.CommandCloseConsumer)

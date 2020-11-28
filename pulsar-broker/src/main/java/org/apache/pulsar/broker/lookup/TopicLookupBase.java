@@ -56,6 +56,7 @@ public class TopicLookupBase extends PulsarWebResource {
     private static final String LOOKUP_PATH_V2 = "/lookup/v2/topic/";
 
     protected void internalLookupTopicAsync(TopicName topicName, boolean authoritative, AsyncResponse asyncResponse) {
+        log.info("internalLookupTopicAsync for topic {}", topicName);
         if (!pulsar().getBrokerService().getLookupRequestSemaphore().tryAcquire()) {
             log.warn("No broker was found available for topic {}", topicName);
             asyncResponse.resume(new WebApplicationException(Response.Status.SERVICE_UNAVAILABLE));
@@ -102,21 +103,21 @@ public class TopicLookupBase extends PulsarWebResource {
                     redirect = new URI(String.format("%s%s%s?authoritative=%s", redirectUrl, lookupPath,
                             topicName.getLookupName(), newAuthoritative));
                 } catch (URISyntaxException | NullPointerException e) {
-                    log.error("Error in preparing redirect url for {}: {}", topicName, e.getMessage(), e);
+                    log.error("Lookup Error in preparing redirect url for {}: {}", topicName, e.getMessage(), e);
                     completeLookupResponseExceptionally(asyncResponse, e);
                     return;
                 }
-                if (log.isDebugEnabled()) {
-                    log.debug("Redirect lookup for topic {} to {}", topicName, redirect);
-                }
+                //if (log.isDebugEnabled()) {
+                    log.info("Lookup Redirect lookup for topic {} to {}", topicName, redirect);
+                //}
                 completeLookupResponseExceptionally(asyncResponse,
                         new WebApplicationException(Response.temporaryRedirect(redirect).build()));
 
             } else {
                 // Found broker owning the topic
-                if (log.isDebugEnabled()) {
-                    log.debug("Lookup succeeded for topic {} -- broker: {}", topicName, result.getLookupData());
-                }
+                //if (log.isDebugEnabled()) {
+                    log.info("Lookup succeeded for topic {} -- broker: {}", topicName, result.getLookupData());
+                //}
                 completeLookupResponseSuccessfully(asyncResponse, result.getLookupData());
             }
         }).exceptionally(exception -> {
@@ -225,9 +226,9 @@ public class TopicLookupBase extends PulsarWebResource {
                 pulsarService.getNamespaceService().getBrokerServiceUrlAsync(topicName, authoritative)
                         .thenAccept(lookupResult -> {
 
-                            if (log.isDebugEnabled()) {
-                                log.debug("[{}] Lookup result {}", topicName.toString(), lookupResult);
-                            }
+                            //if (log.isDebugEnabled()) {
+                                log.info("[{}] Lookup result {}", topicName.toString(), lookupResult);
+                            //}
 
                             if (!lookupResult.isPresent()) {
                                 lookupfuture.complete(newLookupErrorResponse(ServerError.ServiceNotReady,

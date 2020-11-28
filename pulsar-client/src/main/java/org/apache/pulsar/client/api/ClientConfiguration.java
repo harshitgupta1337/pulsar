@@ -366,6 +366,10 @@ public class ClientConfiguration implements Serializable {
         confData.setUseSerfCoordinates(useSerfCoordinates);
     }
 
+    public void setUseNetworkCoordinateProxy(boolean useNcProxy) {
+        confData.setUseNetworkCoordinateProxy(useNcProxy);
+    }
+
     public ClientConfiguration setServiceUrl(String serviceUrl) {
         confData.setServiceUrl(serviceUrl);
         return this;
@@ -373,6 +377,10 @@ public class ClientConfiguration implements Serializable {
 
     public ClientConfigurationData getConfigurationData() {
         return confData;
+    }
+
+    public void setEnableNextBrokerHint(boolean enableNextBrokerHint) {
+        confData.setEnableNextBrokerHint(enableNextBrokerHint);
     }
 
 }

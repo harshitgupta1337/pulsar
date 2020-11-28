@@ -106,12 +106,12 @@ public class PulsarClientImpl implements PulsarClient {
     }
 
     private static final String SERF_RPC_IP = "0.0.0.0";
-    private static final int SERF_RPC_PORT = 7374;
+    private static final int SERF_RPC_PORT = 7373;
     private static String serfRpcIp;
     private static int serfRpcPort;
 
     private static final String SERF_BIND_IP = "0.0.0.0";
-    private static final int SERF_BIND_PORT = 8000;
+    private static final int SERF_BIND_PORT = 8085;
     private static String serfBindIp;
     private static int serfBindPort;
 
@@ -128,6 +128,7 @@ public class PulsarClientImpl implements PulsarClient {
     private final AtomicLong requestIdGenerator = new AtomicLong();
 
     private final EventLoopGroup eventLoopGroup;
+    private final boolean enableNextBrokerHint;
 
     @Deprecated
     public PulsarClientImpl(String serviceUrl, ClientConfiguration conf) throws PulsarClientException {
@@ -162,29 +163,27 @@ public class PulsarClientImpl implements PulsarClient {
         this.eventLoopGroup = eventLoopGroup;
         this.conf = conf;
         conf.getAuthentication().start();
+        this.enableNextBrokerHint = conf.isEnableNextBrokerHint();
          
         this.cnxPool = cnxPool;
         externalExecutorProvider = new ExecutorProvider(conf.getNumListenerThreads(), getThreadFactory("pulsar-external-listener"));
         if (conf.getServiceUrl().startsWith("http")) {
             lookup = new HttpLookupService(conf, eventLoopGroup);
         } else {
-            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
+            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor(), conf.isEnableNextBrokerHint());
         }
         timer = new HashedWheelTimer(getThreadFactory("pulsar-timer"), 1, TimeUnit.MILLISECONDS);
         producers = Maps.newIdentityHashMap();
         consumers = Maps.newIdentityHashMap();
         try {
-            //InetAddress IAddress = InetAddress.getLocalHost();
-            //this.nodeName = IAddress.getHostName();
             BufferedReader br = new BufferedReader(new FileReader("/etc/nodeName"));
-            
             this.nodeName = br.readLine();
             log.info("Node Name: {}", this.nodeName);
 
             br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
 	        this.serfBindIp = this.serfRpcIp = br.readLine();
-	        this.serfBindPort = 8000;
-	        this.serfRpcPort =  7374;
+	        this.serfBindPort = 8085;
+	        this.serfRpcPort =  7373;
             this.isJoinedToSerfCluster = false;
             /*
 	        final Runtime rt = Runtime.getRuntime();
@@ -214,14 +213,10 @@ public class PulsarClientImpl implements PulsarClient {
         }
         
         state.set(State.Open);
-        joinSerfCluster();
     }
 
     public ClientConfigurationData getConfiguration() {
         return conf;
-    }
-
-    protected void joinSerfCluster() {
     }
 
     @Override
@@ -374,7 +369,7 @@ public class PulsarClientImpl implements PulsarClient {
                 producer = new PartitionedProducerImpl<>(PulsarClientImpl.this, topic, conf, metadata.partitions,
                         producerCreatedFuture, schema, interceptors);
             } else {
-                producer = new ProducerImpl<>(PulsarClientImpl.this, topic, conf, producerCreatedFuture, -1, schema, interceptors);
+                producer = new ProducerImpl<>(PulsarClientImpl.this, topic, conf, producerCreatedFuture, -1, schema, interceptors, this.enableNextBrokerHint);
             }
 
             synchronized (producers) {
@@ -525,7 +520,7 @@ public class PulsarClientImpl implements PulsarClient {
                     listenerThread, consumerSubscribedFuture, metadata.partitions, schema, interceptors);
             } else {
                 consumer = new ConsumerImpl<>(PulsarClientImpl.this, topic, conf, listenerThread, -1,
-                        consumerSubscribedFuture, schema, interceptors);
+                        consumerSubscribedFuture, schema, interceptors, this.enableNextBrokerHint);
             }
 
             synchronized (consumers) {
@@ -855,7 +850,7 @@ public class PulsarClientImpl implements PulsarClient {
         if (conf.getServiceUrl().startsWith("http")) {
             lookup = new HttpLookupService(conf, eventLoopGroup);
         } else {
-            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor());
+            lookup = new BinaryProtoLookupService(this, conf.getServiceUrl(), conf.isUseTls(), externalExecutorProvider.getExecutor(), this.enableNextBrokerHint);
         }
     }
 

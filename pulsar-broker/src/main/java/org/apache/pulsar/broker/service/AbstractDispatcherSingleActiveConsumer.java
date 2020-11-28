@@ -171,6 +171,10 @@ public abstract class AbstractDispatcherSingleActiveConsumer {
         return (consumers.size() == 1) && Objects.equals(consumer, ACTIVE_CONSUMER_UPDATER.get(this));
     }
 
+    public CompletableFuture<Void> close(String nextBroker) {
+        return this.close();
+    }
+
     public CompletableFuture<Void> close() {
         IS_CLOSED_UPDATER.set(this, TRUE);
         return disconnectAllConsumers();

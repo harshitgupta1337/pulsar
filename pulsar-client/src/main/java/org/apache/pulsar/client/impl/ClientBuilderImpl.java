@@ -195,6 +195,30 @@ public class ClientBuilderImpl implements ClientBuilder {
         return this;
     }
 
+    @Override
+    public ClientBuilder setUseNetworkCoordinateProxy(boolean useNcProxy) {
+        conf.setUseNetworkCoordinateProxy(useNcProxy);
+        return this;
+    }
+
+    @Override
+    public ClientBuilder setEnableNextBrokerHint(boolean enableNextBrokerHint) {
+        conf.setEnableNextBrokerHint(enableNextBrokerHint);
+        return this;
+    }
+
+    @Override
+    public ClientBuilder setSendCoordinateSecs (int sec) {
+        conf.setSendCoordinateSecs(sec);
+        return this;
+    }
+
+    @Override
+    public ClientBuilder setUpdateSerfGwSecs (int sec) {
+        conf.setUpdateSerfGwSecs(sec);
+        return this;
+    }
+
     public ClientConfigurationData getClientConfigurationData() {
         return conf;
     }

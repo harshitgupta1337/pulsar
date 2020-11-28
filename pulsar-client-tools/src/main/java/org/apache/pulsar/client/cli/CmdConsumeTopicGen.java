@@ -55,7 +55,7 @@ import java.util.concurrent.ScheduledExecutorService;
 @Parameters(commandDescription = "Consume messages from a specified topic")
 public class CmdConsumeTopicGen {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PulsarClientTool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CmdConsumeTopicGen.class);
     private static final String MESSAGE_BOUNDARY = "----- got message -----";
 
     @Parameter(description = "TopicName", required = true)
@@ -81,9 +81,20 @@ public class CmdConsumeTopicGen {
     @Parameter(names = { "-nt", "--num-topics" }, description = "How many topics and consumers to create/subscribe to ")
     private int numTopics;
 
+    @Parameter(names = { "-ns", "--namespace" }, description = "Name of namespace (e.g. pulsar-cluster-1/cetus)")
+    private String namespace = "pulsar-cluster-1/cetus";
+
+    @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
+    private String topicPrefix = "my-topic";
+
+    @Parameter(names = { "-si", "--inter-consumer-sleep-ms" }, description = "Milliseconds between creating 2 consumers")
+    private int interConsumerSleepMs = 1000;
+
+    @Parameter(names = { "-nc", "--num-clients" }, description = "Number of clients to create per topic (either producer or consumer)")
+    private int numClients = 1;
+
     ClientBuilder clientBuilder;
 
-    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("consumers"));
 
     public CmdConsumeTopicGen() {
         // Do nothing
@@ -122,8 +133,10 @@ public class CmdConsumeTopicGen {
         try{
             int numMessagesConsumed = 0;
             PulsarClient client = clientBuilder.build();
-            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscribe();
+            // TODO Using the topic name as subscription name for now
+            Consumer<byte[]> consumer = client.newConsumer().topic(topic).subscriptionName(topic).subscriptionType(subscriptionType).subscribe();
 
+                int lastMsgId = -1;
                 RateLimiter limiter = (this.consumeRate > 0) ? RateLimiter.create(this.consumeRate) : null;
                 while (this.numMessagesToConsume == 0 || numMessagesConsumed < this.numMessagesToConsume)            {
                     if (limiter != null) {
@@ -132,20 +145,43 @@ public class CmdConsumeTopicGen {
 
                     Message<byte[]> msg = consumer.receive(5, TimeUnit.SECONDS);
                     if (msg == null) {
-                        LOG.debug("No message to consume after waiting for 5 seconds.");
+                        LOG.info("No message to consume after waiting for 5 seconds for topic {}.", topic);
                     } else {
                         numMessagesConsumed += 1;
-                        System.out.println(MESSAGE_BOUNDARY);
                         String output = this.interpretMessage(msg, displayHex);
-                        System.out.println(output);
+                        String[] splited = output.split("\\s+");
+
+                        int msgId = Integer.parseInt(splited[0]);
+                        if (lastMsgId == -1) {
+                            
+                        } else if (msgId != lastMsgId + 1) {
+                            if (msgId == lastMsgId)
+                                LOG.info("PUBSUB_MSGERROR Redundant message on topic {} with ID {}", topic, msgId);
+                            else if (msgId < lastMsgId)
+                                LOG.info("PUBSUB_MSGERROR Out-of-order delivery on topic {} with ID {}", topic, msgId);
+                            else
+                                LOG.info("PUBSUB_MSGDROP Dropped message on topic {} Expected ID {} Recvd ID {}", topic, (lastMsgId+1), msgId);
+                        }
+                        lastMsgId = msgId;
+
+                        //System.out.println(output);
+                        long currTime = System.currentTimeMillis();
+                        long sentTime = Long.parseLong(splited[1]);
+                        LOG.info("PUBSUB_DELAY for topic {} = {}", topic, currTime-sentTime);
                         consumer.acknowledge(msg);
                     }
                 }
+                LOG.info("Finished consuming messages");
                 client.close();
         }
         catch (Exception e) {
             LOG.debug("Exception in consume");
         }
+    }
+
+    private String generateTopicName(int idx) {
+        String topicName = String.format("non-persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
+        return topicName;
     }
 
     /**
@@ -164,22 +200,37 @@ public class CmdConsumeTopicGen {
         
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++) {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d", i);
+            topics[i] = String.format(generateTopicName(i));
+            LOG.info("Topic: {}", topics[i]);
         }
 
         for (String topic : topics) {
-            try {
-                service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while consuming messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("{} messages successfully consumed", numMessagesConsumed);
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("consumers"));
+                    service.schedule(safeRun(() -> consume(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while consuming messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("Consumer XYZZY created for topic {} ", topic);
+                }
+                try {
+                    Thread.sleep(interConsumerSleepMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
-        return returnCode;
+        while (true) {
+            try {
+                Thread.sleep(1);
+            } catch (Exception e) {
+                LOG.error("Exception caught while sleeping after all consumers were created");
+            }
+        }
     }
 
     public int runForever() throws PulsarClientException, IOException {

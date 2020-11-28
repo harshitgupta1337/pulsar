@@ -20,17 +20,13 @@ package org.apache.pulsar.client.cli;
 
 import static org.apache.bookkeeper.mledger.util.SafeRun.safeRun;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.Parameters;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.RateLimiter;
-import java.util.concurrent.TimeUnit;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.Producer;
@@ -39,12 +35,13 @@ import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.Parameters;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.RateLimiter;
 
-import java.util.concurrent.ExecutorService;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * pulsar-client produce command implementation.
@@ -53,8 +50,8 @@ import java.util.concurrent.ScheduledExecutorService;
 @Parameters(commandDescription = "Produce messages to a specified number of topics")
 public class CmdProduceTopicGen {
 
-    private static final Logger LOG = LoggerFactory.getLogger(CetusClientTestApp.class);
-    private static final int MAX_MESSAGES = 1000;
+    private static final Logger LOG = LoggerFactory.getLogger(CmdProduceTopicGen.class);
+    private static final int MAX_MESSAGES = 1000000;
 
     @Parameter(description = "TopicName", required = true)
     private List<String> mainOptions;
@@ -78,6 +75,17 @@ public class CmdProduceTopicGen {
     @Parameter(names = { "-nt", "--num-topics" }, description = "How many topics and producers to create")
     private int numTopics = 1;
 
+    @Parameter(names = { "-ns", "--namespace" }, description = "Name of namespace (e.g. pulsar-cluster-1/cetus)")
+    private String namespace = "pulsar-cluster-1/cetus";
+    
+    @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
+    private String topicPrefix = "my-topic";
+
+    @Parameter(names = { "-si", "--inter-producer-sleep-ms" }, description = "Milliseconds between creating 2 producers")
+    private int interProducerSleepMs = 1000;
+
+    @Parameter(names = { "-nc", "--num-clients" }, description = "Number of clients to create per topic (either producer or consumer)")
+    private int numClients = 1;
     
     boolean noMessages = false;
 
@@ -144,7 +152,8 @@ public class CmdProduceTopicGen {
                        limiter.acquire();
                    }
 
-                   producer.send(content);
+                   String ts = Long.toString(System.currentTimeMillis());
+                   producer.send(ts.getBytes());
                    numMessagesSent++;
                 }
             }
@@ -172,7 +181,11 @@ public class CmdProduceTopicGen {
                        limiter.acquire();
                    }
 
-                   producer.send(content);
+                   //LOG.info("Producing message on topic {} ", topic);
+                   String ts = Long.toString(System.currentTimeMillis());
+                   String msg = Integer.toString(numMessagesSent)+" "+ts;
+                   producer.send(msg.getBytes());
+
                    numMessagesSent++;
                 }
             }
@@ -184,6 +197,12 @@ public class CmdProduceTopicGen {
 	    }
        
     }
+    
+    private String generateTopicName(int idx) {
+        String topicName = String.format("non-persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
+        return topicName;
+    }
+    
     /**
      * Run the producer.
      *
@@ -205,23 +224,24 @@ public class CmdProduceTopicGen {
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++)
         {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d", i);
+            topics[i] = String.format(generateTopicName(i));
         }
         //String topic = this.mainOptions.get(0);
         int numMessagesSent = 0;
         int returnCode = 0;
 
         for(String topic : topics) {
-            try {
-                ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
-
-                service.schedule(safeRun(() -> produce(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while producing messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("{} messages successfully produced", numMessagesSent);
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
+                    service.schedule(safeRun(() -> produce(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while producing messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("{} messages successfully produced", numMessagesSent);
+                }
             }
         }
 
@@ -258,7 +278,7 @@ public class CmdProduceTopicGen {
         String[] topics = new String[this.numTopics];
         for(int i = 0; i < numTopics; i++)
         {
-            topics[i] = String.format("non-persistent://public/default/my-topic_%d%d%d%d", i, i, i, i);
+            topics[i] = String.format(generateTopicName(i));
             LOG.info("Topic: {}", topics[i]);
         }
 
@@ -266,57 +286,30 @@ public class CmdProduceTopicGen {
         int returnCode = 0;
 
         for(String topic : topics) {
-            try {
-                ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
-                service.schedule(safeRun(() -> produceForever(topic)), 0, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                LOG.error("Error while producing messages");
-                LOG.error(e.getMessage(), e);
-                returnCode = -1;
-            } finally {
-                LOG.info("{} messages successfully produced", numMessagesSent);
-            }
-        }
-        while(true);
-        /*
-        try {
-            PulsarClient client = clientBuilder.build();
-            Producer<byte[]> producer = client.newProducer().topic(topic).create();
-
-            List<byte[]> messageBodies = generateMessageBodies(this.messages, this.messageFileNames);
-            RateLimiter limiter = (this.publishRate > 0) ? RateLimiter.create(this.publishRate) : null;
-            while(true) {
-                for (int i = 0; i < this.numTimesProduce; i++) {
-                    for (byte[] content : messageBodies) {
-                        if (limiter != null) {
-                            limiter.acquire();
-                        }
-
-                        producer.send(content);
-                        numMessagesSent++;
-                    }
+            for (int clientIdx = 0; clientIdx < numClients; clientIdx++) {
+                try {
+                    ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
+                    service.schedule(safeRun(() -> produceForever(topic)), 0, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    LOG.error("Error while producing messages");
+                    LOG.error(e.getMessage(), e);
+                    returnCode = -1;
+                } finally {
+                    LOG.info("{} messages successfully produced", numMessagesSent);
                 }
                 try {
-	                Thread.sleep(1000);
-	            } 
-                catch (Exception e) {
-		           LOG.error("Failed to sleep inside run()");
-	            }
+                    Thread.sleep(interProducerSleepMs);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
-
-
-
-            //client.close();
-        } catch (Exception e) {
-            LOG.error("Error while producing messages");
-            LOG.error(e.getMessage(), e);
-            returnCode = -1;
-        } finally {
-            LOG.info("{} messages successfully produced", numMessagesSent);
         }
-        */
-
-        //return returnCode;
+        while(true) {
+            try {
+                Thread.sleep(1);
+            } catch (Exception e) {
+                LOG.error("Error while sleeping after all producer threads have been created");
+            }
+        }
     }
- 
 }

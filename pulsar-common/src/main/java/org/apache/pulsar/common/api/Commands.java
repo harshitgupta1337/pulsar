@@ -423,6 +423,19 @@ public class Commands {
         return res;
     }
 
+    public static ByteBuf newCloseConsumer(long consumerId, long requestId, String nextBroker) {
+        CommandCloseConsumer.Builder closeConsumerBuilder = CommandCloseConsumer.newBuilder();
+        closeConsumerBuilder.setConsumerId(consumerId);
+        closeConsumerBuilder.setRequestId(requestId);
+        closeConsumerBuilder.setNextBroker(nextBroker);
+        CommandCloseConsumer closeConsumer = closeConsumerBuilder.build();
+        ByteBuf res = serializeWithSize(
+                BaseCommand.newBuilder().setType(Type.CLOSE_CONSUMER).setCloseConsumer(closeConsumer));
+        closeConsumerBuilder.recycle();
+        closeConsumer.recycle();
+        return res;
+    }
+
     public static ByteBuf newReachedEndOfTopic(long consumerId) {
         CommandReachedEndOfTopic.Builder reachedEndOfTopicBuilder = CommandReachedEndOfTopic.newBuilder();
         reachedEndOfTopicBuilder.setConsumerId(consumerId);
@@ -438,6 +451,19 @@ public class Commands {
         CommandCloseProducer.Builder closeProducerBuilder = CommandCloseProducer.newBuilder();
         closeProducerBuilder.setProducerId(producerId);
         closeProducerBuilder.setRequestId(requestId);
+        CommandCloseProducer closeProducer = closeProducerBuilder.build();
+        ByteBuf res = serializeWithSize(
+                BaseCommand.newBuilder().setType(Type.CLOSE_PRODUCER).setCloseProducer(closeProducerBuilder));
+        closeProducerBuilder.recycle();
+        closeProducer.recycle();
+        return res;
+    }
+
+    public static ByteBuf newCloseProducer(long producerId, long requestId, String nextBroker) {
+        CommandCloseProducer.Builder closeProducerBuilder = CommandCloseProducer.newBuilder();
+        closeProducerBuilder.setProducerId(producerId);
+        closeProducerBuilder.setRequestId(requestId);
+        closeProducerBuilder.setNextBroker(nextBroker);
         CommandCloseProducer closeProducer = closeProducerBuilder.build();
         ByteBuf res = serializeWithSize(
                 BaseCommand.newBuilder().setType(Type.CLOSE_PRODUCER).setCloseProducer(closeProducerBuilder));

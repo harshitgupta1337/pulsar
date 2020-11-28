@@ -68,6 +68,10 @@ public class ServiceConfiguration implements PulsarConfiguration {
     // Enable the WebSocket API service
     private boolean webSocketServiceEnabled = false;
 
+    private boolean proactiveLoadingEnabled = true;
+
+    private int numUnloadThreads = 16;
+
     // Flag to control features that are meant to be used when running in standalone mode
     private boolean isRunningStandalone = false;
 
@@ -518,6 +522,17 @@ public class ServiceConfiguration implements PulsarConfiguration {
     // Maximum number of thread pool threads for ledger offloading
     private int managedLedgerOffloadMaxThreads = 2;
 
+    /**** --- Cetus --- ****/
+    /****
+     *
+     *
+     *
+     ****/
+    
+    // Options - CentroidMin, CentroidSat, AllPairsMin 
+    private String cetusBrokerSelectionStrategy = "CentroidMin";
+    
+
     public String getZookeeperServers() {
         return zookeeperServers;
     }
@@ -613,6 +628,22 @@ public class ServiceConfiguration implements PulsarConfiguration {
 
     public void setNumIOThreads(int numIOThreads) {
         this.numIOThreads = numIOThreads;
+    }
+
+    public int getNumUnloadThreads() {
+        return numUnloadThreads;
+    }
+
+    public void setNumUnloadThreads(int num) {
+        this.numUnloadThreads = num;
+    }
+
+    public boolean isProactiveLoadingEnabled() {
+        return proactiveLoadingEnabled;
+    }
+
+    public void setProactiveLoadingEnabled(boolean proactiveLoadingEnabled) {
+        this.proactiveLoadingEnabled = proactiveLoadingEnabled;
     }
 
     public boolean isWebSocketServiceEnabled() {
@@ -1533,7 +1564,14 @@ public class ServiceConfiguration implements PulsarConfiguration {
     public void setReplicationProducerQueueSize(int replicationProducerQueueSize) {
         this.replicationProducerQueueSize = replicationProducerQueueSize;
     }
-    
+   
+    public String getCetusBrokerSelectionStrategy() {
+        return cetusBrokerSelectionStrategy;
+    }
+
+    public void setCetusBrokerSelectionStrategy(String cetusBrokerSelectionStrategy) {
+        this.cetusBrokerSelectionStrategy = cetusBrokerSelectionStrategy;
+    }
     @Deprecated
     public boolean isReplicationTlsEnabled() {
         return replicationTlsEnabled;

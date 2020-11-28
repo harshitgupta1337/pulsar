@@ -121,6 +121,8 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+
 import org.apache.pulsar.common.serf.SerfClient;
 
 import org.slf4j.Logger;
@@ -151,11 +153,12 @@ public class PulsarService implements AutoCloseable {
     public static final String COORDINATE_DATA_PATH = "/cetus/coordinate-data";
 
 
+    private final ScheduledExecutorService unloadExecutor;
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(20,
             new DefaultThreadFactory("pulsar"));
     private final ScheduledExecutorService cacheExecutor = Executors.newScheduledThreadPool(10,
             new DefaultThreadFactory("zk-cache-callback"));
-    private final OrderedExecutor orderedExecutor = OrderedExecutor.newBuilder().numThreads(8).name("pulsar-ordered")
+    private final OrderedExecutor orderedExecutor = OrderedExecutor.newBuilder().numThreads(32).name("pulsar-ordered")
             .build();
     private final ScheduledExecutorService loadManagerExecutor;
     private ScheduledExecutorService compactorExecutor;
@@ -228,6 +231,7 @@ public class PulsarService implements AutoCloseable {
 		this.shutdownService = new MessagingServiceShutdownHook(this);
 		this.loadManagerExecutor = Executors
 			.newSingleThreadScheduledExecutor(new DefaultThreadFactory("pulsar-load-manager"));
+        this.unloadExecutor = Executors.newScheduledThreadPool(config.getNumUnloadThreads(), new DefaultThreadFactory("unload-exec"));
 		this.functionWorkerService = functionWorkerService;
 		// Cetus Netowrk Coordinate Data
 		//this.cetusNetworkCoordinateData = new CetusNetworkCoordinateData();
@@ -249,15 +253,16 @@ public class PulsarService implements AutoCloseable {
 			LOG.info("Node Name: {}", this.nodeName);
 			br = new BufferedReader(new FileReader("/etc/outboundEthIp"));
 			this.serfBindIp = this.serfRpcIp = br.readLine();
-			this.serfBindPort = 8000;
-			this.serfRpcPort =  7374;
+			this.serfBindPort = 8085;
+			this.serfRpcPort =  7373;
 		}
 		catch (Exception e) {
 			LOG.info("Cannot setup serf!");
 		this.nodeName="n1";
 	}
 
-        this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
+        this.serfClient = new SerfClient(this.serfRpcIp, this.serfRpcPort, nodeName);
+        //this.serfClient = new SerfClient(SERF_RPC_IP, SERF_RPC_PORT, nodeName);
 
 
     }
@@ -341,6 +346,10 @@ public class PulsarService implements AutoCloseable {
             if (executor != null) {
                 executor.shutdown();
             }
+    
+            if (unloadExecutor != null) {
+                unloadExecutor.shutdown();
+            }
 
             orderedExecutor.shutdown();
             cacheExecutor.shutdown();
@@ -413,7 +422,12 @@ public class PulsarService implements AutoCloseable {
 
             this.offloader = createManagedLedgerOffloader(this.getConfiguration());
 
-            brokerService.start();
+            try {
+              brokerService.start();
+            } catch(Exception e) {
+                          LOG.error(e.getMessage(), e);
+                          throw new PulsarServerException(e);
+            }
 
             this.webService = new WebService(this);
             Map<String, Object> attributeMap = Maps.newHashMap();
@@ -479,7 +493,7 @@ public class PulsarService implements AutoCloseable {
                         //long loadSheddingInterval = TimeUnit.MINUTES
                                 //.toMillis(getConfiguration().getLoadBalancerSheddingIntervalMinutes());
                         // CETUS - update load shedding to happen more often
-                        long loadSheddingInterval = 1000;
+                        long loadSheddingInterval = 2500;
                         long resourceQuotaUpdateInterval = TimeUnit.MINUTES
                                 .toMillis(getConfiguration().getLoadBalancerResourceQuotaUpdateIntervalMinutes());
 
@@ -539,7 +553,7 @@ public class PulsarService implements AutoCloseable {
 
     // CETUS: Coordinate Collector Service start
     void startCoordinateCollectorService() {
-        int interval = 100;
+        int interval = 1500;
 
         cetusNetworkCoordinateCollectorService.scheduleAtFixedRate(safeRun(() -> updateCoordinates()),
                                                            0, interval, TimeUnit.MILLISECONDS);
@@ -792,6 +806,10 @@ public class PulsarService implements AutoCloseable {
 
     public ScheduledExecutorService getExecutor() {
         return executor;
+    }
+
+    public ScheduledExecutorService getUnloadExecutor() {
+        return unloadExecutor;
     }
 
     public ScheduledExecutorService getCacheExecutor() {
@@ -1136,14 +1154,26 @@ public class PulsarService implements AutoCloseable {
 
     public void writeCoordinateDataOnZookeeper() {
         try {
+            
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
             //LOG.info("Bundles: {}", cetusBrokerData.getBundleNetworkCoordinates());
+            
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
 
                 //LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
             }
-            getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
+            LOG.info("Cetus Broker Select Strategy: {} ", config.getCetusBrokerSelectionStrategy());
+            long initTs = System.currentTimeMillis();
+            if(config.getCetusBrokerSelectionStrategy().equals("CentroidSat") || config.getCetusBrokerSelectionStrategy().equals("CentroidMin")) {
+              CetusCentroidBrokerData cetusCentroidBrokerData = new CetusCentroidBrokerData(cetusBrokerData);
+              getZkClient().setData(zooKeeperPath, cetusCentroidBrokerData.getJsonBytes(), -1);
+            }
+            else {
+              getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
+            }
+            long finalTs = System.currentTimeMillis();
+            LOG.info("Writing CetusBrokerData to ZK took {} ms ", (finalTs - initTs));
             //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
             /*
@@ -1179,7 +1209,7 @@ public class PulsarService implements AutoCloseable {
                     }
                 });
             }*/
-        }
+          }
         catch (Exception e) {
             LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getBrokerZooKeeperPath(), e);
         } 

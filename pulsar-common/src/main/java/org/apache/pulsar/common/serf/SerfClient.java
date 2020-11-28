@@ -65,11 +65,14 @@ public class SerfClient {
     private SerfEndpoint ep;
     private Client client;
     private final String nodeName;
+    private final String rpcIpAddr;
     //private Query query;
 
     public SerfClient(String ip, long port, String nodeName)  {
         this.nodeName = nodeName;
+        this.rpcIpAddr = ip;
         try {
+            log.info("SERF CLIENT INIT : {} {} {} ", ip, port,  nodeName);
             ep = new SocketEndpoint(ip, (int) port);
             client = new Client(ep);
             client.handshake();
@@ -77,6 +80,14 @@ public class SerfClient {
         catch (Exception e) {
             log.warn("Cannot connect to serf!: {}", e);
         }
+    }
+
+    public String getNodeName() {
+        return this.nodeName;
+    }
+
+    public String getRpcIpAddr() {
+        return this.rpcIpAddr;
     }
 
     //private parseCoordinateResponse() { 

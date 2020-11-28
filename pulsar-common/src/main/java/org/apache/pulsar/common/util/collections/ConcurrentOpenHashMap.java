@@ -29,6 +29,10 @@ import java.util.function.Function;
 
 import com.google.common.collect.Lists;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 /**
  * Concurrent hash map
  *
@@ -38,7 +42,10 @@ import com.google.common.collect.Lists;
  * @param <V>
  */
 @SuppressWarnings("unchecked")
+
+
 public class ConcurrentOpenHashMap<K, V> {
+    private static final Logger log = LoggerFactory.getLogger(ConcurrentOpenHashMap.class);
 
     private static final Object EmptyKey = null;
     private static final Object DeletedKey = new Object();
@@ -243,7 +250,9 @@ public class ConcurrentOpenHashMap<K, V> {
         }
 
         V put(K key, V value, int keyHash, boolean onlyIfAbsent, Function<K, V> valueProvider) {
+            ////log.info("COHM {} : Before put writeLock()", this);
             long stamp = writeLock();
+            ////log.info("COHM {} : After put writeLock()", this);
             int bucket = signSafeMod(keyHash, capacity);
 
             // Remember where we find the first available spot
@@ -294,15 +303,19 @@ public class ConcurrentOpenHashMap<K, V> {
                         rehash();
                     } finally {
                         unlockWrite(stamp);
+                        ////log.info("COHM {} : After put unlock writeLock()", this);
                     }
                 } else {
                     unlockWrite(stamp);
+                    ////log.info("COHM {} : After put unlock writeLock()", this);
                 }
             }
         }
 
         private V remove(K key, Object value, int keyHash) {
+            ////log.info("COHM {} : Before remove writeLock()", this);
             long stamp = writeLock();
+            ////log.info("COHM {} : After remove writeLock()", this);
             int bucket = signSafeMod(keyHash, capacity);
 
             try {
@@ -337,11 +350,14 @@ public class ConcurrentOpenHashMap<K, V> {
 
             } finally {
                 unlockWrite(stamp);
+                ////log.info("COHM {} : After remove unlock writeLock()", this);
             }
         }
 
         void clear() {
+            ////log.info("COHM {} : Before clear writeLock()", this);
             long stamp = writeLock();
+            ////log.info("COHM {} : After clear writeLock()", this);
 
             try {
                 Arrays.fill(table, EmptyKey);
@@ -349,12 +365,12 @@ public class ConcurrentOpenHashMap<K, V> {
                 this.usedBuckets = 0;
             } finally {
                 unlockWrite(stamp);
+                ////log.info("COHM {} : After clear unlock writeLock()", this);
             }
         }
 
         public void forEach(BiConsumer<? super K, ? super V> processor) {
             long stamp = tryOptimisticRead();
-
             Object[] table = this.table;
             boolean acquiredReadLock = false;
 
@@ -362,8 +378,10 @@ public class ConcurrentOpenHashMap<K, V> {
 
                 // Validate no rehashing
                 if (!validate(stamp)) {
+                    ////log.info("COHM {} : Before readLock()", this);
                     // Fallback to read lock
                     stamp = readLock();
+                    //log.info("COHM {} : After readLock()", this);
                     acquiredReadLock = true;
                     table = this.table;
                 }
@@ -375,14 +393,16 @@ public class ConcurrentOpenHashMap<K, V> {
 
                     if (!acquiredReadLock && !validate(stamp)) {
                         // Fallback to acquiring read lock
+                        //log.info("COHM {} : Before readLock()", this);
                         stamp = readLock();
+                        //log.info("COHM {} : After readLock()", this);
                         acquiredReadLock = true;
 
                         storedKey = (K) table[bucket];
                         storedValue = (V) table[bucket + 1];
                     }
-
                     if (storedKey != DeletedKey && storedKey != EmptyKey) {
+                        //log.info("COHM {} : Accepting", this);
                         processor.accept(storedKey, storedValue);
                     }
                 }

@@ -198,7 +198,7 @@ public class NonPersistentTopic implements Topic {
     public void publishMessage(ByteBuf data, PublishContext callback) {
         callback.completed(null, 0L, 0L);
         ENTRIES_ADDED_COUNTER_UPDATER.incrementAndGet(this);
-
+       
         subscriptions.forEach((name, subscription) -> {
             ByteBuf duplicateBuffer = data.retainedDuplicate();
             Entry entry = create(0L, 0L, duplicateBuffer);
@@ -363,6 +363,7 @@ public class NonPersistentTopic implements Topic {
 
         NonPersistentSubscription subscription = subscriptions.computeIfAbsent(subscriptionName,
                 name -> new NonPersistentSubscription(this, subscriptionName));
+        log.info("Size of subscriptions after adding new subscription = {}", subscriptions.size());
 
         try {
             Consumer consumer = new Consumer(subscription, subType, topic, consumerId, priorityLevel, consumerName, 0, cnx,
@@ -401,6 +402,7 @@ public class NonPersistentTopic implements Topic {
     }
 
     void removeSubscription(String subscriptionName) {
+        log.info("DELETING SUBSCRIPTION {}", subscriptionName);
         subscriptions.remove(subscriptionName);
     }
 
@@ -499,6 +501,11 @@ public class NonPersistentTopic implements Topic {
      */
     @Override
     public CompletableFuture<Void> close() {
+        return this.close(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> close(String nextBroker) {
         CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
         lock.writeLock().lock();
@@ -517,11 +524,16 @@ public class NonPersistentTopic implements Topic {
         List<CompletableFuture<Void>> futures = Lists.newArrayList();
 
         replicators.forEach((cluster, replicator) -> futures.add(replicator.disconnect()));
-        producers.forEach(producer -> futures.add(producer.disconnect()));
-        subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        if (nextBroker != null) {
+            producers.forEach(producer -> futures.add(producer.disconnect(nextBroker)));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect(nextBroker)));
+        } else {
+            producers.forEach(producer -> futures.add(producer.disconnect()));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        }
 
         FutureUtil.waitForAll(futures).thenRun(() -> {
-            log.info("[{}] Topic closed", topic);
+            log.info("[{}] Topic closed w/ nextBroker : {}", topic, nextBroker);
             // unload topic iterates over topics map and removing from the map with the same thread creates deadlock.
             // so, execute it in different thread
             brokerService.executor().execute(() -> {

@@ -56,10 +56,17 @@ public class CoordinateUtil {
             sumsq += diff*diff;
         }
         
-        double rtt = Math.sqrt(sumsq); //+ coordinateA.getHeight() + coordinateB.getHeight();
+        System.out.println("Vector diff = "+sumsq);
+        if (Math.sqrt(sumsq) < 1E-6)
+            return 0;
+
+        double rtt = Math.sqrt(sumsq) + coordinateA.getHeight() + coordinateB.getHeight();
+
+        System.out.println("RTT after height addition = "+ rtt);
 
         double adjusted = rtt + coordinateA.getAdjustment() + coordinateB.getAdjustment();
 
+        System.out.println("adjustment = "+ adjusted);
         if(adjusted > 0.0) {
             rtt = adjusted;
         }

@@ -583,7 +583,7 @@ public class ServerCnx extends PulsarHandler {
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
                     //log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
-                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                         //log.info("Existing topic, name: {}",topic);
                         //log.info("Existing bundle, name: {}", bundle);
                     }
@@ -592,7 +592,7 @@ public class ServerCnx extends PulsarHandler {
                     }
                     else {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
-                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                         log.info("New Topic, name: {}", topic);
 
                     }
@@ -626,14 +626,14 @@ public class ServerCnx extends PulsarHandler {
                     double adjustment = commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getAdjustment();
                     //log.info("Adjustment: {}", adjustment);
                     if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(topic)) {
-                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                     }
                     else if (bundle.equals("")) { 
                         // Do nothing
                     }
                     else {
                         service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
-                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                        service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(i).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
 
                     }
                  }
@@ -670,7 +670,7 @@ public class ServerCnx extends PulsarHandler {
            //log.info("Adjustment: {}", adjustment);
 	       if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("producer")) {
                 if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {    
-                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                     //log.info("Existing topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
                     //log.info("Existing bundle, name: {}", bundle);
                 }
@@ -679,15 +679,14 @@ public class ServerCnx extends PulsarHandler {
                 }
                 else {
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
-                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("New topic, name: {} producerid: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId());
-                    log.info("New bundle, name: {}", bundle);
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putProducerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                    log.info("New topic: {} producerid: {} bundle : {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), bundle);
 
                 }
 	       }
            else if(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeType().equals("consumer")) {
                 if(service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().containsKey(bundle)) {
-                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
                     //log.info("Existing topic, name: {} consumerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
                     //log.info("Existing bundle, name: {}", bundle);
 
@@ -697,9 +696,8 @@ public class ServerCnx extends PulsarHandler {
                 }
                 else {
                     service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().put(bundle, new CetusNetworkCoordinateData(service.pulsar().getCetusBrokerData().getBrokerNwCoordinate()));
-                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
-                    log.info("New topic, name: {} producerid: {} adjustment: {}", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeId(), adjustment);
-                    log.info("New bundle, name: {}", bundle);
+                    service.pulsar().getCetusBrokerData().getBundleNetworkCoordinates().get(bundle).putConsumerCoordinate(commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), new NetworkCoordinate(valid, adjustment, error, height, coordinates));
+                    log.info("New topic: {} consumerid: {} adjustment: {} bundle {} ", topic, commandGetNetworkCoordinateResponse.getCoordinateInfo(0).getNodeName(), adjustment, bundle);
                 }
            }
            else {
@@ -1117,7 +1115,8 @@ public class ServerCnx extends PulsarHandler {
                             if (schema != null) {
                                 schemaVersionFuture = topic.addSchema(schema);
                             } else {
-                                schemaVersionFuture = topic.hasSchema().thenCompose((hasSchema) -> {
+                                /*schemaVersionFuture = topic.hasSchema().thenCompose((hasSchema) -> {
+                                        log.info("Done checking hasSchema for topic {}", topicName.toString());
                                         CompletableFuture<SchemaVersion> result = new CompletableFuture<>();
                                         if (hasSchema && schemaValidationEnforced) {
                                             result.completeExceptionally(new IncompatibleSchemaException(
@@ -1127,6 +1126,9 @@ public class ServerCnx extends PulsarHandler {
                                         }
                                         return result;
                                     });
+                                */
+                                schemaVersionFuture = new CompletableFuture<>();
+                                schemaVersionFuture.complete(SchemaVersion.Empty);
                             }
 
                             schemaVersionFuture.exceptionally(exception -> {
@@ -1578,21 +1580,34 @@ public class ServerCnx extends PulsarHandler {
     }
 
     public void closeProducer(Producer producer) {
+        this.closeProducer (producer, null);
+    }
+
+    public void closeProducer(Producer producer, String nextBroker) {
         // removes producer-connection from map and send close command to producer
         if (log.isDebugEnabled()) {
-            log.debug("[{}] Removed producer: {}", remoteAddress, producer);
+            log.debug("[{}] Removed producer: {} - for nextBroker : {}", remoteAddress, producer, nextBroker);
         }
         long producerId = producer.getProducerId();
         producers.remove(producerId);
         if (remoteEndpointProtocolVersion >= v5.getNumber()) {
-            ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L));
+            if (nextBroker != null)
+                ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L, nextBroker));
+            else
+                ctx.writeAndFlush(Commands.newCloseProducer(producerId, -1L));
+            log.info("Closing producer by ctx.writeAndFlush");
         } else {
+            log.info("Closing producer by close()");
             close();
         }
 
     }
 
     public void closeConsumer(Consumer consumer) {
+        this.closeConsumer(consumer, null);
+    }
+    
+    public void closeConsumer(Consumer consumer, String nextBroker) {
         // removes consumer-connection from map and send close command to consumer
         if (log.isDebugEnabled()) {
             log.debug("[{}] Removed consumer: {}", remoteAddress, consumer);
@@ -1600,7 +1615,10 @@ public class ServerCnx extends PulsarHandler {
         long consumerId = consumer.consumerId();
         consumers.remove(consumerId);
         if (remoteEndpointProtocolVersion >= v5.getNumber()) {
-            ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L));
+            if (nextBroker == null)
+                ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L));
+            else
+                ctx.writeAndFlush(Commands.newCloseConsumer(consumerId, -1L, nextBroker));
         } else {
             close();
         }

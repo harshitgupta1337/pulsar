@@ -104,7 +104,7 @@ class ConnectionHandler {
                 log.info("[{}] [{}] Ignoring reconnection request (state: {})", state.topic, state.getHandlerName(), state.getState());
                 return;
             }
-            long delayMs = backoff.next();
+            long delayMs = 0; //backoff.next();
             state.setState(State.Connecting);
             log.info("[{}] [{}] Closed connection {} -- Will try again in {} s", state.topic, state.getHandlerName(), cnx.channel(),
                     delayMs / 1000.0);

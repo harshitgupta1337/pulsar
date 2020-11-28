@@ -225,12 +225,16 @@ public class NonPersistentSubscription implements Subscription {
      */
     @Override
     public synchronized CompletableFuture<Void> disconnect() {
+        return this.disconnect(null);
+    }
+    
+    public synchronized CompletableFuture<Void> disconnect(String nextBroker) {
         CompletableFuture<Void> disconnectFuture = new CompletableFuture<>();
 
         // block any further consumers on this subscription
         IS_FENCED_UPDATER.set(this, TRUE);
 
-        (dispatcher != null ? dispatcher.close() : CompletableFuture.completedFuture(null)).thenCompose(v -> close())
+        (dispatcher != null ? dispatcher.close(nextBroker) : CompletableFuture.completedFuture(null)).thenCompose(v -> close())
                 .thenRun(() -> {
                     log.info("[{}][{}] Successfully disconnected and closed subscription", topicName, subName);
                     disconnectFuture.complete(null);

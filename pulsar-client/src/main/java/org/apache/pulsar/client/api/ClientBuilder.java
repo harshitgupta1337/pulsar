@@ -319,4 +319,11 @@ public interface ClientBuilder extends Cloneable {
 
     ClientBuilder setUseSerfCoordinates(boolean useSerfCoordinates);
 
+    ClientBuilder setUseNetworkCoordinateProxy(boolean useNcProxy);
+
+    ClientBuilder setEnableNextBrokerHint(boolean enableNextBrokerHint);
+
+    ClientBuilder setUpdateSerfGwSecs(int s);
+
+    ClientBuilder setSendCoordinateSecs(int sec);
 }

@@ -380,14 +380,39 @@ public class Namespaces extends NamespacesBase {
     }
 
     @PUT
-    @Path("/{property}/{cluster}/{namespace}/{bundle}/unload")
+    @Path("/{property}/{cluster}/{namespace}/{bundle}/proactivelyown")
+    @ApiOperation(hidden = true, value = "Unload a namespace bundle")
+    @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
+    public void proactivelyOwnNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
+            @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
+            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative,
+            @QueryParam("nextBroker") String nextBroker) {
+        log.info("proactivelyOwn in v1 Namespaces for bundle {}", bundleRange);
+        validateNamespaceName(property, cluster, namespace);
+        internalProactivelyOwnNamespaceBundle(bundleRange, nextBroker, authoritative);
+    }
+
+    @PUT
+    @Path("/{property}/{cluster}/{namespace}/{bundle}/unload_legacy")
     @ApiOperation(hidden = true, value = "Unload a namespace bundle")
     @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
     public void unloadNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
             @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
             @QueryParam("authoritative") @DefaultValue("false") boolean authoritative) {
+        unloadNamespaceBundle(property, cluster, namespace, bundleRange, authoritative, null);
+    }
+
+    @PUT
+    @Path("/{property}/{cluster}/{namespace}/{bundle}/unload")
+    @ApiOperation(hidden = true, value = "Unload a namespace bundle")
+    @ApiResponses(value = { @ApiResponse(code = 403, message = "Don't have admin permission") })
+    public void unloadNamespaceBundle(@PathParam("property") String property, @PathParam("cluster") String cluster,
+            @PathParam("namespace") String namespace, @PathParam("bundle") String bundleRange,
+            @QueryParam("authoritative") @DefaultValue("false") boolean authoritative,
+            @QueryParam("nextBroker") String nextBroker) {
+        log.info("nextBroker in v1 Namespaces = {}", nextBroker);
         validateNamespaceName(property, cluster, namespace);
-        internalUnloadNamespaceBundle(bundleRange, authoritative);
+        internalUnloadNamespaceBundle(bundleRange, authoritative, nextBroker);
     }
 
     @PUT
