@@ -522,6 +522,17 @@ public class ServiceConfiguration implements PulsarConfiguration {
     // Maximum number of thread pool threads for ledger offloading
     private int managedLedgerOffloadMaxThreads = 2;
 
+    /**** --- Cetus --- ****/
+    /****
+     *
+     *
+     *
+     ****/
+    
+    // Options - CentroidMin, CentroidSat, AllPairsMin 
+    private String cetusBrokerSelectionStrategy = "CentroidMin";
+    
+
     public String getZookeeperServers() {
         return zookeeperServers;
     }
@@ -1553,7 +1564,14 @@ public class ServiceConfiguration implements PulsarConfiguration {
     public void setReplicationProducerQueueSize(int replicationProducerQueueSize) {
         this.replicationProducerQueueSize = replicationProducerQueueSize;
     }
-    
+   
+    public String getCetusBrokerSelectionStrategy() {
+        return cetusBrokerSelectionStrategy;
+    }
+
+    public void setCetusBrokerSelectionStrategy(String cetusBrokerSelectionStrategy) {
+        this.cetusBrokerSelectionStrategy = cetusBrokerSelectionStrategy;
+    }
     @Deprecated
     public boolean isReplicationTlsEnabled() {
         return replicationTlsEnabled;

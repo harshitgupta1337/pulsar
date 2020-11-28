@@ -836,7 +836,13 @@ public class CetusPeriodicLoadManagerImpl implements CetusPeriodicLoadManager, Z
                 if (nextTargetBroker == null) return;
                 if (this.lastTargetBroker != null && this.lastTargetBroker.equals(nextTargetBroker)) return;
 
-                final Multimap<String, BrokerChange> bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData, conf, pulsar.getWebServiceAddress());
+                Multimap<String, BrokerChange> bundlesToUnload;
+                if(conf.getCetusBrokerSelectionStrategy().equals("AllPairsMain")) {
+                    bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
+                }
+                else {
+                    bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusCentroidBrokerDataMap(), conf, pulsar.getWebServiceAddress(), 0);
+                }
                 log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
                 String nextBroker = nextTargetBroker;

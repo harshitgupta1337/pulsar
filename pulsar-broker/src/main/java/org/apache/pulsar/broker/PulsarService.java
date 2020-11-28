@@ -121,6 +121,8 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+
 import org.apache.pulsar.common.serf.SerfClient;
 
 import org.slf4j.Logger;
@@ -420,7 +422,12 @@ public class PulsarService implements AutoCloseable {
 
             this.offloader = createManagedLedgerOffloader(this.getConfiguration());
 
-            brokerService.start();
+            try {
+              brokerService.start();
+            } catch(Exception e) {
+                          LOG.error(e.getMessage(), e);
+                          throw new PulsarServerException(e);
+            }
 
             this.webService = new WebService(this);
             Map<String, Object> attributeMap = Maps.newHashMap();
@@ -1147,15 +1154,24 @@ public class PulsarService implements AutoCloseable {
 
     public void writeCoordinateDataOnZookeeper() {
         try {
+            
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
             //LOG.info("Bundles: {}", cetusBrokerData.getBundleNetworkCoordinates());
+            
             for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
 
                 //LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
             }
+            LOG.info("Cetus Broker Select Strategy: {} ", config.getCetusBrokerSelectionStrategy());
             long initTs = System.currentTimeMillis();
-            getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
+            if(config.getCetusBrokerSelectionStrategy().equals("CentroidSat") || config.getCetusBrokerSelectionStrategy().equals("CentroidMin")) {
+              CetusCentroidBrokerData cetusCentroidBrokerData = new CetusCentroidBrokerData(cetusBrokerData);
+              getZkClient().setData(zooKeeperPath, cetusCentroidBrokerData.getJsonBytes(), -1);
+            }
+            else {
+              getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
+            }
             long finalTs = System.currentTimeMillis();
             LOG.info("Writing CetusBrokerData to ZK took {} ms ", (finalTs - initTs));
             //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
@@ -1193,7 +1209,7 @@ public class PulsarService implements AutoCloseable {
                     }
                 });
             }*/
-        }
+          }
         catch (Exception e) {
             LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getBrokerZooKeeperPath(), e);
         } 

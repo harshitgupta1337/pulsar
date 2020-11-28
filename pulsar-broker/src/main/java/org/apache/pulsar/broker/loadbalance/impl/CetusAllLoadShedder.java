@@ -38,10 +38,12 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
+import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.BrokerChange;
 import org.apache.pulsar.broker.namespace.NamespaceService;
 import org.apache.pulsar.broker.loadbalance.CetusLoadData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,8 +61,23 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
 
     private final Multimap<String, BrokerChange> selectedBundleCache = ArrayListMultimap.create();
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress) {
-        ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
+    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n) {
+        selectedBundleCache.clear();
+        log.info("ALL_LOAD_SHEDDER LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
+        log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());
+        log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
+        for(Map.Entry<String, CetusCentroidBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+            log.info("ALL_LOAD_SHEDDER Checking CetusBrokerData for broker {}", entry.getKey());
+            for(Map.Entry<String, NetworkCoordinate> topicEntry : entry.getValue().getBundleCentroidCoordinates().entrySet()) {
+                log.info("ALL_LOAD_SHEDDER Adding bundle {} on broker {} for load shedding", topicEntry.getKey(), entry.getKey());
+                selectedBundleCache.put(entry.getKey(), new BrokerChange(topicEntry.getKey(), null));
+            }
+        }
+        log.info("Load Shedding Completed");
+        return selectedBundleCache;
+    }
+
+    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
         selectedBundleCache.clear();
         log.info("ALL_LOAD_SHEDDER LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
         log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());

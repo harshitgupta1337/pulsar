@@ -44,6 +44,7 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
 import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
 import org.apache.pulsar.broker.loadbalance.BrokerChange;
 import org.apache.pulsar.broker.loadbalance.CetusLoadData;
@@ -192,6 +193,16 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
         return partitioningChange;
      }
 
+    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
+        return selectedBundleCache;
+    }
+
+    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n) {
+        return selectedBundleCache;
+    }
+
+
+    /*
     public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress) {
         ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
         LoadData loadData = cetusLoadData.getLoadData();
@@ -255,4 +266,5 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
         log.info("Load Shedding Completed");
         return selectedBundleCache;
     } 
+    */
 }
