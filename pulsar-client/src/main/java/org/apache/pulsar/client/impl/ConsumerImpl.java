@@ -318,7 +318,6 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
         if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
             coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), updateSerfGwMillis, updateSerfGwMillis, TimeUnit.MILLISECONDS);
         }
-        clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }
 
     public void updateSerfGateway() {
@@ -719,6 +718,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
                             if(this.closedTime != 0) {
                                 log.info("Adding client down time!: " ,(currentTs - closedTime));
                                 clientDownTimes.add(currentTs - closedTime);
+                                clientDownTimeLoggerService.schedule(safeRun(() -> writeDownTimes()), 0, TimeUnit.MILLISECONDS);
                             }
                         }
                     }

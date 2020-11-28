@@ -285,7 +285,6 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
         if(client.getConfiguration().isUseNetworkCoordinateProxy()) {
             coordinateProviderService.scheduleAtFixedRate(safeRun(() -> updateSerfGateway()), sendCoordinateMillis, sendCoordinateMillis, TimeUnit.MILLISECONDS);
         }
-        clientDownTimeLoggerService.scheduleAtFixedRate(safeRun(() -> writeDownTimes()), 5000, 5000, TimeUnit.MILLISECONDS);
     }
 
     public void writeDownTimes() {
@@ -1130,6 +1129,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 					if(this.closedTime != 0) {
 						log.info("Adding client down time!: {}" ,(currentTs - closedTime));
 						clientDownTimes.add(System.currentTimeMillis() - closedTime);
+                        clientDownTimeLoggerService.schedule(safeRun(() -> writeDownTimes()), 0, TimeUnit.MILLISECONDS);
 					}
 				}	
 			}
