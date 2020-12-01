@@ -41,9 +41,15 @@ public class CetusCentroidBrokerData extends JSONWritable {
     
     public CetusCentroidBrokerData(CetusBrokerData cetusBrokerData) {
         this.brokerNwCoordinate = cetusBrokerData.getBrokerNwCoordinate();
+        this.bundleCentroidCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
         for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) { 
           this.bundleCentroidCoordinates.put(topicEntry.getKey(), topicEntry.getValue().getProducerConsumerAvgCoordinate());
         }
+    }
+
+    public CetusCentroidBrokerData(CetusCentroidBrokerData cetusCentroidBrokerData) {
+        this.brokerNwCoordinate = cetusCentroidBrokerData.getBrokerNwCoordinate();
+        this.bundleCentroidCoordinates = cetusCentroidBrokerData.getBundleCentroidCoordinates();
     }
      
     public NetworkCoordinate getBrokerNwCoordinate() {
