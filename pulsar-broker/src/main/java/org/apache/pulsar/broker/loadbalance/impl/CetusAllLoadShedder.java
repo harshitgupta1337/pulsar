@@ -36,7 +36,7 @@ import org.apache.pulsar.broker.loadbalance.CetusBundleUnloadingStrategy;
 import org.apache.pulsar.common.util.CoordinateUtil;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusLatencyMonitoringData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
@@ -61,12 +61,12 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
 
     private final Multimap<String, BrokerChange> selectedBundleCache = ArrayListMultimap.create();
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n) {
+    public Multimap<String, BrokerChange> processCentroids(ConcurrentHashMap<String, CetusLatencyMonitoringData> brokerLatencyDataMap, ServiceConfiguration conf, String loadMgrAddress) {
         selectedBundleCache.clear();
         log.info("ALL_LOAD_SHEDDER LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
         log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());
-        log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
-        for(Map.Entry<String, CetusCentroidBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+        log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", brokerLatencyDataMap.entrySet());
+        for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
             log.info("ALL_LOAD_SHEDDER Checking CetusBrokerData for broker {}", entry.getKey());
             for(Map.Entry<String, NetworkCoordinate> topicEntry : entry.getValue().getBundleCentroidCoordinates().entrySet()) {
                 log.info("ALL_LOAD_SHEDDER Adding bundle {} on broker {} for load shedding", topicEntry.getKey(), entry.getKey());
@@ -77,12 +77,12 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
         return selectedBundleCache;
     }
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
+    public Multimap<String, BrokerChange> processAllPairs(ConcurrentHashMap<String, CetusLatencyMonitoringData> brokerLatencyDataMap, ServiceConfiguration conf, String loadMgrAddress) {
         selectedBundleCache.clear();
         log.info("ALL_LOAD_SHEDDER LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
         log.info("ALL_LOAD_SHEDDER SelectedBundleCache: {}", selectedBundleCache.toString());
-        log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
-        for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+        log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", brokerLatencyDataMap.entrySet());
+        for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
             log.info("ALL_LOAD_SHEDDER Checking CetusBrokerData for broker {}", entry.getKey());
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : entry.getValue().getBundleNetworkCoordinates().entrySet()) {
                 log.info("ALL_LOAD_SHEDDER Adding bundle {} on broker {} for load shedding", topicEntry.getKey(), entry.getKey());
@@ -91,5 +91,17 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
         }
         log.info("Load Shedding Completed");
         return selectedBundleCache;
+    }
+
+    public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress, String brokerSelStrategy) {
+        if (brokerSelStrategy.equals("CentroidMin"))
+            return processCentroids(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+        else if (brokerSelStrategy.equals("CentroidSat"))
+            return processCentroids(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+        else if (brokerSelStrategy.equals("AllPairsMin"))
+            return processAllPairs(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+        else {
+            throw new RuntimeException("Unsupported broker selection strategy "+brokerSelStrategy);
+        }
     } 
 }

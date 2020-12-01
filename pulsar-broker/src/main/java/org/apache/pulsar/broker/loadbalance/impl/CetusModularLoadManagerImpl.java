@@ -82,7 +82,7 @@ import org.apache.pulsar.common.util.ObjectMapperFactory;
 import org.apache.pulsar.broker.stats.prometheus.TopicMigrationStats;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
 import org.apache.pulsar.policies.data.loadbalancer.NamespaceBundleStats;
-import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusLatencyMonitoringData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.SystemResourceUsage;
 import org.apache.pulsar.zookeeper.ZooKeeperCache.Deserializer;
@@ -101,7 +101,7 @@ import org.apache.pulsar.common.util.CoordinateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusBrokerData> {
+public class CetusModularLoadManagerImpl implements CetusModularLoadManager, ZooKeeperCacheListener<CetusLatencyMonitoringData> {
   private static final Logger log = LoggerFactory.getLogger(CetusModularLoadManagerImpl.class);
 
   private static final java.util.logging.Logger bundleStatsLog = java.util.logging.Logger.getLogger(CetusModularLoadManagerImpl.class.getName());
@@ -141,7 +141,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
   private ZooKeeperDataCache<LocalBrokerData> brokerDataCache;
 
   // CETUS Zookeeper cache of the cetus broker data
-  private ZooKeeperDataCache<CetusBrokerData> cetusBrokerDataCache;
+  private ZooKeeperDataCache<CetusLatencyMonitoringData> cetusBrokerDataCache;
 
   // Broker host usage object used to calculate system resource usage.
   private BrokerHostUsage brokerHostUsage;
@@ -229,8 +229,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
   private static final Deserializer<LocalBrokerData> loadReportDeserializer = (key, content) -> jsonMapper()
     .readValue(content, LocalBrokerData.class);
 
-  private static final Deserializer<CetusBrokerData> cetusDeserializer = (key, content) -> jsonMapper()
-    .readValue(content, CetusBrokerData.class);
+  private static final Deserializer<CetusLatencyMonitoringData> cetusDeserializer = (key, content) -> jsonMapper()
+    .readValue(content, CetusLatencyMonitoringData.class);
 
   private String brokerSelectionStrategy;
 
@@ -309,13 +309,12 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     //brokerDataCache.registerListener(this);
 
-    cetusBrokerDataCache = new ZooKeeperDataCache<CetusBrokerData>(pulsar.getLocalZkCache()) {
+    cetusBrokerDataCache = new ZooKeeperDataCache<CetusLatencyMonitoringData>(pulsar.getLocalZkCache()) {
       @Override
-        public CetusBrokerData deserialize(String key, byte[] content) throws Exception {
-          return ObjectMapperFactory.getThreadLocal().readValue(content, CetusBrokerData.class);
+        public CetusLatencyMonitoringData deserialize(String key, byte[] content) throws Exception {
+          return ObjectMapperFactory.getThreadLocal().readValue(content, CetusLatencyMonitoringData.class);
         }
     };
-
 
     cetusBrokerDataCache.registerListener(this);
 
@@ -569,6 +568,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
   // Update both the broker data and the bundle data.
   public void updateAll() {
+      log.info("Updating broker and bundle data for loadreport");
     if (log.isDebugEnabled()) {
       log.debug("Updating broker and bundle data for loadreport");
     }
@@ -581,24 +581,24 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
   private void updateLatencyData() {
     final Set<String> activeBrokers = getAvailableBrokers();
-    //final ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
+    //final ConcurrentHashMap<String, CetusLatencyMonitoringData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerLatencyDataMap();
     //final ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap = cetusLoadData.getCetusBundleDataMap();
     for (String broker : activeBrokers) {
-      //log.info("Updating Latency Data : {}", broker);
+      log.info("Updating Latency Data : {}", broker);
       try {
         String key = String.format("%s/%s", CETUS_COORDINATE_DATA_ROOT, broker);
-        final CetusBrokerData cetusLocalData = cetusBrokerDataCache.get(key)
+        final CetusLatencyMonitoringData cetusLocalData = cetusBrokerDataCache.get(key)
           .orElseThrow(KeeperException.NoNodeException::new);
 
-        if(cetusLoadData.getCetusBrokerDataMap().containsKey(broker)) {
-          cetusLoadData.getCetusBrokerDataMap().put(broker, cetusLocalData);
+        if(cetusLoadData.getCetusBrokerLatencyDataMap().containsKey(broker)) {
+          cetusLoadData.getCetusBrokerLatencyDataMap().put(broker, cetusLocalData);
         }
         else {
           String[] brokerIp = broker.split(":");
           String serfString = String.format("%s:%s", brokerIp[0], pulsar.getSerfBindPort());
           log.info("Joining Serf Node: {}", serfString);
           pulsar.getSerfClient().joinNode(brokerIp[0]);
-          cetusLoadData.getCetusBrokerDataMap().put(broker, new CetusBrokerData(cetusLocalData)); 
+          cetusLoadData.getCetusBrokerLatencyDataMap().put(broker, new CetusLatencyMonitoringData(cetusLocalData)); 
         }
 
         // Clearing the cetusLoadData bundle data map
@@ -615,14 +615,11 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
             cetusLoadData.getCetusBundleDataMap().put(entry.getKey(), new CetusNetworkCoordinateData());
           }
         }
-        for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusLoadData.getCetusBrokerDataMap().get(broker).getBundleNetworkCoordinates().entrySet()) {
-          //log.info("Bundle: {} in Bundle Map. BrokerPath: {}", entry.getKey(), cetusBrokerZnodePath);
-        }
 
       }
       catch (NoNodeException ne){
         log.debug("Couldn't get broker data, removing from map: {}", ne);
-        cetusLoadData.getCetusBrokerDataMap().remove(broker);
+        cetusLoadData.getCetusBrokerLatencyDataMap().remove(broker);
         log.warn("[{}] broker load-report znode not present", broker, ne);
       } 
       catch (Exception e) {
@@ -631,9 +628,9 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
     }
     // Remove obsolete brokers.
-    for (final String broker : cetusLoadData.getCetusBrokerDataMap().keySet()) {
+    for (final String broker : cetusLoadData.getCetusBrokerLatencyDataMap().keySet()) {
       if (!activeBrokers.contains(broker)) {
-        cetusLoadData.getCetusBrokerDataMap().remove(broker);
+        cetusLoadData.getCetusBrokerLatencyDataMap().remove(broker);
       }
     }
   }
@@ -820,12 +817,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
       recentlyUnloadedBundles.keySet().removeIf(e -> recentlyUnloadedBundles.get(e) < timeout);
       Multimap<String, BrokerChange> bundlesToUnload;
-      if(conf.getCetusBrokerSelectionStrategy().equals("AllPairsMain")) {
-        bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusBrokerDataMap(), conf, pulsar.getWebServiceAddress());
-      }
-      else {
-        bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData.getCetusCentroidBrokerDataMap(), conf, pulsar.getWebServiceAddress(), 0);
-      }
+      bundlesToUnload = bundleUnloadingStrategy.findBundlesForUnloading(cetusLoadData, conf, pulsar.getWebServiceAddress(), conf.getCetusBrokerSelectionStrategy());
       log.info("Bundles to Unload: {}", bundlesToUnload.asMap());
 
       bundlesToUnload.asMap().forEach((broker, brokerChanges) -> {
@@ -941,7 +933,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
    * When the broker data ZooKeeper nodes are updated, update the broker data map.
    */
   @Override
-    public void onUpdate(final String path, final CetusBrokerData data, final Stat stat) {
+    public void onUpdate(final String path, final CetusLatencyMonitoringData data, final Stat stat) {
       if (!pulsar.getLeaderElectionService().isLeader()) {
         return;
       }
@@ -984,7 +976,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
 
       /* NOT SURE WHY THIS PIECE OF CODE WAS PRESENT
-         for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
+         for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : cetusLoadData.getCetusBrokerLatencyDataMap().entrySet()) {
          if (brokerEntry.getKey().contains("d0"))
          brokerCandidateCache.add(brokerEntry.getKey()); 
          }*/
@@ -1056,9 +1048,8 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
       return;
     }
 
-    log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerDataMap().size());
-    for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusLoadData.getCetusBrokerDataMap().entrySet()) {
-
+    log.info("Getting broker with least latency. Brokers to select from: {}", cetusLoadData.getCetusBrokerLatencyDataMap().size());
+    for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : cetusLoadData.getCetusBrokerLatencyDataMap().entrySet()) {
       if(cetusLoadData.getCetusBundleDataMap().containsKey(bundle)) {
         log.info("Attempting to find closer broker: {} Distance: {}", brokerEntry.getKey(), CoordinateUtil.calculateDistance(cetusLoadData.getCetusBundleDataMap().get(bundle).getProducerConsumerAvgCoordinate(), brokerEntry.getValue().getBrokerNwCoordinate()));
 
@@ -1306,7 +1297,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
    * 
    * @param initiatorBrokerData
    */
-  private void checkReassignmentForLatency(final CetusBrokerData initiatorBrokerData) {
+  private void checkReassignmentForLatency(final CetusLatencyMonitoringData initiatorBrokerData) {
     // currentBrokerNc <--- initiatorBrokerData.getBrokerNC()
 
     /**
@@ -1322,7 +1313,7 @@ public class CetusModularLoadManagerImpl implements CetusModularLoadManager, Zoo
 
   }
 
-  private void latencyStatsUpdated(final CetusBrokerData nwCoordData) {
+  private void latencyStatsUpdated(final CetusLatencyMonitoringData nwCoordData) {
     checkReassignmentForLatency(nwCoordData);
   }
 }

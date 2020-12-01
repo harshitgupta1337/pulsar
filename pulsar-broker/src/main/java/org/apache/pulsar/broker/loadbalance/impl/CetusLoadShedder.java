@@ -36,8 +36,7 @@ import org.apache.pulsar.broker.loadbalance.CetusBundleUnloadingStrategy;
 import org.apache.pulsar.common.util.CoordinateUtil;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusLatencyMonitoringData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.broker.loadbalance.CetusModularLoadManager;
@@ -61,81 +60,90 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
 
   private final Multimap<String, BrokerChange> selectedBundleCache = ArrayListMultimap.create();
 
-  public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
-    if(conf.getCetusBrokerSelectionStrategy().equals("AllPairsMin")) {
+  public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress, String brokerSelStrategy) {
+      if (brokerSelStrategy.equals("CentroidMin"))
+          return processCentroids(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+      else if (brokerSelStrategy.equals("CentroidSat"))
+          return processCentroids(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+      else if (brokerSelStrategy.equals("AllPairsMin"))
+          return processAllPairs(cetusLoadData.getCetusBrokerLatencyDataMap(), conf, loadMgrAddress);
+      else
+          throw new RuntimeException("Unsupported broker selection strategy "+brokerSelStrategy);
+  }
+
+  public Multimap<String, BrokerChange> processAllPairs(ConcurrentHashMap<String, CetusLatencyMonitoringData> brokerLatencyDataMap, ServiceConfiguration conf, String loadMgrAddress) {
       selectedBundleCache.clear();
-      for(Map.Entry<String, CetusBrokerData> entry : cetusBrokerDataMap.entrySet()) {
-        for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry: entry.getValue().getBundleNetworkCoordinates().entrySet()) {
-          double distToCurrBroker = topicEntry.getValue().distanceToBroker();
-          if (distToCurrBroker*1000.0 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
-            log.info("[Cetus Load Shedder] Latency bound violated for bundle {}. Dist to curr broker {} = {}", topicEntry.getKey(), entry.getKey(), distToCurrBroker);
-          }
-
-          boolean betterBrokerFound = false;
-          String betterBroker = null;
-          double max_broker_score = 0;
-
-          double total = 0;
-          double count = 0;
-          for(Map.Entry<String, NetworkCoordinate> producerCoordinate : topicEntry.getValue().getProducerCoordinates().entrySet()) {
-            for(Map.Entry<String, NetworkCoordinate> consumerCoordinate : topicEntry.getValue().getConsumerCoordinates().entrySet()) {
-              total += CoordinateUtil.calculateDistance(producerCoordinate.getValue(), entry.getValue().getBrokerNwCoordinate()) + CoordinateUtil.calculateDistance(consumerCoordinate.getValue(), entry.getValue().getBrokerNwCoordinate());
-              count += 1;
-            }
-          }
-
-          max_broker_score = total/count;
-
-          for(Map.Entry<String, CetusBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
-            if (brokerEntry.getKey().equals(entry.getKey())) 
-              continue;
-
-            if (brokerEntry.getKey().equals(loadMgrAddress.split("//")[1]))
-              continue;
-
-            double broker_score = 0;
-            total = 0;
-            count = 0;
-
-            for(Map.Entry<String, NetworkCoordinate> producerCoordinate : topicEntry.getValue().getProducerCoordinates().entrySet()) {
-              for(Map.Entry<String, NetworkCoordinate> consumerCoordinate : topicEntry.getValue().getConsumerCoordinates().entrySet()) {
-                total += CoordinateUtil.calculateDistance(producerCoordinate.getValue(), brokerEntry.getValue().getBrokerNwCoordinate()) + CoordinateUtil.calculateDistance(consumerCoordinate.getValue(), brokerEntry.getValue().getBrokerNwCoordinate());
-                count += 1;
+      for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
+          for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry: entry.getValue().getBundleNetworkCoordinates().entrySet()) {
+              double distToCurrBroker = topicEntry.getValue().distanceToBroker();
+              if (distToCurrBroker*1000.0 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
+                  log.info("[Cetus Load Shedder] Latency bound violated for bundle {}. Dist to curr broker {} = {}", topicEntry.getKey(), entry.getKey(), distToCurrBroker);
               }
-            }
 
-            broker_score = total/count;
-            if(broker_score > max_broker_score) {
-              betterBrokerFound = true;
-              betterBroker = brokerEntry.getKey();
-              max_broker_score = broker_score;
-            }
-          }          
-          if (betterBrokerFound && betterBroker != null) {
-            try {
-              selectedBundleCache.put(entry.getKey(), new BrokerChange(topicEntry.getKey(), betterBroker));
-            }
-            catch (Exception e) {
-              log.warn("Cannot find bundle!: {}", e);
-            } 
-          } else {
-            log.warn("[Cetus Load Shedder] Bundle {} is violated. But no other broker available. Sticking to bad broker", topicEntry.getKey());
+              boolean betterBrokerFound = false;
+              String betterBroker = null;
+              double max_broker_score = 0;
+
+              double total = 0;
+              double count = 0;
+              for(Map.Entry<String, NetworkCoordinate> producerCoordinate : topicEntry.getValue().getProducerCoordinates().entrySet()) {
+                  for(Map.Entry<String, NetworkCoordinate> consumerCoordinate : topicEntry.getValue().getConsumerCoordinates().entrySet()) {
+                      total += CoordinateUtil.calculateDistance(producerCoordinate.getValue(), entry.getValue().getBrokerNwCoordinate()) + CoordinateUtil.calculateDistance(consumerCoordinate.getValue(), entry.getValue().getBrokerNwCoordinate());
+                      count += 1;
+                  }
+              }
+
+              max_broker_score = total/count;
+
+              for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : brokerLatencyDataMap.entrySet()) {
+                  if (brokerEntry.getKey().equals(entry.getKey())) 
+                      continue;
+
+                  if (brokerEntry.getKey().equals(loadMgrAddress.split("//")[1]))
+                      continue;
+
+                  double broker_score = 0;
+                  total = 0;
+                  count = 0;
+
+                  for(Map.Entry<String, NetworkCoordinate> producerCoordinate : topicEntry.getValue().getProducerCoordinates().entrySet()) {
+                      for(Map.Entry<String, NetworkCoordinate> consumerCoordinate : topicEntry.getValue().getConsumerCoordinates().entrySet()) {
+                          total += CoordinateUtil.calculateDistance(producerCoordinate.getValue(), brokerEntry.getValue().getBrokerNwCoordinate()) + CoordinateUtil.calculateDistance(consumerCoordinate.getValue(), brokerEntry.getValue().getBrokerNwCoordinate());
+                          count += 1;
+                      }
+                  }
+
+                  broker_score = total/count;
+                  if(broker_score > max_broker_score) {
+                      betterBrokerFound = true;
+                      betterBroker = brokerEntry.getKey();
+                      max_broker_score = broker_score;
+                  }
+              }          
+              if (betterBrokerFound && betterBroker != null) {
+                  try {
+                      selectedBundleCache.put(entry.getKey(), new BrokerChange(topicEntry.getKey(), betterBroker));
+                  }
+                  catch (Exception e) {
+                      log.warn("Cannot find bundle!: {}", e);
+                  } 
+              } else {
+                  log.warn("[Cetus Load Shedder] Bundle {} is violated. But no other broker available. Sticking to bad broker", topicEntry.getKey());
+              }
           }
-        }
       }
-    }
 
-    log.info("Load Shedding Completed");
-    return selectedBundleCache;
+      log.info("Load Shedding Completed");
+      return selectedBundleCache;
   }
   
-  public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n) {
+  public Multimap<String, BrokerChange> processCentroids(ConcurrentHashMap<String, CetusLatencyMonitoringData> brokerLatencyDataMap, ServiceConfiguration conf, String loadMgrAddress) {
     if(conf.getCetusBrokerSelectionStrategy().equals("CentroidSat")) {
       selectedBundleCache.clear();
       log.info("LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
       log.info("SelectedBundleCache: {}", selectedBundleCache.toString());
-      log.info("Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
-      for(Map.Entry<String, CetusCentroidBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+      log.info("Finding Bundles to Unload: Brokers: {} ", brokerLatencyDataMap.entrySet());
+      for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
         for(Map.Entry<String, NetworkCoordinate> topicEntry : entry.getValue().getBundleCentroidCoordinates().entrySet()) {
           double distToCurrBroker = CoordinateUtil.calculateDistance(topicEntry.getValue(), entry.getValue().getBrokerNwCoordinate());
           if (distToCurrBroker*1000.0 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
@@ -143,7 +151,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
 
             boolean betterBrokerFound = false;
             String betterBroker = null;
-            for(Map.Entry<String, CetusCentroidBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
+            for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : brokerLatencyDataMap.entrySet()) {
               if (brokerEntry.getKey().equals(entry.getKey())) 
                 continue;
 
@@ -175,8 +183,8 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
       selectedBundleCache.clear();
       log.info("LOAD MANAGER ADDR : {}", loadMgrAddress.split("//")[1]);
       log.info("SelectedBundleCache: {}", selectedBundleCache.toString());
-      log.info("Finding Bundles to Unload: Brokers: {} ", cetusBrokerDataMap.entrySet());
-      for(Map.Entry<String, CetusCentroidBrokerData> entry : cetusBrokerDataMap.entrySet()) {
+      log.info("Finding Bundles to Unload: Brokers: {} ", brokerLatencyDataMap.entrySet());
+      for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
         for(Map.Entry<String, NetworkCoordinate> topicEntry : entry.getValue().getBundleCentroidCoordinates().entrySet()) {
           double distToCurrBroker = CoordinateUtil.calculateDistance(topicEntry.getValue(), entry.getValue().getBrokerNwCoordinate());
           if (distToCurrBroker*1000.0 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
@@ -185,7 +193,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
             boolean betterBrokerFound = false;
             double minBrokerLatency = CetusModularLoadManager.CETUS_LATENCY_BOUND_MS;
             String betterBroker = null;
-            for(Map.Entry<String, CetusCentroidBrokerData> brokerEntry : cetusBrokerDataMap.entrySet()) {
+            for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : brokerLatencyDataMap.entrySet()) {
               if (brokerEntry.getKey().equals(entry.getKey())) 
                 continue;
 

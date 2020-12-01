@@ -3,8 +3,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 import org.apache.pulsar.broker.BundleLatencyData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusLatencyMonitoringData;
 
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.broker.loadbalance.LoadData;
@@ -16,9 +15,7 @@ import org.apache.pulsar.broker.loadbalance.LoadData;
  */
 public class CetusLoadData {
 
-	private ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap;
-
-  private ConcurrentHashMap<String, CetusCentroidBrokerData> cetusCentroidBrokerDataMap;
+	private ConcurrentHashMap<String, CetusLatencyMonitoringData> cetusBrokerLatencyData;
 
     private ConcurrentHashMap<String, CetusNetworkCoordinateData> cetusBundleDataMap;
 
@@ -28,24 +25,18 @@ public class CetusLoadData {
      * Initialize a CetusLoadData.
      */
     public CetusLoadData() {
-        cetusBrokerDataMap = new ConcurrentHashMap<String, CetusBrokerData>(16,1);
-        cetusCentroidBrokerDataMap = new ConcurrentHashMap<String, CetusCentroidBrokerData>(16,1);
+        cetusBrokerLatencyData = new ConcurrentHashMap<String, CetusLatencyMonitoringData>(16,1);
         cetusBundleDataMap = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
         loadData = new LoadData();
     }
     
-    public ConcurrentHashMap<String, CetusBrokerData> getCetusBrokerDataMap() {
-    	return cetusBrokerDataMap;
+    public ConcurrentHashMap<String, CetusLatencyMonitoringData> getCetusBrokerLatencyDataMap() {
+    	return cetusBrokerLatencyData;
     }
 
      public ConcurrentHashMap<String, CetusNetworkCoordinateData> getCetusBundleDataMap() {
     	return cetusBundleDataMap;
     }
-
-    public ConcurrentHashMap<String, CetusCentroidBrokerData> getCetusCentroidBrokerDataMap() {
-    	return cetusCentroidBrokerDataMap;
-    }
-
 
     public LoadData getLoadData() {
         return loadData;

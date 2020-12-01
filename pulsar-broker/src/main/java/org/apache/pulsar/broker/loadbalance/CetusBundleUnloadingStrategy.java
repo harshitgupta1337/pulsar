@@ -36,14 +36,12 @@ public interface CetusBundleUnloadingStrategy {
     /**
      * Recommend that all of the returned bundles be unloaded.
      *
-     * @param cetusBrokerDataMap
-     *            The coordinate data to used to make the unloading decision.
+     * @param cetusLoadData 
+     *            The data structure containing latency and load data for all brokers and their bundles
      * @param conf
      *            The service configuration.
      * @return A map from all selected bundles to Pair(currBroker, nextCandidateBroker)
      */
-    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress);
-
-    Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n);
+    Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress, String brokerSelStrategy);
 
 }

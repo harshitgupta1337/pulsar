@@ -71,18 +71,19 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
 
     public Map<String, String> getCurrentTopicPartitioning(CetusLoadData cetusLoadData) {
         Map<String, String> p = new HashMap<>();
-        ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
+/*        ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
         for (String broker : cetusBrokerDataMap.keySet()) {
             CetusBrokerData brokerData = cetusBrokerDataMap.get(broker);
             for (String bundle : brokerData.getBundleNetworkCoordinates().keySet()) {
                 p.put(bundle, broker);
             }
-        }
+        }*/
         return p;
     }
 
     public Map<String, Double> getCurrentTopicRates(CetusLoadData cetusLoadData) {
         Map<String, Double> rates = new HashMap<>();
+/*
         LoadData loadData = cetusLoadData.getLoadData();
         for (String bundle : loadData.getBundleData().keySet()) {
             BundleData bundleData = loadData.getBundleData().get(bundle);
@@ -90,6 +91,7 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
             double tput = m.getMsgThroughputIn() + m.getMsgThroughputOut();
             rates.put(bundle, tput);
         }
+*/
         return rates;
     }
 
@@ -106,7 +108,7 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
 
     public Map<String, String> replaceTopics(List<Pair<String, String>> violatedTopics, CetusLoadData cetusLoadData, Map<String, String> currPartitioning, String loadMgrAddress, Map<String, Double> topicRates) {
         Map<String, String> partitioningChange = new HashMap<>(); // to store the new broker of violated topic
-
+        /*
         ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
         Map<String, List<String>> feasibleSetMap = new HashMap<>();
         List<Pair<String, Integer>> feasibleSetSizes = new ArrayList<>();
@@ -190,23 +192,15 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
                 break;
             }
         }
+        */
         return partitioningChange;
      }
 
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress) {
-        return selectedBundleCache;
-    }
-
-    public Multimap<String, BrokerChange> findBundlesForUnloading(ConcurrentHashMap<String, CetusCentroidBrokerData> cetusBrokerDataMap, ServiceConfiguration conf, String loadMgrAddress, int n) {
-        return selectedBundleCache;
-    }
-
-
-    /*
-    public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress) {
+    public Multimap<String, BrokerChange> findBundlesForUnloading(CetusLoadData cetusLoadData, ServiceConfiguration conf, String loadMgrAddress, String brokerSelStrategy) {
+        selectedBundleCache.clear();
+        /*
         ConcurrentHashMap<String, CetusBrokerData> cetusBrokerDataMap = cetusLoadData.getCetusBrokerDataMap();
         LoadData loadData = cetusLoadData.getLoadData();
-        selectedBundleCache.clear();
 
         // Step 0 (a) : Get the current topic partitioning
         Map<String, String> partitioning = getCurrentTopicPartitioning(cetusLoadData);
@@ -262,9 +256,9 @@ public class CetusLoadAwareShedder  implements CetusBundleUnloadingStrategy {
                 }
             }
         }
+        */
 
         log.info("Load Shedding Completed");
         return selectedBundleCache;
     } 
-    */
 }

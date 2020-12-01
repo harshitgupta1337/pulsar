@@ -121,7 +121,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.apache.pulsar.common.policies.data.NetworkCoordinate;
 import org.apache.pulsar.policies.data.loadbalancer.CetusNetworkCoordinateData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusBrokerData;
-import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusLatencyMonitoringData;
 
 import org.apache.pulsar.common.serf.SerfClient;
 
@@ -1154,64 +1154,29 @@ public class PulsarService implements AutoCloseable {
 
     public void writeCoordinateDataOnZookeeper() {
         try {
-            
             final String zooKeeperPath = getBrokerZooKeeperPath();
             createZPathIfNotExists(getZkClient(), zooKeeperPath);
-            //LOG.info("Bundles: {}", cetusBrokerData.getBundleNetworkCoordinates());
-            
-            for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
 
+            for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) {
                 //LOG.info("Writing Bundle in Cetus Broker Data {}", entry.getKey());
             }
-            LOG.info("Cetus Broker Select Strategy: {} ", config.getCetusBrokerSelectionStrategy());
+            LOG.info("Cetus Broker Select Strategy: XX{}XX ", config.getCetusBrokerSelectionStrategy());
             long initTs = System.currentTimeMillis();
-            if(config.getCetusBrokerSelectionStrategy().equals("CentroidSat") || config.getCetusBrokerSelectionStrategy().equals("CentroidMin")) {
-              CetusCentroidBrokerData cetusCentroidBrokerData = new CetusCentroidBrokerData(cetusBrokerData);
-              getZkClient().setData(zooKeeperPath, cetusCentroidBrokerData.getJsonBytes(), -1);
-            }
-            else {
-              getZkClient().setData(zooKeeperPath, this.cetusBrokerData.getJsonBytes(), -1);
-            }
+            boolean centroid = true;
+            if(config.getCetusBrokerSelectionStrategy().equals("CentroidSat") || config.getCetusBrokerSelectionStrategy().equals("CentroidMin")) 
+                centroid = true;
+            else
+                centroid = false;
+            CetusLatencyMonitoringData cetusLatencyMonitoringData = new CetusLatencyMonitoringData(cetusBrokerData, centroid);
+            getZkClient().setData(zooKeeperPath, cetusLatencyMonitoringData.getJsonBytes(), -1);
             long finalTs = System.currentTimeMillis();
             LOG.info("Writing CetusBrokerData to ZK took {} ms ", (finalTs - initTs));
             //LOG.info("Writing info to zookeeper: ZkPath {} TopicNetSize: {}", zooKeeperPath, cetusBrokerData.getBundleNetworkCoordinates().size());
             //LOG.info("Topic Producer Map Size Broker: {}", cetusBrokerData.getTopicNetworkCoordinates().get("non-persistent://prop/ns-abc/coordinateTopic").getProducerCoordinates().size());
-            /*
-            for(Map.Entry<String, CetusNetworkCoordinateData> entry : cetusBrokerData.getTopicNetworkCoordinates().entrySet()) {
-                final String topic = TopicName.get(entry.getKey()).getLookupName();
-                final CetusNetworkCoordinateData cetusNetworkCoordinateData = entry.getValue();
-                LOG.info("Writing coordinate data info to zookeeper: ProducerMap size {}", cetusNetworkCoordinateData.getProducerCoordinates().size());
-                final String topicZooKeeperPath = getTopicZooKeeperPath(topic);
-                createZPathIfNotExists(getZkClient(), topicZooKeeperPath);
-                getZkClient().setData(topicZooKeeperPath, cetusNetworkCoordinateData.getJsonBytes(), -1);
-                cetusNetworkCoordinateData.getProducerCoordinates().forEach((key, value) -> {
-                    final long producerId = key;
-                    final NetworkCoordinate coordinate = value;
-                    try {
-                        final String producerZooKeeperPath = getProducerZooKeeperPath(topic, producerId);
-                        createZPathIfNotExists(getZkClient(), producerZooKeeperPath);
-                        getZkClient().setData(producerZooKeeperPath, coordinate.getJsonBytes(), -1);
-                    }
-                    catch (Exception e) {
-                        LOG.warn("Error when writing data for producer {} to ZooKeeper: {}", producerId, e);
-                    }
-                });
-                cetusNetworkCoordinateData.getConsumerCoordinates().forEach((key, value) -> {
-                    final long consumerId = key;
-                    final NetworkCoordinate coordinate = value;
-                    try {
-                        final String consumerZooKeeperPath = getConsumerZooKeeperPath(topic, consumerId);
-                        createZPathIfNotExists(getZkClient(), consumerZooKeeperPath);
-                        getZkClient().setData(consumerZooKeeperPath, coordinate.getJsonBytes(), -1);
-                    }
-                    catch (Exception e) {
-                        LOG.warn("Error when writing data for consumer {} to ZooKeeper: {}", consumerId, e);
-                    }
-                });
-            }*/
-          }
+        }
         catch (Exception e) {
             LOG.warn("Error when writing data for broker {} to ZooKeeper: {}", getBrokerZooKeeperPath(), e);
+            e.printStackTrace();
         } 
     }
   
