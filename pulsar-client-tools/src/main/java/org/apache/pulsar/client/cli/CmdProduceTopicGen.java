@@ -199,7 +199,7 @@ public class CmdProduceTopicGen {
     }
     
     private String generateTopicName(int idx) {
-        String topicName = String.format("non-persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
+        String topicName = String.format("persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
         return topicName;
     }
     
