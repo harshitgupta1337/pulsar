@@ -51,6 +51,8 @@ public interface Dispatcher {
      */
     CompletableFuture<Void> close();
 
+    CompletableFuture<Void> close(String nextBroker);
+
     /**
      * disconnect all consumers
      *

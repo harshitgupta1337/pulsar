@@ -509,14 +509,17 @@ public class PersistentSubscription implements Subscription {
      */
     @Override
     public synchronized CompletableFuture<Void> disconnect() {
+        return this.disconnect(null);
+    }
+    public synchronized CompletableFuture<Void> disconnect(String nextBroker) {
         CompletableFuture<Void> disconnectFuture = new CompletableFuture<>();
 
         // block any further consumers on this subscription
         IS_FENCED_UPDATER.set(this, TRUE);
 
-        (dispatcher != null ? dispatcher.close() : CompletableFuture.completedFuture(null))
+        (dispatcher != null ? dispatcher.close(nextBroker) : CompletableFuture.completedFuture(null))
                 .thenCompose(v -> close()).thenRun(() -> {
-                    log.info("[{}][{}] Successfully disconnected and closed subscription", topicName, subName);
+                    log.info("[{}][{}] Successfully disconnected and closed subscription, with nextBroker = {}", topicName, subName, nextBroker);
                     disconnectFuture.complete(null);
                 }).exceptionally(exception -> {
                     IS_FENCED_UPDATER.set(this, FALSE);

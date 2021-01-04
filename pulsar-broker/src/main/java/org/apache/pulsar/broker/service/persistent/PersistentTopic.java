@@ -789,11 +789,6 @@ public class PersistentTopic implements Topic, AddEntryCallback {
         return deleteFuture;
     }
 
-    @Override
-    public CompletableFuture<Void> close(String nextBroker) {
-        return this.close();
-    }
-
     /**
      * Close this topic - close all producers and subscriptions associated with this topic
      *
@@ -801,6 +796,11 @@ public class PersistentTopic implements Topic, AddEntryCallback {
      */
     @Override
     public CompletableFuture<Void> close() {
+        return this.close(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> close(String nextBroker) {
         CompletableFuture<Void> closeFuture = new CompletableFuture<>();
 
         lock.writeLock().lock();
@@ -819,10 +819,16 @@ public class PersistentTopic implements Topic, AddEntryCallback {
         List<CompletableFuture<Void>> futures = Lists.newArrayList();
 
         replicators.forEach((cluster, replicator) -> futures.add(replicator.disconnect()));
-        producers.forEach(producer -> futures.add(producer.disconnect()));
-        subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        if (nextBroker != null) {
+            producers.forEach(producer -> futures.add(producer.disconnect(nextBroker)));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect(nextBroker)));
+        } else {
+            producers.forEach(producer -> futures.add(producer.disconnect()));
+            subscriptions.forEach((s, sub) -> futures.add(sub.disconnect()));
+        }
 
         FutureUtil.waitForAll(futures).thenRun(() -> {
+            log.info("[{}] Topic closed w/ nextBroker : {}", topic, nextBroker);
             // After having disconnected all producers/consumers, close the managed ledger
             ledger.asyncClose(new CloseCallback() {
                 @Override

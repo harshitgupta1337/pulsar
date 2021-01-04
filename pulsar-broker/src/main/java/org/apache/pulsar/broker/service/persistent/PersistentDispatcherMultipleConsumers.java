@@ -350,12 +350,31 @@ public class PersistentDispatcherMultipleConsumers  extends AbstractDispatcherMu
     }
 
     @Override
+    public CompletableFuture<Void> close(String nextBroker) {
+        IS_CLOSED_UPDATER.set(this, TRUE);
+        return disconnectAllConsumers(nextBroker);
+    }
+
+    @Override
     public synchronized CompletableFuture<Void> disconnectAllConsumers() {
         closeFuture = new CompletableFuture<>();
         if (consumerList.isEmpty()) {
             closeFuture.complete(null);
         } else {
             consumerList.forEach(Consumer::disconnect);
+            if (havePendingRead && cursor.cancelPendingReadRequest()) {
+                havePendingRead = false;
+            }
+        }
+        return closeFuture;
+    }
+
+    public synchronized CompletableFuture<Void> disconnectAllConsumers(String nextBroker) {
+        closeFuture = new CompletableFuture<>();
+        if (consumerList.isEmpty()) {
+            closeFuture.complete(null);
+        } else {
+            consumerList.forEach(c -> c.disconnect(nextBroker));
             if (havePendingRead && cursor.cancelPendingReadRequest()) {
                 havePendingRead = false;
             }
