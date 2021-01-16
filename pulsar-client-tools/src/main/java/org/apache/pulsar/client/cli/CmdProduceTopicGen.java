@@ -78,6 +78,9 @@ public class CmdProduceTopicGen {
     @Parameter(names = { "-ns", "--namespace" }, description = "Name of namespace (e.g. pulsar-cluster-1/cetus)")
     private String namespace = "pulsar-cluster-1/cetus";
     
+    @Parameter(names = { "--topic-persistence" }, description = "Topic persistence prefix")
+    private String topicPersistence = "persistent";
+
     @Parameter(names = { "-tp", "--topic-prefix" }, description = "Topic prefix (e.g. my-topic)")
     private String topicPrefix = "my-topic";
 
@@ -199,7 +202,7 @@ public class CmdProduceTopicGen {
     }
     
     private String generateTopicName(int idx) {
-        String topicName = String.format("persistent://public/%s/%s_%d", this.namespace, this.topicPrefix, idx);
+        String topicName = String.format("%s://public/%s/%s_%d", this.topicPersistence, this.namespace, this.topicPrefix, idx);
         return topicName;
     }
     
@@ -226,7 +229,6 @@ public class CmdProduceTopicGen {
         {
             topics[i] = String.format(generateTopicName(i));
         }
-        //String topic = this.mainOptions.get(0);
         int numMessagesSent = 0;
         int returnCode = 0;
 
@@ -260,7 +262,6 @@ public class CmdProduceTopicGen {
         {
             LOG.info("Running forever with no messages");
             try {
-                //String topic = this.mainOptions.get(0);
                 //PulsarClient client = clientBuilder.build();
                 //Producer<byte[]> producer = client.newProducer().topic(topic).create();
             }
