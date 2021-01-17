@@ -44,6 +44,7 @@ import org.apache.pulsar.broker.loadbalance.BrokerChange;
 import org.apache.pulsar.broker.namespace.NamespaceService;
 import org.apache.pulsar.broker.loadbalance.CetusLoadData;
 import org.apache.pulsar.policies.data.loadbalancer.CetusCentroidBrokerData;
+import org.apache.pulsar.policies.data.loadbalancer.CetusBundleCentroidMonitoringData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,7 @@ public class CetusAllLoadShedder  implements CetusBundleUnloadingStrategy {
         log.info("ALL_LOAD_SHEDDER Finding Bundles to Unload: Brokers: {} ", brokerLatencyDataMap.entrySet());
         for(Map.Entry<String, CetusLatencyMonitoringData> entry : brokerLatencyDataMap.entrySet()) {
             log.info("ALL_LOAD_SHEDDER Checking CetusBrokerData for broker {}", entry.getKey());
-            for(Map.Entry<String, NetworkCoordinate> topicEntry : entry.getValue().getBundleCentroidCoordinates().entrySet()) {
+            for(Map.Entry<String, CetusBundleCentroidMonitoringData> topicEntry : entry.getValue().getBundleCentroidData().entrySet()) {
                 log.info("ALL_LOAD_SHEDDER Adding bundle {} on broker {} for load shedding", topicEntry.getKey(), entry.getKey());
                 selectedBundleCache.put(entry.getKey(), new BrokerChange(topicEntry.getKey(), null));
             }

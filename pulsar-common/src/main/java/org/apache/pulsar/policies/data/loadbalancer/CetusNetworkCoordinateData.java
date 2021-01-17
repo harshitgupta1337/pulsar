@@ -23,6 +23,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,8 +45,6 @@ import org.apache.pulsar.policies.data.loadbalancer.JSONWritable;
 
 public class CetusNetworkCoordinateData {
     public static final Logger log = LoggerFactory.getLogger(CetusNetworkCoordinateData.class);
-
-    //private CetusBrokerData cetusBrokerData;
 
     private NetworkCoordinate brokerCoordinate;
 
@@ -87,14 +87,11 @@ public class CetusNetworkCoordinateData {
         return brokerCoordinate;
     }
 
-    
     public double getProducerConsumerCoordinateAvgValue() {
         double total = 0.0;
-        //producerCoordinates.forEach((producerId, coordinate) -> {
         for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
             total += entry.getValue().getCoordinateAvg();
         }
-        //consumerCoordinates.forEach((consumerId, coordinate) -> {
         for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
             total += entry.getValue().getCoordinateAvg();
         }
@@ -102,62 +99,68 @@ public class CetusNetworkCoordinateData {
         return (double) (total/(producerCoordinates.size() + consumerCoordinates.size()));
     }
 
-    public NetworkCoordinate getProducerConsumerAvgCoordinate() {
+    private NetworkCoordinate computeCentroid(List<NetworkCoordinate> coords) {
         double[] totalCoordinateVector = new double[8];
         double totalAdjustment = 0.0;
         double totalHeight = 0.0;
         double totalError = 0.0;
 
-        if(producerCoordinates.size() == 0 && consumerCoordinates.size() == 0)
+        int notValid = 0;
+        for(NetworkCoordinate nc : coords) {
+            if(nc.isValid()) {
+                double[] coordinateVector = nc.getCoordinateVector();
+                for(int i = 0; i < coordinateVector.length; i++) {
+                    totalCoordinateVector[i]+= coordinateVector[i];
+                }
+                totalAdjustment += nc.getAdjustment();
+                totalHeight += nc.getHeight();
+                totalError += nc.getError();
+            }
+            else {
+                notValid += 1;
+            }
+        }
+
+        if(coords.size() == 0 || notValid == coords.size())
         {
             double[] coordinateVector = new double[]{0,0,0,0,0,0,0,0};
             NetworkCoordinate coordinate = new NetworkCoordinate(false, totalAdjustment, totalHeight, totalError, coordinateVector);
             return coordinate;
         }
-        //producerCoordinates.forEach((producerId, coordinate) -> {
-        for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) {
-            double[] coordinateVector = entry.getValue().getCoordinateVector();
-            for(int i = 0; i < coordinateVector.length; i++) {
-                totalCoordinateVector[i]+= coordinateVector[i];
-            }
-            totalAdjustment += entry.getValue().getAdjustment();
-            totalHeight += entry.getValue().getHeight();
-            totalError += entry.getValue().getError();
-        }
-        //consumerCoordinates.forEach((consumerId, coordinate) -> {
-        int notValid = 0;
-        log.info("Producers: {}, Consumers: {}", producerCoordinates.size(), consumerCoordinates.size());
-        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) {
-            if(entry.getValue().isValid()) {
-                log.info("Consumer Value is valid");
-                double[] coordinateVector = entry.getValue().getCoordinateVector();
-                for(int i = 0; i < coordinateVector.length; i++) {
-                    totalCoordinateVector[i]+= coordinateVector[i];
-                }
-                totalAdjustment += entry.getValue().getAdjustment();
-                totalHeight += entry.getValue().getHeight();
-                totalError += entry.getValue().getError();
-            }
-            else {
-                log.info("Consumer value is INVALID");
-                notValid += 1;
-            }
-        }
 
         double[] avgCoordinateVector = new double[8];
         for(int i = 0; i < avgCoordinateVector.length; i++) {
-            avgCoordinateVector[i] = (totalCoordinateVector[i]/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
+            avgCoordinateVector[i] = (totalCoordinateVector[i]/(coords.size()));
         }
-        double avgAdjustment =  (totalAdjustment/(producerCoordinates.size() + consumerCoordinates.size() - notValid));
-        double avgHeight =  (totalHeight/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
-        double avgError =   (totalError/(producerCoordinates.size() + consumerCoordinates.size() + notValid));
+        double avgAdjustment = (totalAdjustment/coords.size());
+        double avgHeight = (totalHeight/coords.size());
+        double avgError = (totalError/coords.size());
         NetworkCoordinate avgCoordinate = new NetworkCoordinate(true, avgAdjustment, avgError, avgHeight, avgCoordinateVector);
-
-        log.info("Avg Coordinate: {} Adjustment {} Height {} Error {}", avgCoordinateVector, avgAdjustment, avgHeight, avgError);
-
         return avgCoordinate; 
     }
 
+    public NetworkCoordinate getProducerConsumerAvgCoordinate() {
+        List<NetworkCoordinate> coords = new ArrayList<NetworkCoordinate>();
+        for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) 
+            coords.add(entry.getValue());
+        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) 
+            coords.add(entry.getValue());
+        return computeCentroid(coords);
+    }
+
+    public NetworkCoordinate getProducerCentroid() {
+        List<NetworkCoordinate> coords = new ArrayList<NetworkCoordinate>();
+        for(Map.Entry<String, NetworkCoordinate> entry : producerCoordinates.entrySet()) 
+            coords.add(entry.getValue());
+        return computeCentroid(coords);
+    }
+
+    public NetworkCoordinate getConsumerCentroid() {
+        List<NetworkCoordinate> coords = new ArrayList<NetworkCoordinate>();
+        for(Map.Entry<String, NetworkCoordinate> entry : consumerCoordinates.entrySet()) 
+            coords.add(entry.getValue());
+        return computeCentroid(coords);
+    }
 
     public ConcurrentHashMap<String, NetworkCoordinate> getProducerCoordinates() {
         return producerCoordinates;

@@ -33,24 +33,24 @@ public class CetusLatencyMonitoringData extends JSONWritable {
 
     private NetworkCoordinate brokerNwCoordinate;
    
-    private ConcurrentHashMap<String, NetworkCoordinate> bundleCentroidCoordinates;
+    private ConcurrentHashMap<String, CetusBundleCentroidMonitoringData> bundleCentroidData;
 
     private ConcurrentHashMap<String, CetusNetworkCoordinateData> bundleNwCoordinates;
     
     public CetusLatencyMonitoringData() {
         this.brokerNwCoordinate = new NetworkCoordinate();
-        this.bundleCentroidCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
+        this.bundleCentroidData = new ConcurrentHashMap<String, CetusBundleCentroidMonitoringData>(16,1);
         this.bundleNwCoordinates = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
     }
     
     public CetusLatencyMonitoringData(CetusBrokerData cetusBrokerData, boolean centroid) {
         this.brokerNwCoordinate = cetusBrokerData.getBrokerNwCoordinate();
-        this.bundleCentroidCoordinates = new ConcurrentHashMap<String, NetworkCoordinate>(16,1);
+        this.bundleCentroidData = new ConcurrentHashMap<String, CetusBundleCentroidMonitoringData>(16,1);
         this.bundleNwCoordinates = new ConcurrentHashMap<String, CetusNetworkCoordinateData>(16,1);
 
         if (centroid) {
             for(Map.Entry<String, CetusNetworkCoordinateData> topicEntry : cetusBrokerData.getBundleNetworkCoordinates().entrySet()) { 
-                this.bundleCentroidCoordinates.put(topicEntry.getKey(), topicEntry.getValue().getProducerConsumerAvgCoordinate());
+                this.bundleCentroidData.put(topicEntry.getKey(), new CetusBundleCentroidMonitoringData(this.brokerNwCoordinate, topicEntry.getValue()));
             }
         } else {
             this.bundleNwCoordinates = cetusBrokerData.getBundleNetworkCoordinates();
@@ -59,7 +59,7 @@ public class CetusLatencyMonitoringData extends JSONWritable {
 
     public CetusLatencyMonitoringData(CetusLatencyMonitoringData cetusLatencyMonitoringData) {
         this.brokerNwCoordinate = cetusLatencyMonitoringData.getBrokerNwCoordinate();
-        this.bundleCentroidCoordinates = cetusLatencyMonitoringData.getBundleCentroidCoordinates();
+        this.bundleCentroidData = cetusLatencyMonitoringData.getBundleCentroidData();
         this.bundleNwCoordinates = cetusLatencyMonitoringData.getBundleNetworkCoordinates();
     }
      
@@ -71,12 +71,12 @@ public class CetusLatencyMonitoringData extends JSONWritable {
         this.brokerNwCoordinate = brokerNwCoordinate;
     }
 
-    public ConcurrentHashMap<String, NetworkCoordinate> getBundleCentroidCoordinates() {
-        return bundleCentroidCoordinates;
+    public ConcurrentHashMap<String, CetusBundleCentroidMonitoringData> getBundleCentroidData() {
+        return bundleCentroidData;
     }
 
-    public void setBundleCentroidCoordinates( ConcurrentHashMap<String, NetworkCoordinate> bundleCentroidCoordinates) {
-        this.bundleCentroidCoordinates = bundleCentroidCoordinates;
+    public void setBundleCentroidData( ConcurrentHashMap<String, CetusBundleCentroidMonitoringData> bundleCentroidData) {
+        this.bundleCentroidData = bundleCentroidData;
     }
     
     public ConcurrentHashMap<String, CetusNetworkCoordinateData> getBundleNetworkCoordinates() {
