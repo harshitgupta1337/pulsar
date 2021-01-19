@@ -68,6 +68,7 @@ public class CetusBundleCentroidMonitoringData extends JSONWritable {
         }
         this.centroidDevn += (maxDevn>=0)?maxDevn:0;
         this.worstCaseLatency += (maxBrokerDist>=0)?maxBrokerDist:0;
+        this.worstCaseLatency /= 2; // Converting to one-way latency instead of RTT
     }
 
     public CetusBundleCentroidMonitoringData (CetusBundleCentroidMonitoringData c) {

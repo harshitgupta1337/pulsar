@@ -150,7 +150,8 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
   private double computeApproxE2eLatency(NetworkCoordinate brokerNC, CetusBundleCentroidMonitoringData centroidData) {
     double prodDist = CoordinateUtil.calculateDistance(brokerNC, centroidData.producerCentroid);
     double consDist = CoordinateUtil.calculateDistance(brokerNC, centroidData.consumerCentroid);
-    return prodDist+consDist+centroidData.centroidDevn;
+    log.info("ProdDist = {}; ConsDist = {}; CentroidDevn = {}", prodDist, consDist, centroidData.centroidDevn);
+    return 1000*0.5*(prodDist+consDist+centroidData.centroidDevn);
   }
  
   public Multimap<String, BrokerChange> processCentroids(ConcurrentHashMap<String, CetusLatencyMonitoringData> brokerLatencyDataMap, ServiceConfiguration conf, String loadMgrAddress) {
@@ -175,9 +176,9 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                           if (brokerEntry.getKey().equals(loadMgrAddress.split("//")[1]))
                               continue;
 
-                          double distToOtherBroker = computeApproxE2eLatency(brokerEntry.getValue().getBrokerNwCoordinate(), topicEntry.getValue());
-                          log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}, current latency bound = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker*1000.0, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS);
-                          if (distToOtherBroker*1000.0 < CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
+                          double approxE2eLatency = computeApproxE2eLatency(brokerEntry.getValue().getBrokerNwCoordinate(), topicEntry.getValue());
+                          log.info("[Cetus Load Shedder] Approx E2E latency of bundle {} to broker {} = {}, current latency bound = {}", topicEntry.getKey(), brokerEntry.getKey(), approxE2eLatency, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS);
+                          if (approxE2eLatency < CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
                               betterBrokerFound = true;
                               betterBroker = brokerEntry.getKey();
                               break;
@@ -217,11 +218,11 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                           if (brokerEntry.getKey().equals(loadMgrAddress.split("//")[1]))
                               continue;
 
-                          double distToOtherBroker = computeApproxE2eLatency(brokerEntry.getValue().getBrokerNwCoordinate(), topicEntry.getValue());
-                          log.info("[Cetus Load Shedder] Distance of bundle {} to broker {} = {}, current latency bound = {}", topicEntry.getKey(), brokerEntry.getKey(), distToOtherBroker*1000.0, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS);
-                          if (distToOtherBroker*1000.0 < minBrokerLatency) {
+                          double approxE2eLatency = computeApproxE2eLatency(brokerEntry.getValue().getBrokerNwCoordinate(), topicEntry.getValue());
+                          log.info("[Cetus Load Shedder] Approx E2E latency of bundle {} to broker {} = {}, current latency bound = {}", topicEntry.getKey(), brokerEntry.getKey(), approxE2eLatency, CetusModularLoadManager.CETUS_LATENCY_BOUND_MS);
+                          if (approxE2eLatency < minBrokerLatency) {
                               betterBrokerFound = true;
-                              minBrokerLatency = distToOtherBroker*1000;
+                              minBrokerLatency = approxE2eLatency; 
                               betterBroker = brokerEntry.getKey();
                           }
                       }
