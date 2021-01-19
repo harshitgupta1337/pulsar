@@ -139,8 +139,10 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
   }
  
   private boolean isTopicViolated(CetusBundleCentroidMonitoringData centroidData) {
-    if (centroidData.worstCaseLatency*1000 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS)
+    if (centroidData.worstCaseLatency*1000 > CetusModularLoadManager.CETUS_LATENCY_BOUND_MS) {
+        log.info("Worst case latency = {}", centroidData.worstCaseLatency);
         return true;
+    } 
     else
         return false;
   }
@@ -206,7 +208,7 @@ public class CetusLoadShedder  implements CetusBundleUnloadingStrategy {
                       log.info("[Cetus Load Shedder] Latency bound violated for bundle {}. curr broker {}", topicEntry.getKey(), entry.getKey());
 
                       boolean betterBrokerFound = false;
-                      double minBrokerLatency = CetusModularLoadManager.CETUS_LATENCY_BOUND_MS;
+                      double minBrokerLatency = 100000; //CetusModularLoadManager.CETUS_LATENCY_BOUND_MS;
                       String betterBroker = null;
                       for(Map.Entry<String, CetusLatencyMonitoringData> brokerEntry : brokerLatencyDataMap.entrySet()) {
                           if (brokerEntry.getKey().equals(entry.getKey())) 

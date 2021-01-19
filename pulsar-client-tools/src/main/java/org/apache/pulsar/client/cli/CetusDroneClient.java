@@ -73,6 +73,9 @@ public class CetusDroneClient {
     @Parameter(names = { "-rf", "--run-forever" }, description = "set this flag to run forever" )
     boolean runEternally;
 
+    @Parameter(names = {"-s", "--message-size" }, description = "Msgs size in bytes")
+    int messageSize;
+
     @Parameter(names = {"-fr", "--follow-rate" }, description = "Msgs/sec published to follow leader topic")
     int followRate;
 
@@ -243,7 +246,7 @@ public class CetusDroneClient {
             if (isLeader) {
                 service.schedule(safeRun(() -> consumeMessages(detectionTopic)), 0, TimeUnit.MILLISECONDS);
             } else {
-                service.schedule(safeRun(() -> produceMessages(detectionTopic, 1000, detectionRate)), 0, TimeUnit.MILLISECONDS);
+                service.schedule(safeRun(() -> produceMessages(detectionTopic, messageSize, detectionRate)), 0, TimeUnit.MILLISECONDS);
             }
 
             try {
@@ -257,7 +260,7 @@ public class CetusDroneClient {
 
             String followLeaderTopic = generateFullTopicName("follow_leader_"+swarmId);
             if (isLeader) {
-                service2.schedule(safeRun(() -> produceMessages(followLeaderTopic, 1000, followRate)), 0, TimeUnit.MILLISECONDS);
+                service2.schedule(safeRun(() -> produceMessages(followLeaderTopic, messageSize, followRate)), 0, TimeUnit.MILLISECONDS);
             } else {
                 service2.schedule(safeRun(() -> consumeMessages(followLeaderTopic)), 0, TimeUnit.MILLISECONDS);
             }

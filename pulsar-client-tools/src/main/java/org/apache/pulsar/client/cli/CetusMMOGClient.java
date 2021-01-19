@@ -127,17 +127,14 @@ public class CetusMMOGClient {
                 assert (splits.length > 1);
                 int ts = Integer.parseInt(splits[0]);
                 List<Integer> groupMembers = new ArrayList<>();
-                System.out.print(ts);
+                //System.out.print(ts);
                 for (int idx = 1; idx < splits.length; idx++)  {
                     groupMembers.add(Integer.parseInt(splits[idx]));
-                    System.out.print("\t"+splits[idx]);
+                //    System.out.print("\t"+splits[idx]);
                 }
-                System.out.println();
+                //System.out.println();
                 this.groupChanges.add(new GroupChangeInfo(ts, groupMembers));
                 line = r.readLine();
-            }
-            for (int i = 0; i < this.groupChanges.size(); i++) {
-                System.out.println("DDGC "+this.groupChanges.get(i).respawnTime+"\t"+this.groupChanges.get(i).groupMembers.size());
             }
 
         } catch (IOException e) {
@@ -252,7 +249,7 @@ public class CetusMMOGClient {
                     long ts = System.currentTimeMillis() ;
                     String splits[] = output.split(" ");
                     long sentTs = Long.parseLong(splits[0]);
-                    System.out.println("E2E DELAY at "+sentTs+" = " + (ts - sentTs) + " ms");
+                    System.out.println("E2E DELAY for AOI_avatar "+aoiAvatarId+" at "+sentTs+" = " + (ts - sentTs) + " ms");
                     consumer.acknowledge(msg);
                 }
             }
@@ -303,10 +300,6 @@ public class CetusMMOGClient {
             ScheduledExecutorService serviceProd = Executors.newSingleThreadScheduledExecutor(new DefaultThreadFactory("clients"));
             String ownerTopic = generateFullTopicName("avatar_"+clientId);
             serviceProd.schedule(safeRun(() -> produceMessages(ownerTopic, messageSize, messageRate)), 0, TimeUnit.MILLISECONDS);
-
-            for (int i = 0; i < this.groupChanges.size(); i++) {
-                System.out.println("GC "+this.groupChanges.get(i).respawnTime);
-            }
 
             long initTs = System.currentTimeMillis();
             int idx = 0;
